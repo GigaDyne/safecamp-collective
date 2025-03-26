@@ -4,7 +4,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CampSite } from "@/hooks/useCampSites";
+import { CampSite } from "@/lib/supabase";
 import { createMapPinElement } from "./MapPin";
 import CampSiteCard from "./CampSiteCard";
 import { motion, AnimatePresence } from "framer-motion";

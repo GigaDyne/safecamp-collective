@@ -3,8 +3,6 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   supabase, 
-  CampSite, 
-  Review,
   mapSupabaseCampsite, 
   mapSupabaseReview, 
   formatReviewForSupabase,
@@ -15,6 +13,9 @@ import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
 import { mockCampSites } from "@/data/mockData";
 
+// Re-export types from Supabase lib to make them available to components
+export type { CampSite, Review } from "@/lib/supabase";
+
 // Local storage keys for fallback
 const REVIEWS_STORAGE_KEY = "campsite-reviews";
 const ANONYMOUS_AUTH_KEY = "anonymous_auth";
@@ -22,10 +23,10 @@ const ANONYMOUS_AUTH_KEY = "anonymous_auth";
 // Check if user is authenticated
 export const ensureAuthenticated = async () => {
   // Check if already authenticated
-  const { user, error } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
   
-  if (!error && user) {
-    return user;
+  if (!error && data.user) {
+    return data.user;
   }
   
   // Try to sign in with stored anonymous credentials
@@ -44,17 +45,17 @@ export const ensureAuthenticated = async () => {
   }
   
   // Create new anonymous user
-  const { data, error: signInError } = await signInAnonymously();
+  const { data: signInData, error: signInError } = await signInAnonymously();
   
   if (signInError) {
     throw new Error('Failed to authenticate anonymously');
   }
   
-  return data?.user;
+  return signInData?.user;
 };
 
 // Fetch campsites from Supabase
-const fetchCampSites = async (): Promise<CampSite[]> => {
+const fetchCampSites = async () => {
   try {
     // Ensure user is authenticated
     await ensureAuthenticated();
@@ -230,13 +231,15 @@ export function useCampSites() {
     staleTime: 5 * 60 * 1000, // Data remains fresh for 5 minutes
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
     retry: 1, // Only retry once
-    onError: (error) => {
-      toast({
-        title: "Error loading campsites",
-        description: "Failed to load campsites. Using offline data instead.",
-        variant: "destructive",
-      });
-      console.error('Error in useCampSites query:', error);
+    meta: { // Use meta for custom error handling in tanstack v5
+      onError: (error: any) => {
+        toast({
+          title: "Error loading campsites",
+          description: "Failed to load campsites. Using offline data instead.",
+          variant: "destructive",
+        });
+        console.error('Error in useCampSites query:', error);
+      }
     }
   });
 

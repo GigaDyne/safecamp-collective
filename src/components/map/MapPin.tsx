@@ -1,4 +1,3 @@
-
 import { MouseEvent as ReactMouseEvent } from "react";
 import { 
   Popover,
@@ -7,7 +6,7 @@ import {
 } from "@/components/ui/popover";
 import { Star, Wifi, Volume2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CampSite } from "@/hooks/useCampSites";
+import { CampSite } from "@/lib/supabase";
 
 interface MapPinProps {
   site: CampSite;
