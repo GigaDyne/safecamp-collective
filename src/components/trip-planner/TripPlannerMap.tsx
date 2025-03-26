@@ -26,6 +26,7 @@ interface TripPlannerMapProps {
   mapboxToken?: string;
   selectedStops: TripStop[];
   onAddToItinerary: (stop: TripStop) => void;
+  className?: string; // Add className prop
 }
 
 const TripPlannerMap = ({
@@ -35,7 +36,8 @@ const TripPlannerMap = ({
   mapboxToken,
   selectedStops,
   onAddToItinerary,
-  setTripStops
+  setTripStops,
+  className = '' // Add default empty string for className
 }: TripPlannerMapProps) => {
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
@@ -403,7 +405,7 @@ const TripPlannerMap = ({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="relative h-full w-full">
+      <ContextMenuTrigger className={`relative h-full w-full ${className}`}>
         <div 
           ref={mapContainer} 
           className="absolute inset-0" 
