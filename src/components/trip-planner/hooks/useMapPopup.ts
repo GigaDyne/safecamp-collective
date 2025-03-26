@@ -64,7 +64,8 @@ export const useMapPopup = ({
     
     const isAlreadyAdded = selectedStops.some(s => s.id === stop.id);
     
-    const { createPopupContent } = StopPopupContent({
+    // Create popup content using the utility function
+    const popupContent = StopPopupContent({
       stop,
       onAddToItinerary: (clickedStop) => {
         onAddToItinerary(clickedStop);
@@ -86,7 +87,7 @@ export const useMapPopup = ({
       maxWidth: '300px'
     })
       .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
-      .setDOMContent(createPopupContent())
+      .setDOMContent(popupContent.createPopupContent())
       .addTo(map.current);
     
     map.current.flyTo({
