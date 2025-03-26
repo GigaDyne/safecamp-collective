@@ -20,6 +20,7 @@ import { useMapPopup } from './hooks/useMapPopup';
 import { useCrimeData } from './hooks/useCrimeData';
 import { useCrimeLayer } from './hooks/useCrimeLayer';
 import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
+import CrimeDataTooltip from './map-components/CrimeDataTooltip';
 import {
   Dialog,
   DialogContent,
