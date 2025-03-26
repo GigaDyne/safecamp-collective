@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,13 +7,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/AuthProvider";
-import { LogOut, Mail, Shield, AlertTriangle, ArrowLeft, User, CreditCard, MessageSquare, DollarSign, Heart, Edit, Save, Image } from "lucide-react";
+import { LogOut, Mail, Shield, AlertTriangle, ArrowLeft, User, CreditCard, MessageSquare, DollarSign, Heart, Edit, Save, Upload, X } from "lucide-react";
 import { getUserProfile, updateUserProfile, getCreatorSubscriptionPlans, createSubscriptionPlan, getUserSubscriptions, getSubscribersForCreator, getProfileComments, addProfileComment } from "@/lib/community/api";
 import { UserProfile, SubscriptionPlan, UserSubscription, ProfileComment } from "@/lib/community/types";
 import { createCheckoutSession } from "@/lib/community/payment";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -26,6 +29,9 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   // Creator states
   const [isCreator, setIsCreator] = useState(false);
@@ -76,6 +82,7 @@ const ProfilePage = () => {
           setUserProfile(profile);
           setDisplayName(profile.display_name || "");
           setBio(profile.bio || "");
+          setAvatarUrl(profile.avatar_url);
           setIsCreator(profile.is_creator);
           
           // If user is creator, load their subscription plans and subscribers
@@ -100,21 +107,96 @@ const ProfilePage = () => {
       loadUserData();
     }
   }, [user?.id]);
+
+  // Handle avatar file change
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Avatar image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setAvatarFile(file);
+      // Create temp preview URL
+      const objectUrl = URL.createObjectURL(file);
+      setAvatarUrl(objectUrl);
+    }
+  };
+
+  // Handle uploading avatar to storage
+  const uploadAvatar = async (): Promise<string | null> => {
+    if (!avatarFile || !user?.id) return avatarUrl;
+    
+    setUploadingAvatar(true);
+    try {
+      // Create a unique file path for the avatar
+      const fileExt = avatarFile.name.split('.').pop();
+      const filePath = `avatars/${user.id}/${Date.now()}.${fileExt}`;
+      
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, avatarFile, {
+          upsert: true,
+        });
+      
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+      
+      return data.publicUrl;
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your avatar",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarUrl(null);
+    setAvatarFile(null);
+  };
   
   // Handle profile update
   const saveProfile = async () => {
     if (!user?.id || !userProfile) return;
     
     try {
+      // Upload avatar if there's a new file
+      let newAvatarUrl = avatarUrl;
+      if (avatarFile) {
+        newAvatarUrl = await uploadAvatar();
+        if (!newAvatarUrl) return; // Upload failed
+      }
+      
       const updatedProfile = await updateUserProfile({
         id: user.id,
         display_name: displayName,
         bio: bio,
+        avatar_url: newAvatarUrl,
         is_creator: isCreator
       });
       
       if (updatedProfile) {
         setUserProfile(updatedProfile);
+        setAvatarUrl(updatedProfile.avatar_url);
+        setAvatarFile(null);
         setIsEditing(false);
         toast({
           title: "Profile updated",
@@ -336,6 +418,43 @@ const ProfilePage = () => {
             <CardContent className="space-y-4">
               {isEditing ? (
                 <div className="space-y-4">
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="relative group">
+                      <Avatar className="h-24 w-24 mb-2">
+                        <AvatarImage src={avatarUrl || ""} alt={displayName} />
+                        <AvatarFallback className="text-lg">
+                          {displayName ? displayName.charAt(0).toUpperCase() : <User className="h-8 w-8" />}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <label 
+                          htmlFor="avatar-upload" 
+                          className="bg-primary/80 text-primary-foreground w-full h-full rounded-full flex items-center justify-center cursor-pointer"
+                        >
+                          <Upload className="h-6 w-6" />
+                          <span className="sr-only">Upload Avatar</span>
+                        </label>
+                        <input 
+                          id="avatar-upload" 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleAvatarChange}
+                        />
+                      </div>
+                    </div>
+                    {avatarUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleRemoveAvatar}
+                        className="mt-2"
+                      >
+                        <X className="h-4 w-4 mr-1" /> Remove
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Click the avatar to upload a new image</p>
+                  </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">Display Name</label>
                     <Input 
@@ -356,9 +475,21 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <span>{userProfile?.display_name || user?.email?.split('@')[0] || "User"}</span>
+                  <div className="flex flex-col items-center mb-4">
+                    <Avatar className="h-24 w-24 mb-2">
+                      <AvatarImage src={avatarUrl || ""} alt={userProfile?.display_name || "User"} />
+                      <AvatarFallback className="text-lg">
+                        {userProfile?.display_name ? userProfile.display_name.charAt(0).toUpperCase() : <User className="h-8 w-8" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <h3 className="text-lg font-medium">
+                      {userProfile?.display_name || user?.email?.split('@')[0] || "User"}
+                    </h3>
+                    {isCreator && (
+                      <span className="inline-flex items-center bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs mt-1">
+                        Creator
+                      </span>
+                    )}
                   </div>
                   
                   <div className="flex items-center space-x-2">
@@ -376,7 +507,7 @@ const ProfilePage = () => {
                   </div>
                   
                   {userProfile?.bio && (
-                    <div className="mt-4 text-sm">
+                    <div className="mt-4">
                       <h4 className="font-medium mb-1">About me:</h4>
                       <p className="text-muted-foreground">{userProfile.bio}</p>
                     </div>
@@ -402,7 +533,14 @@ const ProfilePage = () => {
                 <div className="flex space-x-2 w-full">
                   <Button 
                     variant="outline" 
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      setIsEditing(false);
+                      // Reset avatar if it was changed but not saved
+                      if (avatarFile) {
+                        setAvatarUrl(userProfile?.avatar_url || null);
+                        setAvatarFile(null);
+                      }
+                    }}
                     className="flex-1"
                   >
                     Cancel
@@ -410,8 +548,9 @@ const ProfilePage = () => {
                   <Button 
                     onClick={saveProfile}
                     className="flex-1"
+                    disabled={uploadingAvatar}
                   >
-                    <Save className="mr-2 h-4 w-4" /> Save
+                    {uploadingAvatar ? "Saving..." : <><Save className="mr-2 h-4 w-4" /> Save</>}
                   </Button>
                 </div>
               ) : (
@@ -691,3 +830,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+

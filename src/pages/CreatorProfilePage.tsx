@@ -151,7 +151,6 @@ export default function CreatorProfilePage() {
     );
   }
 
-  // If the profile exists but is not a creator, show an error
   if (!creatorProfile.is_creator) {
     return (
       <div className="container max-w-4xl mx-auto py-8 px-4 text-center">
@@ -183,10 +182,10 @@ export default function CreatorProfilePage() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex justify-center mb-2">
-                <Avatar className="h-20 w-20">
+                <Avatar className="h-24 w-24">
                   <AvatarImage src={creatorProfile.avatar_url || ""} alt={creatorProfile.display_name || "Creator"} />
-                  <AvatarFallback>
-                    <User className="h-8 w-8" />
+                  <AvatarFallback className="text-lg">
+                    {creatorProfile.display_name ? creatorProfile.display_name.charAt(0).toUpperCase() : <User className="h-8 w-8" />}
                   </AvatarFallback>
                 </Avatar>
               </div>
