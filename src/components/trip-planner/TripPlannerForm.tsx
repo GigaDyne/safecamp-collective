@@ -3,13 +3,13 @@ import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "@/hooks/useLocation";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { planTrip } from "@/lib/trip-planner/route-service";
 import { RouteData, TripStop } from "@/lib/trip-planner/types";
 import { Switch } from "@/components/ui/switch";
+import LocationAutocomplete from "./LocationAutocomplete";
 
 interface TripPlannerFormProps {
   setRouteData: (data: RouteData | null) => void;
@@ -27,7 +27,9 @@ const TripPlannerForm = ({
   const { toast } = useToast();
   const { location, getLocation } = useLocation();
   const [startLocation, setStartLocation] = useState("");
+  const [startCoordinates, setStartCoordinates] = useState("");
   const [endLocation, setEndLocation] = useState("");
+  const [endCoordinates, setEndCoordinates] = useState("");
   const [bufferDistance, setBufferDistance] = useState(20); // miles
   const [includeCampsites, setIncludeCampsites] = useState(true);
   const [includeGasStations, setIncludeGasStations] = useState(true);
@@ -38,7 +40,9 @@ const TripPlannerForm = ({
     try {
       const coords = await getLocation();
       if (coords) {
-        setStartLocation(`${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`);
+        const coordString = `${coords.longitude.toFixed(6)},${coords.latitude.toFixed(6)}`;
+        setStartLocation("Current Location");
+        setStartCoordinates(coordString);
         toast({
           title: "Success",
           description: "Current location set as starting point",
@@ -53,8 +57,18 @@ const TripPlannerForm = ({
     }
   };
 
+  const handleStartLocationSelect = (location: { placeName: string; coordinates: string }) => {
+    setStartLocation(location.placeName);
+    setStartCoordinates(location.coordinates);
+  };
+
+  const handleEndLocationSelect = (location: { placeName: string; coordinates: string }) => {
+    setEndLocation(location.placeName);
+    setEndCoordinates(location.coordinates);
+  };
+
   const handlePlanTrip = async () => {
-    if (!startLocation || !endLocation) {
+    if ((!startLocation && !startCoordinates) || (!endLocation && !endCoordinates)) {
       toast({
         title: "Missing information",
         description: "Please enter both start and end locations",
@@ -66,9 +80,13 @@ const TripPlannerForm = ({
     setIsLoading(true);
     
     try {
+      // Use coordinates if available, otherwise use the location name
+      const start = startCoordinates || startLocation;
+      const end = endCoordinates || endLocation;
+      
       const result = await planTrip({
-        startLocation,
-        endLocation,
+        startLocation: start,
+        endLocation: end,
         bufferDistance,
         includeCampsites,
         includeGasStations,
@@ -102,32 +120,23 @@ const TripPlannerForm = ({
       <div className="space-y-3">
         <div className="space-y-2">
           <Label htmlFor="start">Starting Point</Label>
-          <div className="flex gap-2">
-            <Input
-              id="start"
-              placeholder="Address, city, or coordinates"
-              value={startLocation}
-              onChange={(e) => setStartLocation(e.target.value)}
-              className="flex-1"
-            />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleUseCurrentLocation}
-              title="Use current location"
-            >
-              <MapPin className="h-4 w-4" />
-            </Button>
-          </div>
+          <LocationAutocomplete
+            placeholder="Address, city, or coordinates"
+            value={startLocation}
+            onChange={setStartLocation}
+            onLocationSelect={handleStartLocationSelect}
+            icon={<MapPin className="h-4 w-4" />}
+            onIconClick={handleUseCurrentLocation}
+          />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="end">Destination</Label>
-          <Input
-            id="end"
+          <LocationAutocomplete
             placeholder="Address, city, or coordinates"
             value={endLocation}
-            onChange={(e) => setEndLocation(e.target.value)}
+            onChange={setEndLocation}
+            onLocationSelect={handleEndLocationSelect}
           />
         </div>
       </div>
@@ -200,7 +209,7 @@ const TripPlannerForm = ({
       <Button 
         onClick={handlePlanTrip} 
         className="w-full"
-        disabled={isLoading || !startLocation || !endLocation}
+        disabled={isLoading || (!startLocation && !startCoordinates) || (!endLocation && !endCoordinates)}
       >
         {isLoading ? (
           <>
