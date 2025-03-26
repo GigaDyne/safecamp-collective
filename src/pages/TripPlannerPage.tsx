@@ -25,34 +25,13 @@ const TripPlannerPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
-  const [mapboxToken, setMapboxToken] = useState(() => localStorage.getItem("mapbox_token") || "");
+  
+  // Use the hardcoded Mapbox token
+  const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
+  
   const { toast } = useToast();
 
-  // Check for token on component mount and show dialog if missing
-  useEffect(() => {
-    if (!mapboxToken) {
-      setShowTokenDialog(true);
-    }
-  }, [mapboxToken]);
-
-  const handleSaveToken = () => {
-    if (tokenInput.trim()) {
-      localStorage.setItem("mapbox_token", tokenInput.trim());
-      setMapboxToken(tokenInput.trim());
-      setShowTokenDialog(false);
-      toast({
-        title: "Success",
-        description: "Mapbox token saved successfully",
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Please enter a valid Mapbox token",
-        variant: "destructive",
-      });
-    }
-  };
-
+  // Remove token dialog logic since we're using a hardcoded token
   return (
     <div className="relative h-screen flex flex-col">
       {/* Header */}
@@ -68,14 +47,6 @@ const TripPlannerPage = () => {
           </Button>
           <h1 className="text-xl font-semibold">Trip Planner</h1>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowTokenDialog(true)}
-          className="text-primary-foreground hover:bg-primary/80"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row h-full overflow-hidden">
@@ -106,37 +77,6 @@ const TripPlannerPage = () => {
           />
         </div>
       </div>
-
-      {/* Dialog for entering Mapbox token */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Mapbox Token Required</DialogTitle>
-            <DialogDescription>
-              A Mapbox token is required for the Trip Planner to work properly. You can get a free token from <a href="https://mapbox.com/" className="text-primary underline" target="_blank" rel="noopener noreferrer">mapbox.com</a>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Enter your Mapbox token"
-              className="w-full"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              This token will be stored in your browser's local storage.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => navigate(-1)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveToken}>
-              Save Token
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
