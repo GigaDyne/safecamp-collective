@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +36,9 @@ const TripPlannerForm = ({
   const [includeGasStations, setIncludeGasStations] = useState(true);
   const [includeWaterStations, setIncludeWaterStations] = useState(true);
   const [includeDumpStations, setIncludeDumpStations] = useState(true);
+  const [includeWalmarts, setIncludeWalmarts] = useState(false);
+  const [includePropaneStations, setIncludePropaneStations] = useState(false);
+  const [includeRepairShops, setIncludeRepairShops] = useState(false);
 
   const handleUseCurrentLocation = async () => {
     try {
@@ -91,7 +93,6 @@ const TripPlannerForm = ({
     setIsLoading(true);
     
     try {
-      // Use coordinates if available, otherwise use the location name
       const start = startCoordinates || startLocation;
       const end = endCoordinates || endLocation;
       
@@ -103,7 +104,10 @@ const TripPlannerForm = ({
         includeGasStations,
         includeWaterStations,
         includeDumpStations,
-        mapboxToken // Pass the token to the planTrip function
+        includeWalmarts,
+        includePropaneStations,
+        includeRepairShops,
+        mapboxToken
       });
       
       setRouteData(result.routeData);
@@ -173,49 +177,87 @@ const TripPlannerForm = ({
       
       <div className="space-y-2">
         <h3 className="text-sm font-medium">Include:</h3>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-campsites" className="flex items-center gap-2">
-              Campsites
-            </Label>
-            <Switch 
-              id="include-campsites" 
-              checked={includeCampsites}
-              onCheckedChange={setIncludeCampsites}
-            />
+        
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-campsites" className="flex items-center gap-2">
+                Campsites
+              </Label>
+              <Switch 
+                id="include-campsites" 
+                checked={includeCampsites}
+                onCheckedChange={setIncludeCampsites}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-gas" className="flex items-center gap-2">
+                Gas Stations
+              </Label>
+              <Switch 
+                id="include-gas" 
+                checked={includeGasStations}
+                onCheckedChange={setIncludeGasStations}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-water" className="flex items-center gap-2">
+                Water Stations
+              </Label>
+              <Switch 
+                id="include-water" 
+                checked={includeWaterStations}
+                onCheckedChange={setIncludeWaterStations}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-dump" className="flex items-center gap-2">
+                Dump Stations
+              </Label>
+              <Switch 
+                id="include-dump" 
+                checked={includeDumpStations}
+                onCheckedChange={setIncludeDumpStations}
+              />
+            </div>
           </div>
           
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-gas" className="flex items-center gap-2">
-              Gas Stations
-            </Label>
-            <Switch 
-              id="include-gas" 
-              checked={includeGasStations}
-              onCheckedChange={setIncludeGasStations}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-water" className="flex items-center gap-2">
-              Water Refill Stations
-            </Label>
-            <Switch 
-              id="include-water" 
-              checked={includeWaterStations}
-              onCheckedChange={setIncludeWaterStations}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-dump" className="flex items-center gap-2">
-              Dump Stations
-            </Label>
-            <Switch 
-              id="include-dump" 
-              checked={includeDumpStations}
-              onCheckedChange={setIncludeDumpStations}
-            />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-walmart" className="flex items-center gap-2">
+                Walmarts
+              </Label>
+              <Switch 
+                id="include-walmart" 
+                checked={includeWalmarts}
+                onCheckedChange={setIncludeWalmarts}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-propane" className="flex items-center gap-2">
+                Propane Stations
+              </Label>
+              <Switch 
+                id="include-propane" 
+                checked={includePropaneStations}
+                onCheckedChange={setIncludePropaneStations}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="include-repair" className="flex items-center gap-2">
+                Repair Shops
+              </Label>
+              <Switch 
+                id="include-repair" 
+                checked={includeRepairShops}
+                onCheckedChange={setIncludeRepairShops}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -1,19 +1,16 @@
-
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Loader2, Plus, MapPin, Info } from "lucide-react";
+import { Loader2, Plus, MapPin, Info, ShoppingCart, Flame, Wrench } from "lucide-react";
 import { TripStop, RouteData } from "@/lib/trip-planner/types";
 import { createMapPinElement } from "@/components/map/MapPin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-// Utility function to create custom markers for different stop types
 const createStopMarker = (type: string, safetyRating = 3, isSelected = false) => {
   const el = document.createElement('div');
   el.className = 'marker-element';
   
-  // Add a class if the stop is selected for styling
   if (isSelected) {
     el.classList.add('selected-stop');
   }
@@ -35,6 +32,21 @@ const createStopMarker = (type: string, safetyRating = 3, isSelected = false) =>
     case 'dump':
       el.innerHTML = `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 text-white shadow-md border-2 ${isSelected ? 'border-yellow-400 scale-125' : 'border-white'}">
                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                      </div>`;
+      break;
+    case 'walmart':
+      el.innerHTML = `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white shadow-md border-2 ${isSelected ? 'border-yellow-400 scale-125' : 'border-white'}">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 10 5-6 5 6"/><path d="m18 10-5-6-5 6"/><path d="M12 10v6"/><path d="M2 14h12a2 2 0 0 1 2 2c0 1 .5 3 2 3a1 1 0 0 0 1-1"/></svg>
+                      </div>`;
+      break;
+    case 'propane':
+      el.innerHTML = `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500 text-white shadow-md border-2 ${isSelected ? 'border-yellow-400 scale-125' : 'border-white'}">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c0-2.76-1.11-5.24-2.88-7L12 3l2.88 2c-1.77 1.76-2.88 4.24-2.88 7z"/><path d="M12 12c0 2.76 1.11 5.24 2.88 7L12 21l-2.88-2c1.77-1.76 2.88-4.24 2.88-7z"/><path d="M20 12h-4"/><path d="M4 12h4"/></svg>
+                      </div>`;
+      break;
+    case 'repair':
+      el.innerHTML = `<div class="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-700 text-white shadow-md border-2 ${isSelected ? 'border-yellow-400 scale-125' : 'border-white'}">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                       </div>`;
       break;
     default:
@@ -73,7 +85,6 @@ const TripPlannerMap = ({
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
     if (!mapboxToken) {
@@ -87,7 +98,7 @@ const TripPlannerMap = ({
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-97.9222, 39.3820], // Center of USA
+        center: [-97.9222, 39.3820],
         zoom: 3
       });
 
@@ -111,7 +122,6 @@ const TripPlannerMap = ({
     };
   }, [mapboxToken]);
 
-  // Update map when route data changes
   useEffect(() => {
     if (!map.current || !routeData) return;
 
@@ -121,53 +131,43 @@ const TripPlannerMap = ({
         return;
       }
 
-      // Add the route to the map
       if (!routeSourceAdded.current) {
-        // Add new source and layer
-        try {
-          map.current.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: routeData.geometry
-            }
-          });
+        map.current.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: routeData.geometry
+          }
+        });
 
-          map.current.addLayer({
-            id: 'route-line',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#8B5CF6',
-              'line-width': 6,
-              'line-opacity': 0.8
-            }
-          });
+        map.current.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#8B5CF6',
+            'line-width': 6,
+            'line-opacity': 0.8
+          }
+        });
 
-          // Add start point marker
-          const startCoords = routeData.geometry.coordinates[0];
-          new mapboxgl.Marker({ color: '#10B981' })
-            .setLngLat([startCoords[0], startCoords[1]])
-            .addTo(map.current);
+        const startCoords = routeData.geometry.coordinates[0];
+        new mapboxgl.Marker({ color: '#10B981' })
+          .setLngLat([startCoords[0], startCoords[1]])
+          .addTo(map.current);
 
-          // Add end point marker
-          const endCoords = routeData.geometry.coordinates[routeData.geometry.coordinates.length - 1];
-          new mapboxgl.Marker({ color: '#EF4444' })
-            .setLngLat([endCoords[0], endCoords[1]])
-            .addTo(map.current);
+        const endCoords = routeData.geometry.coordinates[routeData.geometry.coordinates.length - 1];
+        new mapboxgl.Marker({ color: '#EF4444' })
+          .setLngLat([endCoords[0], endCoords[1]])
+          .addTo(map.current);
 
-          routeSourceAdded.current = true;
-        } catch (error) {
-          console.error("Error adding route source/layer:", error);
-        }
+        routeSourceAdded.current = true;
       } else {
-        // Update existing source
         try {
-          // Make sure the map is ready and source exists before attempting to update it
           if (map.current && map.current.getSource('route')) {
             const source = map.current.getSource('route') as mapboxgl.GeoJSONSource;
             source.setData({
@@ -182,23 +182,17 @@ const TripPlannerMap = ({
         }
       }
 
-      // Fit the map to the route
-      try {
-        const bounds = new mapboxgl.LngLatBounds();
-        routeData.geometry.coordinates.forEach(coord => {
-          bounds.extend([coord[0], coord[1]]);
-        });
-        
-        map.current.fitBounds(bounds, {
-          padding: 50,
-          maxZoom: 15
-        });
-      } catch (error) {
-        console.error("Error fitting map to bounds:", error);
-      }
+      const bounds = new mapboxgl.LngLatBounds();
+      routeData.geometry.coordinates.forEach(coord => {
+        bounds.extend([coord[0], coord[1]]);
+      });
+      
+      map.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 15
+      });
     };
 
-    // Wait for map to be loaded before adding sources and layers
     if (map.current.loaded()) {
       waitForMapLoad();
     } else {
@@ -206,16 +200,12 @@ const TripPlannerMap = ({
     }
   }, [routeData]);
 
-  // Close popup when clicking outside of a marker
   useEffect(() => {
     if (!map.current) return;
     
     const handleMapClick = (e: any) => {
-      // Check if click was on a marker
-      const markers = document.querySelectorAll('.marker-element');
       let clickedOnMarker = false;
       
-      // Get the clicked element and all its parents
       let el = e.originalEvent.target;
       while (el) {
         if (el.classList && el.classList.contains('marker-element')) {
@@ -241,19 +231,15 @@ const TripPlannerMap = ({
     };
   }, []);
 
-  // Update markers when trip stops change
   useEffect(() => {
     if (!map.current || !map.current.loaded()) return;
     
-    // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
     
-    // Add markers for all stops
     tripStops.forEach(stop => {
       if (!stop.coordinates) return;
       
-      // Check if this stop is in the selected stops
       const isSelected = selectedStops.some(s => s.id === stop.id);
       
       const marker = new mapboxgl.Marker({
@@ -262,23 +248,18 @@ const TripPlannerMap = ({
         .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
         .addTo(map.current!);
       
-      // Add click event to marker
       const markerElement = marker.getElement();
       markerElement.addEventListener('click', () => {
-        // Show popup with stop information and add to itinerary button
         if (popupRef.current) {
           popupRef.current.remove();
         }
         
-        // Create popup content
         const popupContent = document.createElement('div');
         popupContent.className = 'p-3 min-w-[200px]';
         
-        // Stop name and type with icon
         const titleContainer = document.createElement('div');
         titleContainer.className = 'flex items-center gap-2 mb-2';
         
-        // Add icon based on stop type
         const iconContainer = document.createElement('div');
         let iconColor = 'bg-green-500';
         let iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
@@ -296,13 +277,24 @@ const TripPlannerMap = ({
             iconColor = 'bg-amber-500';
             iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
             break;
+          case 'walmart':
+            iconColor = 'bg-blue-600';
+            iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 10 5-6 5 6"/><path d="m18 10-5-6-5 6"/><path d="M12 10v6"/><path d="M2 14h12a2 2 0 0 1 2 2c0 1 .5 3 2 3a1 1 0 0 0 1-1"/></svg>';
+            break;
+          case 'propane':
+            iconColor = 'bg-orange-500';
+            iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c0-2.76-1.11-5.24-2.88-7L12 3l2.88 2c-1.77 1.76-2.88 4.24-2.88 7z"/><path d="M12 12c0 2.76 1.11 5.24 2.88 7L12 21l-2.88-2c1.77-1.76 2.88-4.24 2.88-7z"/><path d="M20 12h-4"/><path d="M4 12h4"/></svg>';
+            break;
+          case 'repair':
+            iconColor = 'bg-zinc-700';
+            iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
+            break;
         }
         
         iconContainer.className = `w-6 h-6 rounded-full ${iconColor} flex items-center justify-center text-white`;
         iconContainer.innerHTML = iconSvg;
         titleContainer.appendChild(iconContainer);
         
-        // Stop name with larger font
         const title = document.createElement('h3');
         title.className = 'font-semibold text-base';
         title.textContent = stop.name;
@@ -310,17 +302,14 @@ const TripPlannerMap = ({
         
         popupContent.appendChild(titleContainer);
         
-        // Details section
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'space-y-2 mb-3';
         
-        // Stop type
         const typeTag = document.createElement('div');
         typeTag.className = 'inline-block bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded mb-2';
         typeTag.textContent = stop.type.charAt(0).toUpperCase() + stop.type.slice(1);
         detailsContainer.appendChild(typeTag);
         
-        // Distance from route
         const distance = document.createElement('p');
         distance.className = 'text-xs text-muted-foreground flex items-center gap-1';
         
@@ -336,7 +325,6 @@ const TripPlannerMap = ({
         
         detailsContainer.appendChild(distance);
         
-        // Add details if available
         if (stop.details && (stop.details.description || stop.details.features?.length)) {
           const description = document.createElement('p');
           description.className = 'text-xs mt-2';
@@ -360,11 +348,9 @@ const TripPlannerMap = ({
         
         popupContent.appendChild(detailsContainer);
         
-        // Add to itinerary button
         const addButtonContainer = document.createElement('div');
         addButtonContainer.className = 'flex justify-end mt-3';
         
-        // Check if stop is already in itinerary
         const alreadyAdded = selectedStops.some(s => s.id === stop.id);
         
         if (!alreadyAdded) {
@@ -388,7 +374,6 @@ const TripPlannerMap = ({
         
         popupContent.appendChild(addButtonContainer);
         
-        // Create and show popup with improved styling
         popupRef.current = new mapboxgl.Popup({ 
           offset: 25, 
           closeButton: true,
@@ -402,7 +387,6 @@ const TripPlannerMap = ({
         
         setSelectedStop(stop);
         
-        // Fly to the marker
         map.current?.flyTo({
           center: [stop.coordinates!.lng, stop.coordinates!.lat],
           zoom: 12,
@@ -445,10 +429,9 @@ const TripPlannerMap = ({
         </div>
       )}
       
-      {/* Legend for map markers */}
-      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 p-3 rounded-md shadow-md">
+      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 p-3 rounded-md shadow-md max-h-[50vh] overflow-y-auto">
         <h4 className="text-xs font-medium mb-2">Stop Types</h4>
-        <div className="space-y-2">
+        <div className="space-y-2 grid grid-cols-2 gap-x-4">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
               <MapPin className="h-3 w-3 text-white" />
@@ -472,6 +455,24 @@ const TripPlannerMap = ({
               <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
             </div>
             <span className="text-xs">Dump Stations</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+              <ShoppingCart className="h-3 w-3 text-white" />
+            </div>
+            <span className="text-xs">Walmarts</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+              <Flame className="h-3 w-3 text-white" />
+            </div>
+            <span className="text-xs">Propane</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-zinc-700 rounded-full flex items-center justify-center">
+              <Wrench className="h-3 w-3 text-white" />
+            </div>
+            <span className="text-xs">Repair Shops</span>
           </div>
         </div>
       </div>

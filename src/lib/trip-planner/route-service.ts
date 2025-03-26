@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from "uuid";
 import { TripPlanRequest, TripPlanResponse, RouteData, TripStop } from "./types";
 import { mockCampSites } from "@/data/mockData";
@@ -159,7 +158,7 @@ const findCampsitesAlongRoute = (
 const generateMockAmenities = (
   route: number[][],
   bufferDistanceMiles: number,
-  types: ('gas' | 'water' | 'dump')[]
+  types: ('gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair')[]
 ): TripStop[] => {
   const bufferDistanceKm = bufferDistanceMiles * 1.60934;
   const amenities: TripStop[] = [];
@@ -182,15 +181,41 @@ const generateMockAmenities = (
       
       // Generate names based on type
       let name = "";
+      let details = { description: "", features: [] as string[] };
+      
       switch (type) {
         case 'gas':
           name = `${['Shell', 'Chevron', 'Mobil', 'BP', 'Love\'s'][Math.floor(Math.random() * 5)]} Gas Station`;
+          details.features = ['Fuel', 'Convenience Store'];
           break;
         case 'water':
           name = `${['Clear', 'Mountain', 'Spring', 'Pure', 'Fresh'][Math.floor(Math.random() * 5)]} Water Fill`;
+          details.features = ['Potable Water'];
           break;
         case 'dump':
           name = `${['RV', 'Campground', 'Park', 'Highway', 'Rest Area'][Math.floor(Math.random() * 5)]} Dump Station`;
+          details.features = ['Sewage Dump', 'Grey Water'];
+          break;
+        case 'walmart':
+          name = `Walmart Supercenter #${Math.floor(Math.random() * 5000)}`;
+          details = {
+            description: "Many Walmarts allow overnight RV parking. Always check with store management first.",
+            features: ['24/7', 'Groceries', 'RV Supplies', 'Overnight Parking']
+          };
+          break;
+        case 'propane':
+          name = `${['AmeriGas', 'Blue Rhino', 'U-Haul', 'Tractor Supply', 'Suburban Propane'][Math.floor(Math.random() * 5)]} Propane`;
+          details = {
+            description: "Propane refill and tank exchange station",
+            features: ['Propane Refill', 'Tank Exchange']
+          };
+          break;
+        case 'repair':
+          name = `${['Quick', 'Express', 'Reliable', 'Pro', 'Ace'][Math.floor(Math.random() * 5)]} ${Math.random() > 0.5 ? 'RV' : 'Auto'} Repair`;
+          details = {
+            description: `${Math.random() > 0.5 ? 'RV' : 'Automotive'} repair services with experienced technicians`,
+            features: ['Maintenance', 'Repairs', Math.random() > 0.5 ? 'RV Specialists' : 'General Mechanics']
+          };
           break;
       }
       
@@ -201,7 +226,8 @@ const generateMockAmenities = (
         coordinates: { lat, lng },
         distanceFromRoute: 0, // It's on the route
         distance: i / route.length * bufferDistanceKm * 1000, // Approximate distance from start
-        eta: formatETA(i / route.length * 3 * 60 * 60) // Estimated time assuming 3 hour trip
+        eta: formatETA(i / route.length * 3 * 60 * 60), // Estimated time assuming 3 hour trip
+        details
       });
     });
   }
@@ -221,7 +247,19 @@ const formatETA = (seconds: number): string => {
 export const planTrip = async (
   request: TripPlanRequest & { mapboxToken?: string }
 ): Promise<TripPlanResponse> => {
-  const { mapboxToken, startLocation, endLocation, bufferDistance, includeCampsites, includeGasStations, includeWaterStations, includeDumpStations } = request;
+  const { 
+    mapboxToken, 
+    startLocation, 
+    endLocation, 
+    bufferDistance, 
+    includeCampsites, 
+    includeGasStations, 
+    includeWaterStations, 
+    includeDumpStations,
+    includeWalmarts,
+    includePropaneStations,
+    includeRepairShops
+  } = request;
   
   if (!mapboxToken) {
     throw new Error("Mapbox token is missing");
@@ -247,10 +285,13 @@ export const planTrip = async (
   }
   
   // Add other amenities if requested (in a real app, we'd fetch from an API)
-  const amenityTypes: ('gas' | 'water' | 'dump')[] = [];
+  const amenityTypes: ('gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair')[] = [];
   if (includeGasStations) amenityTypes.push('gas');
   if (includeWaterStations) amenityTypes.push('water');
   if (includeDumpStations) amenityTypes.push('dump');
+  if (includeWalmarts) amenityTypes.push('walmart');
+  if (includePropaneStations) amenityTypes.push('propane');
+  if (includeRepairShops) amenityTypes.push('repair');
   
   if (amenityTypes.length > 0) {
     const amenities = generateMockAmenities(

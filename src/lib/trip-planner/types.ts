@@ -8,6 +8,9 @@ export interface TripPlanRequest {
   includeGasStations: boolean;
   includeWaterStations: boolean;
   includeDumpStations: boolean;
+  includeWalmarts: boolean;
+  includePropaneStations: boolean;
+  includeRepairShops: boolean;
   mapboxToken?: string; // Added mapboxToken as an optional parameter
 }
 
@@ -30,7 +33,7 @@ export interface RouteData {
 export interface TripStop {
   id: string;
   name: string;
-  type: 'campsite' | 'gas' | 'water' | 'dump';
+  type: 'campsite' | 'gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair';
   coordinates: {
     lat: number;
     lng: number;
