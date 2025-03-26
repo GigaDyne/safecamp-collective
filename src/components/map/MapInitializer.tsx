@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CampSite } from "@/hooks/useCampSites";
 import { createMapPinElement } from "./MapPin";
+import CampSiteCard from "./CampSiteCard";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MapInitializerProps {
   mapboxToken: string;
@@ -22,6 +24,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
   const { toast } = useToast();
   const mapInitializedRef = useRef(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<CampSite | null>(null);
   
   // Create a stable stringified version of campSites for comparison
   const campSitesString = useMemo(() => {
@@ -63,6 +66,11 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         }),
         "bottom-left"
       );
+
+      // Close the site card when clicking on the map (but not on a marker)
+      map.current.on('click', () => {
+        setSelectedSite(null);
+      });
 
       // Add basic interactions
       map.current.on("load", () => {
@@ -143,6 +151,19 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
     };
   }, [mapboxToken]); // Only re-run when mapboxToken changes
 
+  // Function to fly to a marker
+  const flyToMarker = (site: CampSite) => {
+    if (!map.current) return;
+    
+    map.current.flyTo({
+      center: [site.longitude, site.latitude],
+      zoom: 14,
+      essential: true,
+      duration: 1500,
+      padding: { bottom: 250 } // Make room for the card at the bottom
+    });
+  };
+
   // Handle markers separately with deep comparison of camp sites
   useEffect(() => {
     if (!map.current || isLoading || !isMapLoaded || !campSites) {
@@ -180,7 +201,10 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
           const handleMarkerClick = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
-            navigate(`/site/${site.id}`);
+            
+            // Set the selected site and fly to it
+            setSelectedSite(site);
+            flyToMarker(site);
           };
           
           const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
@@ -200,10 +224,48 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         }
       });
     }
-  }, [campSitesString, isLoading, navigate, isMapLoaded]); // Removed mapboxToken from dependencies
+  }, [campSitesString, isLoading, isMapLoaded]); // Removed navigate from dependencies
+
+  // Close card on map click (not marker click)
+  useEffect(() => {
+    const handleMapClick = (e: MouseEvent) => {
+      // Only close if we're not clicking on a marker
+      if (e.target && !(e.target as HTMLElement).closest('.marker-element')) {
+        setSelectedSite(null);
+      }
+    };
+
+    if (map.current && isMapLoaded) {
+      map.current.getCanvas().addEventListener('click', handleMapClick);
+    }
+
+    return () => {
+      if (map.current) {
+        map.current.getCanvas().removeEventListener('click', handleMapClick);
+      }
+    };
+  }, [isMapLoaded]);
 
   return (
-    <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in" />
+    <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in relative">
+      <AnimatePresence>
+        {selectedSite && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="absolute bottom-4 left-0 right-0 mx-auto px-4 z-20"
+          >
+            <CampSiteCard 
+              site={selectedSite} 
+              onClose={() => setSelectedSite(null)}
+              onViewDetails={() => navigate(`/site/${selectedSite.id}`)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
