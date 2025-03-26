@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import "mapbox-gl/dist/mapbox-gl.css';
+import 'mapbox-gl/dist/mapbox-gl.css'; // Corrected import statement
 import { Plus } from 'lucide-react';
 import { TripStop, RouteData } from '@/lib/trip-planner/types';
 import { useToast } from '@/hooks/use-toast';
