@@ -136,3 +136,8 @@
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Map legend positioning fix */
+.map-legend {
+  z-index: 10;
+}

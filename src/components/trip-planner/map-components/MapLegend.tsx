@@ -6,14 +6,20 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MapLegendProps {
   showCrimeData?: boolean;
 }
 
 const MapLegend = ({ showCrimeData = false }: MapLegendProps) => {
+  const isMobile = useIsMobile();
+  
   return (
-    <div className="absolute bottom-4 right-4 bg-background/90 rounded-md shadow-md border border-border p-2 text-xs min-w-[200px]">
+    <div 
+      className={`absolute ${isMobile ? 'bottom-16' : 'bottom-4'} right-4 bg-background/90 rounded-md shadow-md border border-border p-2 text-xs min-w-[200px] max-h-[300px] overflow-y-auto`}
+      style={{ maxHeight: isMobile ? 'calc(100vh - 170px)' : 'calc(100vh - 100px)' }}
+    >
       <div className="flex items-center justify-between mb-1">
         <span className="font-semibold">Map Legend</span>
         <HoverCard>
