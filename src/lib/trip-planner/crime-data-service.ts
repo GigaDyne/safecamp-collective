@@ -164,6 +164,11 @@ const getRegionKey = (lat: number, lng: number): string => {
 
 // Throttled function to fetch crime data
 export const fetchCrimeData = debounce(async (params: CrimeDataParams): Promise<CountyCrimeData[]> => {
+  if (!params || typeof params.lat !== 'number' || typeof params.lng !== 'number') {
+    console.error("Invalid params for fetchCrimeData:", params);
+    return Promise.resolve([]); // Return empty array instead of rejecting
+  }
+  
   try {
     // For real implementation, uncomment this code and use the actual API
     // const response = await fetch(
@@ -183,7 +188,7 @@ export const fetchCrimeData = debounce(async (params: CrimeDataParams): Promise<
     return MOCK_CRIME_DATA[regionKey] || [];
   } catch (error) {
     console.error("Error fetching crime data:", error);
-    return [];
+    return []; // Return empty array instead of rejecting
   }
 }, 1000); // Throttle to only make a request once per second
 

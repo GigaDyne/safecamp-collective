@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { fetchCrimeData, CountyCrimeData, CrimeDataParams } from "@/lib/trip-planner/crime-data-service";
+import { fetchCrimeData, CountyCrimeData } from "@/lib/trip-planner/crime-data-service";
 import type { Map } from "mapbox-gl";
 
 interface UseCrimeDataProps {
@@ -24,34 +24,54 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
       const zoom = map.current.getZoom();
       
       setIsLoading(true);
-      fetchCrimeData({
-        lat: center.lat,
-        lng: center.lng,
-        zoom
-      })
-        .then(data => {
-          setCrimeData(data);
-          setError(null);
+      
+      // Ensure fetchCrimeData is called only when map is ready
+      try {
+        fetchCrimeData({
+          lat: center.lat,
+          lng: center.lng,
+          zoom
         })
-        .catch(err => {
-          console.error("Error fetching crime data:", err);
-          setError("Failed to load crime data. Please try again later.");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+          .then(data => {
+            setCrimeData(data);
+            setError(null);
+          })
+          .catch(err => {
+            console.error("Error fetching crime data:", err);
+            setError("Failed to load crime data. Please try again later.");
+            setCrimeData([]); // Reset data on error
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } catch (err) {
+        console.error("Error initiating crime data fetch:", err);
+        setError("Failed to start crime data fetch.");
+        setIsLoading(false);
+        setCrimeData([]);
+      }
     };
 
-    // Initial fetch
-    handleMapMove();
+    // Initial fetch - wrap in a try/catch to handle any initialization errors
+    try {
+      handleMapMove();
 
-    // Add event listeners
-    map.current.on("moveend", handleMapMove);
+      // Add event listeners
+      map.current.on("moveend", handleMapMove);
+    } catch (err) {
+      console.error("Error setting up map event listeners:", err);
+      setError("Failed to initialize crime data functionality.");
+      setIsLoading(false);
+    }
 
     // Cleanup
     return () => {
       if (map.current) {
-        map.current.off("moveend", handleMapMove);
+        try {
+          map.current.off("moveend", handleMapMove);
+        } catch (err) {
+          console.error("Error removing map event listener:", err);
+        }
       }
     };
   }, [map, enabled]);
