@@ -97,6 +97,7 @@ const TripPlannerPage = () => {
             mapboxToken={mapboxToken}
             selectedStops={selectedStops}
             onAddToItinerary={handleAddToItinerary}
+            className="h-full w-full" // Add className for explicit sizing
           />
         </div>
       </div>

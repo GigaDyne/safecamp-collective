@@ -10,7 +10,7 @@ interface AddressAutocompleteInputProps {
     lng: number;
   }) => void;
   mapboxToken: string;
-  className?: string; // Added className prop
+  className?: string; // Ensure this is optional
 }
 
 const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
