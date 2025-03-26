@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -7,7 +6,9 @@ import {
   mapSupabaseReview, 
   formatReviewForSupabase,
   formatCampsiteForSupabase,
-  signInAnonymously
+  signInAnonymously,
+  CampSite,
+  Review
 } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
