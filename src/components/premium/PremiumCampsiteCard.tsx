@@ -41,6 +41,7 @@ export default function PremiumCampsiteCard({
     }
 
     try {
+      // Fix: Pass all required parameters to createCheckoutSession
       const response = await createCheckoutSession({
         price_id: "price_premium_campsite", // This would come from your Stripe setup
         type: "premium_campsite",
