@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -65,6 +64,9 @@ function App() {
         <Route path="/payment-success" element={<PaymentSuccessPage />} />
         <Route path="/payment-cancel" element={<PaymentCancelPage />} />
         <Route path="*" element={<NotFound />} />
+        <Route path="/trip-planner" element={<ProtectedRoute />}>
+          <Route index element={<TripPlannerPage />} />
+        </Route>
       </Routes>
       <Toaster />
     </AuthProvider>
