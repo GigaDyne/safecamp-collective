@@ -14,7 +14,7 @@ interface MapPinProps {
   onClick: (e: ReactMouseEvent, siteId: string) => void;
 }
 
-// Helper function to create a custom map pin element
+// Helper function to create a custom map pin element - make sure this doesn't change between renders
 export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEvent) => void) => {
   // Create the pin container
   const pinElement = document.createElement('div');
@@ -24,11 +24,9 @@ export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEve
   const pin = document.createElement('div');
   pin.className = 'w-10 h-10 flex items-center justify-center transform-gpu transition-all duration-300 hover:scale-110 cursor-pointer';
   
+  // Important: Attach the event listener only if there's a click handler
   if (onClick) {
-    // Use native DOM event listener with the correct MouseEvent type
-    pin.addEventListener('click', (e: MouseEvent) => {
-      onClick(e);
-    });
+    pin.addEventListener('click', onClick);
   }
   
   // Determine pin color based on safety rating
@@ -58,6 +56,7 @@ export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEve
   return pinElement;
 };
 
+// This component is only used for the Popover functionality
 const MapPin = ({ site, onClick }: MapPinProps) => {
   const handleClick = (e: ReactMouseEvent) => {
     e.stopPropagation();

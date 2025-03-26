@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate } from "react-router-dom";
@@ -23,13 +23,30 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
   const mapInitializedRef = useRef(false);
   const previousCampSitesRef = useRef<string>("");
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  
+  // Use useMemo to create a stable stringified version of campSites
+  const campSitesString = useMemo(() => {
+    if (!campSites) return "";
+    
+    // Create a simplified version with only the essential properties for comparison
+    const simplifiedSites = campSites.map(site => ({
+      id: site.id,
+      lat: site.latitude,
+      lng: site.longitude,
+      safety: site.safetyRating
+    }));
+    
+    return JSON.stringify(simplifiedSites);
+  }, [campSites]);
 
   // Initialize map only once
   useEffect(() => {
     if (!mapboxToken || map.current || !mapContainer.current || mapInitializedRef.current) return;
+    
+    console.log("Initializing map - this should only happen once");
+    mapInitializedRef.current = true;
 
     try {
-      mapInitializedRef.current = true;
       mapboxgl.accessToken = mapboxToken;
       
       map.current = new mapboxgl.Map({
@@ -38,6 +55,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         center: [-111.8910, 40.7608], // Default center
         zoom: 5,
         attributionControl: false,
+        preserveDrawingBuffer: true // Add this to prevent redraws
       });
 
       map.current.addControl(
@@ -50,6 +68,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       // Add basic interactions
       map.current.on("load", () => {
         if (!map.current) return;
+        console.log("Map load event fired");
         setIsMapLoaded(true);
         
         // Add public lands layer (would be more complex in production)
@@ -127,6 +146,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
 
     return () => {
       if (map.current) {
+        console.log("Cleaning up map");
         map.current.remove();
         map.current = null;
         mapInitializedRef.current = false;
@@ -137,15 +157,16 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
 
   // Handle markers separately with deep comparison of camp sites
   useEffect(() => {
-    if (!map.current || isLoading || !mapboxToken || !campSites || !isMapLoaded) return;
-    
-    // Stringify the campSites for comparison
-    const campSitesString = JSON.stringify(campSites);
+    if (!map.current || isLoading || !mapboxToken || !campSites || !isMapLoaded) {
+      return;
+    }
     
     // Skip if campSites haven't changed
     if (previousCampSitesRef.current === campSitesString) {
       return;
     }
+    
+    console.log("Updating markers - campSites have changed");
     
     // Update the ref with current campSites
     previousCampSitesRef.current = campSitesString;
@@ -188,7 +209,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         }
       });
     }
-  }, [campSites, isLoading, navigate, mapboxToken, isMapLoaded]);
+  }, [campSitesString, isLoading, navigate, mapboxToken, isMapLoaded]);
 
   return (
     <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in" />

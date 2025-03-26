@@ -8,7 +8,7 @@ const Index = () => {
 
   // Handle navigation to map view
   const handleExploreClick = () => {
-    navigate("/");
+    navigate("/map"); // Changed this to navigate to the /map route
   };
 
   return (

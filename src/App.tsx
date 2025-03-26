@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import MainLayout from "./components/layout/MainLayout";
 
 // Pages
+import Index from "./pages/Index";
 import MapView from "./components/map/MapView";
 import NearbyPage from "./pages/NearbyPage";
 import FavoritesPage from "./pages/FavoritesPage";
@@ -28,9 +29,12 @@ const App = () => (
       <BrowserRouter>
         <AnimatePresence>
           <Routes>
+            {/* Landing page */}
+            <Route path="/" element={<Index />} />
+            
             {/* Main tabs in the bottom nav */}
             <Route path="/" element={<MainLayout />}>
-              <Route index element={<MapView />} />
+              <Route path="map" element={<MapView />} />
               <Route path="nearby" element={<NearbyPage />} />
               <Route path="favorites" element={<FavoritesPage />} />
               <Route path="profile" element={<ProfilePage />} />
