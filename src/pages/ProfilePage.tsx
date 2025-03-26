@@ -25,6 +25,15 @@ const ProfilePage = () => {
     navigate('/');
   };
 
+  // Format the user created date
+  const formatCreatedDate = () => {
+    if (!user?.created_at) {
+      return "Unknown";
+    }
+    
+    return new Date(user.created_at).toLocaleDateString();
+  };
+
   return (
     <div className="container max-w-xl mx-auto py-8 px-4">
       <div className="flex items-center space-x-4 mb-6">
@@ -69,7 +78,7 @@ const ProfilePage = () => {
           )}
           
           <div className="text-sm text-muted-foreground">
-            Account created: {user?.createdAt}
+            Account created: {formatCreatedDate()}
           </div>
         </CardContent>
         <CardFooter>

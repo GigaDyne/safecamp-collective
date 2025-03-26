@@ -12,6 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isEmailVerified: boolean; 
+  isOfflineMode: boolean; // Added missing property
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null, needsEmailVerification?: boolean }>;
   signOut: () => Promise<void>;
@@ -38,9 +39,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false); // Added missing state
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if we're in offline mode
+    const checkConnectivity = async () => {
+      try {
+        const online = navigator.onLine;
+        if (!online) {
+          setIsOfflineMode(true);
+          console.log("Operating in offline mode");
+        } else {
+          // Additional check against Supabase could be done here
+          setIsOfflineMode(false);
+        }
+      } catch (error) {
+        console.error("Error checking connectivity:", error);
+        setIsOfflineMode(true); // Default to offline mode if check fails
+      }
+    };
+    
+    checkConnectivity();
+    
+    // Add event listeners for online/offline status
+    const handleOnline = () => setIsOfflineMode(false);
+    const handleOffline = () => setIsOfflineMode(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     // Set up authentication listener
@@ -290,6 +325,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading,
     isAuthenticated,
     isEmailVerified,
+    isOfflineMode, // Added to the context value
     signIn: handleSignIn,
     signUp: handleSignUp,
     signOut: handleSignOut,

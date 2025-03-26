@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -13,6 +12,11 @@ import { LogIn, Lock, Mail, Shield, UserX, Wifi, WifiOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { checkSupabaseConnectivity } from "@/lib/auth";
+
+interface NetworkError extends Error {
+  code?: string;
+  status?: number;
+}
 
 const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -32,7 +36,6 @@ const SignUpPage = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
   
-  // Check Supabase connectivity on component mount and when network status changes
   useEffect(() => {
     const checkConnection = async () => {
       try {
@@ -55,10 +58,8 @@ const SignUpPage = () => {
       }
     };
     
-    // Check connection initially
     checkConnection();
     
-    // Also set up listeners for online/offline status
     const handleOnline = () => {
       console.log("Browser reports online status");
       checkConnection();
@@ -103,8 +104,8 @@ const SignUpPage = () => {
         if (result.error.message === "Failed to fetch" || 
             result.error.message?.includes("network") ||
             result.error.message?.includes("abort") ||
-            result.error.code === "NETWORK_ERROR" ||
-            result.error.status === 0) {
+            (result.error as NetworkError).code === "NETWORK_ERROR" ||
+            (result.error as NetworkError).status === 0) {
           setConnectionError("Unable to connect to the authentication service. You can continue as a guest or try again later.");
           setIsOnline(false);
         } else {
@@ -116,8 +117,8 @@ const SignUpPage = () => {
       if (error.message === "Failed to fetch" || 
           error.message?.includes("network") ||
           error.message?.includes("abort") ||
-          error.code === "NETWORK_ERROR" ||
-          error.status === 0) {
+          (error as NetworkError).code === "NETWORK_ERROR" ||
+          (error as NetworkError).status === 0) {
         setConnectionError("Unable to connect to the authentication service. You can continue as a guest or try again later.");
         setIsOnline(false);
       } else {
