@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { MapPin, Navigation } from 'lucide-react';
 
 const MapLegend = () => {
   return (
@@ -32,6 +33,10 @@ const MapLegend = () => {
         <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-zinc-700"></div>
           <span>Repair Shop</span>
+        </div>
+        <div className="flex items-center gap-1 mt-1 pt-1 border-t border-border/40">
+          <div className="w-3 h-3 rounded-full bg-indigo-600 ring-1 ring-white"></div>
+          <span>Your Location</span>
         </div>
       </div>
     </div>

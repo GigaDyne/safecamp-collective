@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Save, 
   Trash2, 
@@ -9,7 +11,9 @@ import {
   ArrowUp, 
   ArrowDown, 
   Check,
-  Plus
+  Plus,
+  Navigation,
+  Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,7 +22,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { TripStop, RouteData, SavedTrip } from "@/lib/trip-planner/types";
 import { useToast } from "@/hooks/use-toast";
-import { saveTripPlan, loadTripPlans } from "@/lib/trip-planner/trip-storage";
+import { 
+  saveTripPlan, 
+  loadTripPlans, 
+  generateShareableLink 
+} from "@/lib/trip-planner/trip-storage";
 
 interface TripItineraryProps {
   tripStops: TripStop[];
@@ -35,10 +43,12 @@ const TripItinerary = ({
   selectedStops = [],
   onSelectedStopsChange
 }: TripItineraryProps) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [tripName, setTripName] = useState("");
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [savedTripId, setSavedTripId] = useState<string | null>(null);
 
   useEffect(() => {
     const trips = loadTripPlans();
@@ -124,6 +134,7 @@ const TripItinerary = ({
       };
       
       saveTripPlan(newTrip);
+      setSavedTripId(newTrip.id);
       
       setSavedTrips(prev => [...prev, newTrip]);
       
@@ -144,6 +155,69 @@ const TripItinerary = ({
     }
   };
 
+  const handleStartTrip = () => {
+    if (!savedTripId) {
+      // Save the trip first if not saved
+      if (selectedStops.length === 0) {
+        toast({
+          title: "No stops to navigate",
+          description: "Please add at least one stop to your trip",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!tripName.trim()) {
+        toast({
+          title: "Missing trip name",
+          description: "Please name your trip before starting navigation",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Save and then navigate
+      handleSaveTrip();
+      // The navigation will happen in the useEffect below when savedTripId is set
+    } else {
+      // Navigate to the navigation page with the saved trip ID
+      navigate(`/trip-navigation/${savedTripId}`);
+    }
+  };
+  
+  // Navigate to trip navigation after saving
+  useEffect(() => {
+    if (savedTripId) {
+      navigate(`/trip-navigation/${savedTripId}`);
+    }
+  }, [savedTripId, navigate]);
+
+  const handleShareTrip = async () => {
+    if (!savedTripId) {
+      toast({
+        title: "Save trip first",
+        description: "Please save your trip before sharing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const shareUrl = window.location.origin + generateShareableLink(savedTripId);
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copied!",
+        description: "Share this link with others to show your trip",
+      });
+    } catch (error) {
+      toast({
+        title: "Couldn't copy link",
+        description: "Please copy the URL manually",
+      });
+    }
+  };
+
   const stopTypeIcon = (type: string) => {
     switch (type) {
       case 'campsite':
@@ -154,6 +228,12 @@ const TripItinerary = ({
         return <Droplet className="h-4 w-4 text-blue-500" />;
       case 'dump':
         return <Trash2 className="h-4 w-4 text-amber-500" />;
+      case 'walmart':
+        return <MapPin className="h-4 w-4 text-blue-600" />;
+      case 'propane':
+        return <Fuel className="h-4 w-4 text-orange-500" />;
+      case 'repair':
+        return <Trash2 className="h-4 w-4 text-zinc-700" />;
       default:
         return <MapPin className="h-4 w-4" />;
     }
@@ -306,7 +386,7 @@ const TripItinerary = ({
       
       {selectedStops.length > 0 && (
         <div className="p-4 border-t bg-card">
-          <div className="flex gap-2 mb-2">
+          <div className="flex gap-2 mb-3">
             <input
               type="text"
               placeholder="Trip name"
@@ -323,8 +403,32 @@ const TripItinerary = ({
             </Button>
           </div>
           
-          <p className="text-xs text-muted-foreground">
-            Save your itinerary to access it later.
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="default"
+              onClick={handleStartTrip}
+              disabled={selectedStops.length === 0}
+              className="w-full"
+            >
+              <Navigation className="h-4 w-4 mr-2" />
+              Start Trip
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={handleShareTrip}
+              disabled={!savedTripId}
+              className="w-full"
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+          </div>
+          
+          <p className="text-xs text-muted-foreground mt-2">
+            {savedTripId 
+              ? "Trip saved! You can start navigation or share it with others."
+              : "Save your itinerary to access it later or start navigation."}
           </p>
         </div>
       )}

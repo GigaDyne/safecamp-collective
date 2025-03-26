@@ -50,3 +50,23 @@ export const updateTripPlan = (updatedTrip: SavedTrip): void => {
   
   localStorage.setItem(SAVED_TRIPS_KEY, JSON.stringify(updatedTrips));
 };
+
+// Generate a shareable link for a trip
+export const generateShareableLink = (tripId: string): string => {
+  // In a real app, this might involve creating a short URL or a special token
+  // For this demo, we'll just return the local URL path
+  return `/trip-navigation/${tripId}`;
+};
+
+// Import a shared trip
+export const importSharedTrip = (tripData: SavedTrip): string => {
+  // Create a new ID for the imported trip to avoid collisions
+  const importedTrip = {
+    ...tripData,
+    id: Date.now().toString(),
+    name: `${tripData.name} (Imported)`
+  };
+  
+  saveTripPlan(importedTrip);
+  return importedTrip.id;
+};

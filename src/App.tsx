@@ -1,69 +1,47 @@
-
+import { useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { MainLayout } from "@/layouts/MainLayout";
+import { Index } from "@/pages";
+import { NearbyPage } from "@/pages/NearbyPage";
+import { FavoritesPage } from "@/pages/FavoritesPage";
+import { ProfilePage } from "@/pages/ProfilePage";
+import { SiteDetailPage } from "@/pages/SiteDetailPage";
+import { AddSitePage } from "@/pages/AddSitePage";
+import { ReviewPage } from "@/pages/ReviewPage";
+import { NotFound } from "@/pages/NotFound";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import TripPlannerPage from "@/pages/TripPlannerPage";
+import TripNavigationPage from "@/pages/TripNavigationPage";
 
-// Layout
-import MainLayout from "./components/layout/MainLayout";
+function App() {
+  // Persist scroll position on route change
+  const location = useLocation();
 
-// Pages
-import Index from "./pages/Index";
-import MapView from "./components/map/MapView";
-import NearbyPage from "./pages/NearbyPage";
-import FavoritesPage from "./pages/FavoritesPage";
-import ProfilePage from "./pages/ProfilePage";
-import SiteDetailPage from "./pages/SiteDetailPage";
-import AddSitePage from "./pages/AddSitePage";
-import ReviewPage from "./pages/ReviewPage";
-import TripPlannerPage from "./pages/TripPlannerPage";
-import NotFound from "./pages/NotFound";
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
-// Create a persistent queryClient instance
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false, // Prevent refetching when window regains focus
-      retry: false, // Don't retry failed queries automatically
-      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    },
-  },
-});
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Index />} />
+          <Route path="nearby" element={<NearbyPage />} />
+          <Route path="favorites" element={<FavoritesPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="site/:id" element={<SiteDetailPage />} />
+          <Route path="add-site" element={<AddSitePage />} />
+          <Route path="review/:id" element={<ReviewPage />} />
+          <Route path="trip-planner" element={<TripPlannerPage />} />
+          <Route path="trip-navigation/:tripId" element={<TripNavigationPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
       <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AnimatePresence mode="wait">
-          <Routes>
-            {/* Landing page */}
-            <Route path="/" element={<Index />} />
-            
-            {/* Main tabs in the bottom nav */}
-            <Route path="/" element={<MainLayout />}>
-              <Route path="map" element={<MapView />} />
-              <Route path="nearby" element={<NearbyPage />} />
-              <Route path="favorites" element={<FavoritesPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
-            
-            {/* Standalone routes (full screen) */}
-            <Route path="/site/:id" element={<SiteDetailPage />} />
-            <Route path="/add-site" element={<AddSitePage />} />
-            <Route path="/add-review/:id" element={<ReviewPage />} />
-            <Route path="/trip-planner" element={<TripPlannerPage />} />
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </>
+  );
+}
 
 export default App;
