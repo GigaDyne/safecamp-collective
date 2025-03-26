@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -24,11 +23,9 @@ const TripNavigationMap = ({
   const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   
-  // Initialize the map
   useEffect(() => {
     if (!mapContainer.current) return;
     
-    // Get Mapbox token from localStorage
     const mapboxToken = localStorage.getItem("mapbox_token") || "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
     
     if (!mapboxToken) {
@@ -38,12 +35,10 @@ const TripNavigationMap = ({
     
     mapboxgl.accessToken = mapboxToken;
     
-    // Use the first stop as the initial center or a default location
     const initialCenter = tripStops.length > 0 
       ? [tripStops[0].coordinates.lng, tripStops[0].coordinates.lat]
-      : [-95.7129, 37.0902]; // Center of US
+      : [-95.7129, 37.0902];
     
-    // Create the map
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v11',
@@ -51,10 +46,7 @@ const TripNavigationMap = ({
       zoom: 10
     });
     
-    // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    
-    // Add geolocate control
     map.current.addControl(
       new mapboxgl.GeolocateControl({
         positionOptions: {
@@ -65,37 +57,30 @@ const TripNavigationMap = ({
       'top-right'
     );
     
-    // Set up event handlers
     map.current.on('load', () => {
       setMapInitialized(true);
       setLoading(false);
     });
     
-    // Clean up on unmount
     return () => {
       if (map.current) {
         map.current.remove();
         map.current = null;
       }
-      // Clear all markers
       Object.values(markersRef.current).forEach(marker => marker.remove());
       if (userMarkerRef.current) userMarkerRef.current.remove();
     };
   }, []);
   
-  // Add markers for all stops
   useEffect(() => {
     if (!map.current || !mapInitialized || tripStops.length === 0) return;
     
-    // Clear existing markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
     
-    // Add markers for each stop
     tripStops.forEach((stop, index) => {
       const isCurrentStop = index === currentStopIndex;
       
-      // Create HTML element for the marker
       const el = document.createElement('div');
       el.className = 'marker';
       el.style.width = isCurrentStop ? '30px' : '20px';
@@ -105,34 +90,32 @@ const TripNavigationMap = ({
       el.style.border = isCurrentStop ? '3px solid white' : '2px solid white';
       el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
       
-      // Set marker color based on stop type
       switch (stop.type) {
         case 'campsite':
-          el.style.backgroundColor = '#16a34a'; // green-600
+          el.style.backgroundColor = '#16a34a';
           break;
         case 'gas':
-          el.style.backgroundColor = '#ef4444'; // red-500
+          el.style.backgroundColor = '#ef4444';
           break;
         case 'water':
-          el.style.backgroundColor = '#3b82f6'; // blue-500
+          el.style.backgroundColor = '#3b82f6';
           break;
         case 'dump':
-          el.style.backgroundColor = '#f59e0b'; // amber-500
+          el.style.backgroundColor = '#f59e0b';
           break;
         case 'walmart':
-          el.style.backgroundColor = '#2563eb'; // blue-600
+          el.style.backgroundColor = '#2563eb';
           break;
         case 'propane':
-          el.style.backgroundColor = '#f97316'; // orange-500
+          el.style.backgroundColor = '#f97316';
           break;
         case 'repair':
-          el.style.backgroundColor = '#3f3f46'; // zinc-700
+          el.style.backgroundColor = '#3f3f46';
           break;
         default:
-          el.style.backgroundColor = '#6b7280'; // gray-500
+          el.style.backgroundColor = '#6b7280';
       }
       
-      // Add index number to the marker
       if (isCurrentStop) {
         el.style.display = 'flex';
         el.style.alignItems = 'center';
@@ -143,7 +126,6 @@ const TripNavigationMap = ({
         el.innerText = (index + 1).toString();
       }
       
-      // Create and add the marker
       const marker = new mapboxgl.Marker(el)
         .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
         .addTo(map.current!);
@@ -151,7 +133,6 @@ const TripNavigationMap = ({
       markersRef.current[stop.id] = marker;
     });
     
-    // Fit bounds to include all markers
     if (tripStops.length > 1) {
       const bounds = new mapboxgl.LngLatBounds();
       tripStops.forEach(stop => {
@@ -161,14 +142,12 @@ const TripNavigationMap = ({
     }
   }, [tripStops, mapInitialized, currentStopIndex]);
   
-  // Update current stop marker and center map
   useEffect(() => {
     if (!map.current || !mapInitialized || tripStops.length === 0) return;
     
     const currentStop = tripStops[currentStopIndex];
     if (!currentStop) return;
     
-    // Fly to the current stop
     map.current.flyTo({
       center: [currentStop.coordinates.lng, currentStop.coordinates.lat],
       zoom: 13,
@@ -176,34 +155,28 @@ const TripNavigationMap = ({
     });
   }, [currentStopIndex, tripStops, mapInitialized]);
   
-  // Update user location marker
   useEffect(() => {
     if (!map.current || !mapInitialized || !userLocation) return;
     
-    // Remove previous user marker if exists
     if (userMarkerRef.current) {
       userMarkerRef.current.remove();
     }
     
-    // Create HTML element for the user marker
     const el = document.createElement('div');
     el.className = 'user-marker';
     el.style.width = '20px';
     el.style.height = '20px';
     el.style.borderRadius = '50%';
-    el.style.backgroundColor = '#4338ca'; // indigo-600
+    el.style.backgroundColor = '#4338ca';
     el.style.border = '3px solid white';
     el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
     
-    // Pulse animation
     el.style.animation = 'pulse 2s infinite';
     
-    // Create and add the user marker
     userMarkerRef.current = new mapboxgl.Marker(el)
       .setLngLat([userLocation.lng, userLocation.lat])
       .addTo(map.current);
       
-    // Add CSS for pulse animation
     if (!document.getElementById('map-marker-pulse-style')) {
       const style = document.createElement('style');
       style.id = 'map-marker-pulse-style';
