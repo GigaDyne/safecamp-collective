@@ -46,4 +46,15 @@ export interface TripStop {
     images?: string[];
     reviewCount?: number;
   };
+  order?: number; // Added order for sorting in the itinerary
+}
+
+// Define the SavedTrip interface that was missing
+export interface SavedTrip {
+  id: string;
+  name: string;
+  stops: TripStop[];
+  created: string;
+  startLocation: string;
+  endLocation: string;
 }
