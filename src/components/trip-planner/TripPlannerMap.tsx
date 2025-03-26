@@ -17,6 +17,20 @@ import { useMapInitialization } from './hooks/useMapInitialization';
 import { useMapRoute } from './hooks/useMapRoute';
 import { useMapMarkers } from './hooks/useMapMarkers';
 import { useMapPopup } from './hooks/useMapPopup';
+import { useCrimeData } from './hooks/useCrimeData';
+import { useCrimeLayer } from './hooks/useCrimeLayer';
+import CrimeDataToggle from './map-components/CrimeDataToggle';
+import CrimeDataTooltip from './map-components/CrimeDataTooltip';
+import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface TripPlannerMapProps {
   routeData: RouteData | null;
@@ -41,6 +55,8 @@ const TripPlannerMap = ({
 }: TripPlannerMapProps) => {
   const { toast } = useToast();
   const [showDebug, setShowDebug] = useState(false);
+  const [showCrimeData, setShowCrimeData] = useState(false);
+  const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   
   // Initialize the map
   const {
@@ -79,6 +95,22 @@ const TripPlannerMap = ({
     mapInitialized
   });
 
+  // Handle crime data
+  const { crimeData, isLoading: isCrimeDataLoading } = useCrimeData({
+    map,
+    enabled: showCrimeData
+  });
+
+  // Handle crime data layer
+  useCrimeLayer({
+    map,
+    crimeData,
+    enabled: showCrimeData,
+    onMarkerClick: (data) => {
+      setSelectedCrimeData(data);
+    }
+  });
+
   // Setup debug mode toggle
   useEffect(() => {
     const handleDoubleClick = () => {
@@ -107,6 +139,19 @@ const TripPlannerMap = ({
           data-testid="map-container"
         />
         
+        {/* Crime data toggle button */}
+        <CrimeDataToggle 
+          enabled={showCrimeData}
+          onToggle={setShowCrimeData}
+          className="top-4 left-4"
+        />
+        
+        {isCrimeDataLoading && showCrimeData && (
+          <div className="absolute top-4 left-16 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border">
+            Loading crime data...
+          </div>
+        )}
+        
         {isLoading && <MapLoadingState message="Planning your trip..." />}
         
         {!mapboxToken && (
@@ -129,7 +174,7 @@ const TripPlannerMap = ({
           />
         )}
         
-        <MapLegend />
+        <MapLegend showCrimeData={showCrimeData} />
       </ContextMenuTrigger>
       
       {selectedStop && (
@@ -152,6 +197,28 @@ const TripPlannerMap = ({
           </ContextMenuItem>
         </ContextMenuContent>
       )}
+
+      {/* Crime data detail dialog */}
+      <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Crime Statistics</DialogTitle>
+            <DialogDescription>
+              {selectedCrimeData?.county_name}, {selectedCrimeData?.state_abbr}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCrimeData && (
+            <div className="py-4">
+              <CrimeDataTooltip data={selectedCrimeData} />
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setSelectedCrimeData(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ContextMenu>
   );
 };
