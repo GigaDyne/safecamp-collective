@@ -51,8 +51,11 @@ const TripItinerary = ({
   const [savedTripId, setSavedTripId] = useState<string | null>(null);
 
   useEffect(() => {
-    const trips = loadTripPlans();
-    setSavedTrips(trips);
+    async function fetchTrips() {
+      const trips = await loadTripPlans();
+      setSavedTrips(trips);
+    }
+    fetchTrips();
   }, []);
 
   const handleAddStop = (stop: TripStop) => {
@@ -128,7 +131,7 @@ const TripItinerary = ({
         id: Date.now().toString(),
         name: tripName,
         stops: selectedStops,
-        created: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         startLocation: routeData?.startLocation || "",
         endLocation: routeData?.endLocation || "",
       };

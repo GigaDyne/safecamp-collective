@@ -16,7 +16,7 @@ export interface TripStop {
 export interface RouteData {
   distance: number;
   duration: number;
-  geometry: [number, number][] | { coordinates: [number, number][] };
+  geometry: { coordinates: [number, number][] };
   startLocation?: string;
   endLocation?: string;
 }

@@ -20,54 +20,7 @@ export const getGuestSessionId = (): string => {
   return sessionId;
 };
 
-// Save a trip plan to local storage and/or Supabase
-export const saveTripPlan = async (trip: SavedTrip): Promise<void> => {
-  try {
-    // Always save to local storage for offline access
-    const existingTrips = loadTripPlans();
-    const updatedTrips = [...existingTrips.filter(t => t.id !== trip.id), trip];
-    localStorage.setItem(SAVED_TRIPS_KEY, JSON.stringify(updatedTrips));
-    
-    // Try to save to Supabase if connectivity is available
-    const { data: authData } = await supabase.auth.getSession();
-    const userId = authData.session?.user?.id;
-    
-    // Determine the owner_id (either user_id or guest session_id)
-    const ownerId = userId || getGuestSessionId();
-    const isGuest = !userId;
-    
-    try {
-      // Save to Supabase
-      const { error } = await supabase
-        .from('trips')
-        .upsert({
-          id: trip.id,
-          owner_id: ownerId,
-          is_guest: isGuest,
-          name: trip.name,
-          start_location: trip.startLocation,
-          end_location: trip.endLocation,
-          stops: trip.stops,
-          route_data: trip.routeData,
-          created_at: trip.createdAt || new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error saving trip to Supabase:", error);
-      // Continue with local storage only approach
-    }
-  } catch (error) {
-    console.error("Error in saveTripPlan:", error);
-    // Fallback to local-only storage
-    const existingTrips = loadTripPlans();
-    const updatedTrips = [...existingTrips.filter(t => t.id !== trip.id), trip];
-    localStorage.setItem(SAVED_TRIPS_KEY, JSON.stringify(updatedTrips));
-  }
-};
-
-// Load all saved trip plans from local storage and Supabase
+// Load all saved trip plans from local storage
 export const loadTripPlans = async (): Promise<SavedTrip[]> => {
   try {
     // Get user info
@@ -139,6 +92,54 @@ export const loadTripPlans = async (): Promise<SavedTrip[]> => {
   }
 };
 
+// Save a trip plan to local storage and/or Supabase
+export const saveTripPlan = async (trip: SavedTrip): Promise<void> => {
+  try {
+    // Always save to local storage for offline access
+    const existingTrips = await loadTripPlans();
+    const updatedTrips = [...existingTrips.filter(t => t.id !== trip.id), trip];
+    localStorage.setItem(SAVED_TRIPS_KEY, JSON.stringify(updatedTrips));
+    
+    // Try to save to Supabase if connectivity is available
+    const { data: authData } = await supabase.auth.getSession();
+    const userId = authData.session?.user?.id;
+    
+    // Determine the owner_id (either user_id or guest session_id)
+    const ownerId = userId || getGuestSessionId();
+    const isGuest = !userId;
+    
+    try {
+      // Save to Supabase
+      const { error } = await supabase
+        .from('trips')
+        .upsert({
+          id: trip.id,
+          owner_id: ownerId,
+          is_guest: isGuest,
+          name: trip.name,
+          start_location: trip.startLocation,
+          end_location: trip.endLocation,
+          stops: trip.stops,
+          route_data: trip.routeData,
+          created_at: trip.createdAt || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving trip to Supabase:", error);
+      // Continue with local storage only approach
+    }
+  } catch (error) {
+    console.error("Error in saveTripPlan:", error);
+    // Fallback to local-only storage
+    const existingTripsJson = localStorage.getItem(SAVED_TRIPS_KEY);
+    const existingTrips = existingTripsJson ? JSON.parse(existingTripsJson) : [];
+    const updatedTrips = [...existingTrips.filter(t => t.id !== trip.id), trip];
+    localStorage.setItem(SAVED_TRIPS_KEY, JSON.stringify(updatedTrips));
+  }
+};
+
 // Delete a saved trip plan
 export const deleteTripPlan = async (tripId: string): Promise<void> => {
   try {
@@ -162,7 +163,8 @@ export const deleteTripPlan = async (tripId: string): Promise<void> => {
   } catch (error) {
     console.error("Error in deleteTripPlan:", error);
     // Fallback to local-only deletion
-    const existingTrips = await loadTripPlans();
+    const existingTripsJson = localStorage.getItem(SAVED_TRIPS_KEY);
+    const existingTrips = existingTripsJson ? JSON.parse(existingTripsJson) : [];
     const updatedTrips = existingTrips.filter(trip => trip.id !== tripId);
     localStorage.setItem(SAVED_TRIPS_KEY, JSON.stringify(updatedTrips));
   }

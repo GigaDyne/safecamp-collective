@@ -119,7 +119,7 @@ const getDistanceBetweenPoints = (
 
 // Find campsites along a route
 const findCampsitesAlongRoute = (
-  route: number[][],
+  route: { coordinates: [number, number][] },
   bufferDistanceMiles: number
 ): TripStop[] => {
   const bufferDistanceKm = bufferDistanceMiles * 1.60934; // Convert miles to km
@@ -128,12 +128,13 @@ const findCampsitesAlongRoute = (
   return mockCampSites
     .map(campsite => {
       const point: [number, number] = [campsite.longitude, campsite.latitude];
-      const nearRoute = isPointNearRoute(point, route, bufferDistanceKm);
+      const nearRoute = isPointNearRoute(point, route.coordinates, bufferDistanceKm);
       
       if (nearRoute.isNear) {
         return {
           id: campsite.id,
           name: campsite.name,
+          location: `${campsite.latitude},${campsite.longitude}`,
           type: 'campsite' as const,
           coordinates: {
             lat: campsite.latitude,
@@ -156,7 +157,7 @@ const findCampsitesAlongRoute = (
 
 // Generate mock amenities along the route
 const generateMockAmenities = (
-  route: number[][],
+  route: { coordinates: [number, number][] },
   bufferDistanceMiles: number,
   types: ('gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair')[]
 ): TripStop[] => {
@@ -171,8 +172,8 @@ const generateMockAmenities = (
     // Create evenly spaced points along the route
     for (let i = 0; i < count; i++) {
       // Calculate position along the route (spread out evenly)
-      const routeIndex = Math.floor((route.length - 1) * (i / (count - 1)));
-      const basePoint = route[routeIndex];
+      const routeIndex = Math.floor((route.coordinates.length - 1) * (i / (count - 1)));
+      const basePoint = route.coordinates[routeIndex];
       
       if (!basePoint) continue; // Skip if we somehow got an invalid point
       
@@ -228,11 +229,12 @@ const generateMockAmenities = (
       }
       
       // Calculate distance and ETA
-      const distancePercent = routeIndex / (route.length - 1);
+      const distancePercent = routeIndex / (route.coordinates.length - 1);
       
       amenities.push({
         id: uuidv4(),
         name,
+        location: `${lat},${lng}`,
         type,
         coordinates: { lat, lng },
         distanceFromRoute: offsetKm * 1000, // Convert to meters
@@ -290,7 +292,7 @@ export const planTrip = async (
   // Add campsites if requested
   if (includeCampsites) {
     const campsites = findCampsitesAlongRoute(
-      routeData.geometry.coordinates,
+      routeData.geometry,
       bufferDistance
     );
     stops.push(...campsites);
@@ -307,7 +309,7 @@ export const planTrip = async (
   
   if (amenityTypes.length > 0) {
     const amenities = generateMockAmenities(
-      routeData.geometry.coordinates,
+      routeData.geometry,
       bufferDistance,
       amenityTypes
     );
