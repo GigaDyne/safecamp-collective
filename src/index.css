@@ -126,7 +126,7 @@
 }
 
 /* Ensure parent containers don't hide the map */
-.h-[calc(100vh-56px)] {
+.h-\[calc\(100vh-56px\)\] {
   min-height: 500px;
 }
 
