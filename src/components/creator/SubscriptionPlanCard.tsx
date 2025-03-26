@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SubscriptionPlan } from "@/lib/community/types";
+import { SubscriptionPlan, UserSubscription } from "@/lib/community/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { createCheckoutSession, checkSubscription } from "@/lib/community/payment";
