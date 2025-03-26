@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { SubscriptionPlan } from "@/lib/community/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
-import { createCheckoutSession } from "@/lib/community/payment";
+import { createCheckoutSession, checkSubscription } from "@/lib/community/payment";
+import { reactivateSubscription, cancelSubscription } from "@/lib/community/api";
 import { useNavigate } from "react-router-dom";
-import { CreditCard, Edit, Trash } from "lucide-react";
+import { CreditCard, Edit, Trash, X, RefreshCcw } from "lucide-react";
+import { useState } from "react";
 
 interface SubscriptionPlanCardProps {
   plan: SubscriptionPlan;
@@ -15,6 +17,7 @@ interface SubscriptionPlanCardProps {
   isSubscribed?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  subscription?: UserSubscription;
 }
 
 export default function SubscriptionPlanCard({ 
@@ -22,11 +25,13 @@ export default function SubscriptionPlanCard({
   isOwner,
   isSubscribed = false,
   onEdit,
-  onDelete
+  onDelete,
+  subscription
 }: SubscriptionPlanCardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSubscribe = async () => {
     if (!user) {
@@ -39,9 +44,8 @@ export default function SubscriptionPlanCard({
       return;
     }
 
+    setIsProcessing(true);
     try {
-      // For now we'll assume the plan has a valid stripe_price_id
-      // In a real implementation, you'd make sure this is set when creating plans
       const priceId = plan.stripe_price_id || `price_sub_${plan.id}`;
       
       const url = await createCheckoutSession(
@@ -63,6 +67,66 @@ export default function SubscriptionPlanCard({
         description: "There was an error initiating the payment process. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!subscription?.stripe_subscription_id) return;
+
+    setIsProcessing(true);
+    try {
+      const result = await cancelSubscription(subscription.stripe_subscription_id);
+      
+      if (result) {
+        toast({
+          title: "Subscription Cancelled",
+          description: "Your subscription has been cancelled.",
+        });
+        // Optional: Trigger a refresh of subscription status
+      } else {
+        toast({
+          title: "Cancellation Failed",
+          description: "Could not cancel subscription. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    setIsProcessing(true);
+    try {
+      const url = await reactivateSubscription(plan.id, plan.creator_id);
+      
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast({
+          title: "Reactivation Failed",
+          description: "Could not reactivate subscription. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error reactivating subscription:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -94,13 +158,35 @@ export default function SubscriptionPlanCard({
             )}
           </div>
         ) : (
-          <Button 
-            onClick={handleSubscribe}
-            disabled={isSubscribed}
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            {isSubscribed ? "Subscribed" : "Subscribe"}
-          </Button>
+          <div className="flex gap-2">
+            {subscription?.status === 'active' ? (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handleCancelSubscription}
+                disabled={isProcessing}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel Subscription
+              </Button>
+            ) : subscription?.status === 'cancelled' ? (
+              <Button 
+                onClick={handleReactivateSubscription}
+                disabled={isProcessing}
+              >
+                <RefreshCcw className="h-4 w-4 mr-1" />
+                Reactivate Subscription
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubscribe}
+                disabled={isSubscribed || isProcessing}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                {isProcessing ? "Processing..." : (isSubscribed ? "Subscribed" : "Subscribe")}
+              </Button>
+            )}
+          </div>
         )}
       </CardFooter>
     </Card>

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { UserProfile, SubscriptionPlan, UserSubscription, HelpRequest, PremiumCampsite, Donation, Message, Conversation, ProfileComment } from "./types";
 
@@ -370,4 +369,55 @@ export async function deleteProfileComment(commentId: string): Promise<boolean> 
   }
   
   return true;
+}
+
+export async function cancelSubscription(subscriptionId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+      body: {
+        subscription_id: subscriptionId
+      }
+    });
+
+    if (error) {
+      console.error('Error cancelling subscription:', error);
+      return false;
+    }
+
+    return data.cancelled;
+  } catch (error) {
+    console.error('Unexpected error cancelling subscription:', error);
+    return false;
+  }
+}
+
+export async function reactivateSubscription(
+  planId: string, 
+  creatorId: string
+): Promise<string | null> {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    
+    if (!user.user) {
+      return null;
+    }
+
+    const { data, error } = await supabase.functions.invoke('reactivate-subscription', {
+      body: {
+        plan_id: planId,
+        creator_id: creatorId,
+        subscriber_id: user.user.id
+      }
+    });
+
+    if (error) {
+      console.error('Error reactivating subscription:', error);
+      return null;
+    }
+
+    return data.url;
+  } catch (error) {
+    console.error('Unexpected error reactivating subscription:', error);
+    return null;
+  }
 }
