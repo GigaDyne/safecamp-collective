@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Calendar, Star, Image as ImageIcon } from "lucide-react";
+import { Calendar, Star, Image as ImageIcon, X } from "lucide-react";
 import { Review } from "@/hooks/useCampSites";
 import { motion } from "framer-motion";
 import {

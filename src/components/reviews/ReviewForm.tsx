@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -15,7 +14,6 @@ import { useCampSiteReviews } from "@/hooks/useCampSites";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/lib/supabase";
 
-// Form schema
 const reviewSchema = z.object({
   safetyRating: z.string().min(1, "Please rate your safety experience"),
   cellSignal: z.string().min(1, "Please rate the cell signal"),
@@ -39,7 +37,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const { addReview, isAddingReview } = useCampSiteReviews(siteId);
   
-  // Initialize form
   const form = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
@@ -50,7 +47,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
     },
   });
 
-  // Function to render stars for ratings
   const renderStarRating = (name: "safetyRating" | "cellSignal" | "noiseLevel", label: string) => {
     return (
       <FormField
@@ -98,10 +94,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
     );
   };
 
-  // Upload image to Supabase Storage
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      // Validate file type
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       if (!fileExt || !['jpg', 'jpeg', 'png'].includes(fileExt)) {
         toast({
@@ -112,7 +106,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
         return null;
       }
       
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -125,21 +118,17 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
       const fileId = uuidv4();
       const filePath = `${siteId}/${fileId}.${fileExt}`;
       
-      // Upload with progress tracking
       const { data, error } = await supabase.storage
         .from('review-images')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(prev => ({...prev, [fileId]: percent}));
-          }
+          upsert: false
         });
+      
+      setUploadProgress(prev => ({...prev, [fileId]: 100}));
       
       if (error) throw error;
       
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('review-images')
         .getPublicUrl(filePath);
@@ -151,12 +140,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
     }
   };
 
-  // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    // Limit to 3 images total
     if (images.length + files.length > 3) {
       toast({
         title: "Too Many Images",
@@ -169,11 +156,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
     setUploading(true);
     
     try {
-      // Upload each file to Supabase
       const uploadPromises = Array.from(files).map(uploadImage);
       const uploadedUrls = await Promise.all(uploadPromises);
       
-      // Filter out any failed uploads
       const validUrls = uploadedUrls.filter(url => url !== null) as string[];
       
       setImages(prev => [...prev, ...validUrls]);
@@ -190,18 +175,15 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
     }
   };
 
-  // Remove an image
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Submit the form
   const onSubmit = (values: ReviewFormValues) => {
-    // Create the review object
     const review = {
       siteId,
-      userId: "user-" + Date.now(), // In a real app, this would be the actual user ID
-      userName: "Anonymous User", // In a real app, this would be the actual username
+      userId: "user-" + Date.now(),
+      userName: "Anonymous User",
       safetyRating: parseInt(values.safetyRating),
       cellSignal: parseInt(values.cellSignal),
       noiseLevel: parseInt(values.noiseLevel),
@@ -209,10 +191,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
       images: images.length > 0 ? images : undefined,
     };
 
-    // Save the review using our custom hook
     addReview(review, {
       onSuccess: () => {
-        // Call the success callback or navigate back
         if (onSuccess) {
           onSuccess();
         } else {
@@ -232,16 +212,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Safety Rating */}
             {renderStarRating("safetyRating", "How safe did you feel at this site?")}
-            
-            {/* Cell Signal */}
             {renderStarRating("cellSignal", "How was the cell signal?")}
-            
-            {/* Noise Level */}
             {renderStarRating("noiseLevel", "How quiet was this location?")}
             
-            {/* Comments */}
             <FormField
               control={form.control}
               name="comment"
@@ -260,7 +234,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
               )}
             />
             
-            {/* Image Upload */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <p className="text-sm font-medium">Add photos (optional)</p>
@@ -311,7 +284,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
               </div>
             </div>
             
-            {/* Submit Button */}
             <Button 
               type="submit" 
               className="w-full"
