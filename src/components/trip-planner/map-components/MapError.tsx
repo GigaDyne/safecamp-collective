@@ -7,7 +7,7 @@ interface MapErrorProps {
   message: string;
 }
 
-const MapError: React.FC<MapErrorProps> = ({ message }) => {
+const MapError = ({ message }: MapErrorProps) => {
   return (
     <div className="h-full flex items-center justify-center p-4">
       <Alert variant="destructive" className="max-w-md">

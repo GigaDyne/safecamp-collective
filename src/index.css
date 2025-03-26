@@ -104,3 +104,16 @@
   min-height: 300px;
 }
 
+/* Trip planner specific styles */
+.trip-planner-popup {
+  @apply bg-card shadow-lg border border-border;
+}
+
+.marker-element {
+  cursor: pointer;
+  z-index: 1;
+}
+
+.selected-stop {
+  z-index: 2;
+}

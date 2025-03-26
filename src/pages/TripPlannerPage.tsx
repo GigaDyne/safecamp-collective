@@ -87,7 +87,7 @@ const TripPlannerPage = () => {
           />
         </div>
         
-        {/* Right panel - Map */}
+        {/* Right panel - Map - Ensure it has a specific height */}
         <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-muted/20">
           <TripPlannerMap 
             routeData={routeData} 

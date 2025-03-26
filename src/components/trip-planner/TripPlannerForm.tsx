@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -44,9 +45,8 @@ const TripPlannerForm = ({
     try {
       const coords = await getLocation();
       if (coords) {
-        const coordString = `${coords.longitude.toFixed(6)},${coords.latitude.toFixed(6)}`;
         setStartLocation("Current Location");
-        setStartCoordinates(coordString);
+        setStartCoordinates([coords.longitude, coords.latitude]);
         toast({
           title: "Success",
           description: "Current location set as starting point",
@@ -61,14 +61,14 @@ const TripPlannerForm = ({
     }
   };
 
-  const handleStartLocationSelect = (location: { placeName: string; coordinates: string }) => {
-    setStartLocation(location.placeName);
-    setStartCoordinates(location.coordinates);
+  const handleStartLocationSelect = (location: { name: string; lat: number; lng: number }) => {
+    setStartLocation(location.name);
+    setStartCoordinates([location.lng, location.lat]);
   };
 
-  const handleEndLocationSelect = (location: { placeName: string; coordinates: string }) => {
-    setEndLocation(location.placeName);
-    setEndCoordinates(location.coordinates);
+  const handleEndLocationSelect = (location: { name: string; lat: number; lng: number }) => {
+    setEndLocation(location.name);
+    setEndCoordinates([location.lng, location.lat]);
   };
 
   const handlePlanTrip = async () => {
@@ -93,8 +93,19 @@ const TripPlannerForm = ({
     setIsLoading(true);
     
     try {
-      const start = startCoordinates?.join(",") || startLocation;
-      const end = endCoordinates?.join(",") || endLocation;
+      let start = "";
+      if (startCoordinates) {
+        start = startCoordinates.join(",");
+      } else {
+        start = startLocation;
+      }
+      
+      let end = "";
+      if (endCoordinates) {
+        end = endCoordinates.join(",");
+      } else {
+        end = endLocation;
+      }
 
       const result = await planTrip({
         startLocation: start,
@@ -135,29 +146,34 @@ const TripPlannerForm = ({
       
       <div className="space-y-3">
         <div className="space-y-2">
-        <Label htmlFor="start">Starting Point</Label>
-  <AddressAutocompleteInput
-    placeholder="Starting Point"
-    mapboxToken={mapboxToken!}
-    onSelect={(location: { name: string; lat: number; lng: number }) => {
-      setEndLocation(location.name);
-      setEndCoordinates([location.lng, location.lat]);
-    }}
-    
-  />
+          <Label htmlFor="start">Starting Point</Label>
+          <div className="flex">
+            <AddressAutocompleteInput
+              placeholder="Starting Point"
+              mapboxToken={mapboxToken || ""}
+              onSelect={handleStartLocationSelect}
+              className="flex-1"
+            />
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleUseCurrentLocation}
+              className="ml-2"
+              type="button"
+            >
+              <MapPin className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="end">Destination</Label>
           <AddressAutocompleteInput
-    placeholder="Destination"
-    mapboxToken={mapboxToken!}
-    onSelect={(location: { name: string; lat: number; lng: number }) => {
-      setEndLocation(location.name);
-      setEndCoordinates([location.lng, location.lat]);
-    }}
-    
-  />
+            placeholder="Destination"
+            mapboxToken={mapboxToken || ""}
+            onSelect={handleEndLocationSelect}
+            className="w-full"
+          />
         </div>
       </div>
       
