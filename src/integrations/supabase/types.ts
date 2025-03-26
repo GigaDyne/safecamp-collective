@@ -128,6 +128,39 @@ export type Database = {
           },
         ]
       }
+      featured_campsites: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          image_url: string
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          image_url: string
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          image_url?: string
+          latitude?: number
+          location?: string
+          longitude?: number
+          name?: string
+        }
+        Relationships: []
+      }
       flags: {
         Row: {
           created_at: string | null

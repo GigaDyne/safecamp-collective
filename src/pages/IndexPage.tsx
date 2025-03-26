@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import React from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { MapPin, Search, Navigation } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/AuthProvider";
+import { useFeaturedCampsites } from "@/hooks/useFeaturedCampsites";
 import { createCheckoutSession } from "@/lib/community/payment";
 
 interface CampCardProps {
@@ -131,6 +131,8 @@ const IndexPage = () => {
     }
   };
 
+  const { data: featuredCampsites = [] } = useFeaturedCampsites();
+
   return (
     <div className="bg-background min-h-screen">
       {/* Header */}
@@ -225,31 +227,19 @@ const IndexPage = () => {
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4">Popular Campsites</h2>
               
-              <div className="space-y-6">
-                <div>
+              {featuredCampsites.map((campsite) => (
+                <div key={campsite.id} className="mb-6">
                   <div className="overflow-hidden rounded-lg mb-2">
                     <img 
-                      src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80&w=600" 
-                      alt="Sunset Ridge" 
+                      src={campsite.image_url} 
+                      alt={campsite.name} 
                       className="w-full h-40 object-cover transition-transform hover:scale-105"
                     />
                   </div>
-                  <h3 className="font-semibold">Sunset Ridge</h3>
-                  <p className="text-sm text-muted-foreground">posted by Saran T.</p>
+                  <h3 className="font-semibold">{campsite.name}</h3>
+                  <p className="text-sm text-muted-foreground">provided by SafeCamp</p>
                 </div>
-                
-                <div>
-                  <div className="overflow-hidden rounded-lg mb-2">
-                    <img 
-                      src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=600" 
-                      alt="Forest Hollow" 
-                      className="w-full h-40 object-cover transition-transform hover:scale-105"
-                    />
-                  </div>
-                  <h3 className="font-semibold">Forest Hollow</h3>
-                  <p className="text-sm text-muted-foreground">posted by Ryan M.</p>
-                </div>
-              </div>
+              ))}
               
               <Button variant="link" className="mt-4 px-0" onClick={() => navigate("/map")}>
                 View all
