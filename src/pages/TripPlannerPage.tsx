@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { TripStop, RouteData, SavedTrip } from "@/lib/trip-planner/types";
 import { saveTripPlan } from "@/lib/trip-planner/trip-storage";
@@ -12,8 +12,18 @@ import TripPlannerContent from "@/components/trip-planner/TripPlannerContent";
 import MapboxTokenDialog from "@/components/trip-planner/MapboxTokenDialog";
 import SaveTripDialog from "@/components/trip-planner/SaveTripDialog";
 
+interface LocationState {
+  startLocation?: string;
+  destination?: string;
+  startCoordinates?: { lat: number; lng: number };
+  destinationCoordinates?: { lat: number; lng: number };
+}
+
 const TripPlannerPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as LocationState || {};
+  
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [tripStops, setTripStops] = useState<TripStop[]>([]);
   const [selectedStops, setSelectedStops] = useState<TripStop[]>([]);
@@ -24,6 +34,10 @@ const TripPlannerPage = () => {
   const [tripName, setTripName] = useState("My Trip");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showCrimeData, setShowCrimeData] = useState(false);
+  const [initialStartLocation, setInitialStartLocation] = useState<string | undefined>(locationState.startLocation);
+  const [initialDestination, setInitialDestination] = useState<string | undefined>(locationState.destination);
+  const [initialStartCoords, setInitialStartCoords] = useState<{lat: number; lng: number} | undefined>(locationState.startCoordinates);
+  const [initialDestCoords, setInitialDestCoords] = useState<{lat: number; lng: number} | undefined>(locationState.destinationCoordinates);
   
   const { user, isAuthenticated, isOfflineMode } = useAuth();
   
@@ -32,8 +46,15 @@ const TripPlannerPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("TripPlannerPage mounted, mapboxToken:", mapboxToken ? "Token exists" : "No token");
-  }, [mapboxToken]);
+    console.log("TripPlannerPage mounted with location state:", locationState);
+    
+    if (locationState.startLocation && locationState.destination) {
+      toast({
+        title: "Route loaded",
+        description: `Planning route from ${locationState.startLocation} to ${locationState.destination}`,
+      });
+    }
+  }, [locationState, toast]);
 
   const handleAddToItinerary = (stop: TripStop) => {
     if (selectedStops.some(s => s.id === stop.id)) {
@@ -127,6 +148,10 @@ const TripPlannerPage = () => {
         showCrimeData={showCrimeData}
         setShowCrimeData={setShowCrimeData}
         onAddToItinerary={handleAddToItinerary}
+        initialStartLocation={initialStartLocation}
+        initialDestination={initialDestination}
+        initialStartCoords={initialStartCoords}
+        initialDestCoords={initialDestCoords}
       />
       
       <MapboxTokenDialog 

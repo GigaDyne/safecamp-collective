@@ -11,6 +11,8 @@ const Index = () => {
   const navigate = useNavigate();
   const [startLocation, setStartLocation] = useState("");
   const [destination, setDestination] = useState("");
+  const [startCoordinates, setStartCoordinates] = useState<{lat: number; lng: number} | null>(null);
+  const [destinationCoordinates, setDestinationCoordinates] = useState<{lat: number; lng: number} | null>(null);
   const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
 
   const handleExploreClick = () => {
@@ -21,17 +23,28 @@ const Index = () => {
     navigate("/planner", { 
       state: { 
         startLocation: startLocation, 
-        destination: destination 
+        destination: destination,
+        startCoordinates: startCoordinates,
+        destinationCoordinates: destinationCoordinates
       } 
+    });
+    
+    console.log("Navigating to planner with:", {
+      startLocation,
+      destination,
+      startCoordinates,
+      destinationCoordinates
     });
   };
 
   const handleStartLocationSelect = (location: { name: string; lat: number; lng: number }) => {
     setStartLocation(location.name);
+    setStartCoordinates({ lat: location.lat, lng: location.lng });
   };
 
   const handleDestinationSelect = (location: { name: string; lat: number; lng: number }) => {
     setDestination(location.name);
+    setDestinationCoordinates({ lat: location.lat, lng: location.lng });
   };
 
   return (

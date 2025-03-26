@@ -18,6 +18,10 @@ interface TripPlannerContentProps {
   showCrimeData: boolean;
   setShowCrimeData: (show: boolean) => void;
   onAddToItinerary: (stop: TripStop) => void;
+  initialStartLocation?: string;
+  initialDestination?: string;
+  initialStartCoords?: { lat: number; lng: number };
+  initialDestCoords?: { lat: number; lng: number };
 }
 
 const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
@@ -32,7 +36,11 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
   mapboxToken,
   showCrimeData,
   setShowCrimeData,
-  onAddToItinerary
+  onAddToItinerary,
+  initialStartLocation,
+  initialDestination,
+  initialStartCoords,
+  initialDestCoords
 }) => {
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] overflow-hidden">
@@ -45,6 +53,10 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
           mapboxToken={mapboxToken}
           showCrimeData={showCrimeData}
           onToggleCrimeData={setShowCrimeData}
+          initialStartLocation={initialStartLocation}
+          initialDestination={initialDestination}
+          initialStartCoords={initialStartCoords}
+          initialDestCoords={initialDestCoords}
         />
         <TripItinerary 
           tripStops={tripStops} 
