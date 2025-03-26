@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -20,13 +20,24 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
-  const { signIn } = useAuth();
+  const { signIn, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Check if the user was redirected here after verifying email
   const isVerified = new URLSearchParams(location.search).get("verified") === "true";
+  
+  // Get redirect path from location state
+  const from = (location.state as any)?.from || "/";
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      console.log("Already authenticated, redirecting to:", from);
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate, from]);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -39,11 +50,30 @@ const LoginPage = () => {
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
     try {
-      await signIn(data.email, data.password);
+      const result = await signIn(data.email, data.password);
+      
+      if (!result.error) {
+        console.log("Login successful, redirecting to:", from);
+        // We don't need to navigate here as the auth state change will trigger the useEffect above
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // If still loading auth state, show loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Loading</CardTitle>
+            <CardDescription>Please wait while we check your authentication status</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -60,6 +90,16 @@ const LoginPage = () => {
             <Alert className="mb-4 bg-green-50 border-green-200">
               <AlertDescription className="text-green-700">
                 Your email has been verified! You can now sign in.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+        
+        {location.state?.timeout && (
+          <div className="px-6">
+            <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+              <AlertDescription className="text-yellow-700">
+                Authentication check timed out. Please sign in to continue.
               </AlertDescription>
             </Alert>
           </div>

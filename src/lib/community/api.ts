@@ -7,6 +7,11 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   try {
     console.log('Fetching profile for user ID:', userId);
     
+    if (!userId) {
+      console.error('Error fetching user profile: Missing user ID');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
@@ -14,14 +19,60 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       .maybeSingle();
     
     if (error) {
+      if (error.code === 'PGRST116') {
+        // No profile found, create one
+        console.log('No profile found, creating one for user ID:', userId);
+        return createDefaultUserProfile(userId);
+      }
+      
       console.error('Error fetching user profile:', error);
       throw error;
+    }
+    
+    if (!data) {
+      console.log('No profile found, creating one for user ID:', userId);
+      return createDefaultUserProfile(userId);
     }
     
     console.log('Profile data retrieved:', data);
     return data;
   } catch (error) {
     console.error('Exception in getUserProfile:', error);
+    return null;
+  }
+}
+
+// Create a default user profile if none exists
+async function createDefaultUserProfile(userId: string): Promise<UserProfile | null> {
+  try {
+    // Get user email to use as display name
+    const { data: userData } = await supabase.auth.getUser();
+    const email = userData?.user?.email || 'Anonymous User';
+    const displayName = email.split('@')[0]; // Use first part of email as display name
+    
+    const newProfile: Omit<UserProfile, 'created_at' | 'updated_at'> = {
+      id: userId,
+      display_name: displayName,
+      bio: '',
+      avatar_url: '',
+      is_creator: false,
+    };
+    
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .insert(newProfile)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating default user profile:', error);
+      throw error;
+    }
+    
+    console.log('Created default profile:', data);
+    return data;
+  } catch (error) {
+    console.error('Error in createDefaultUserProfile:', error);
     return null;
   }
 }
@@ -57,9 +108,12 @@ export async function updateUserProfile(profile: Partial<UserProfile>): Promise<
   try {
     console.log('📡 Sending update request to Supabase...');
     
+    // Don't update created_at/updated_at fields directly
+    const { created_at, updated_at, ...updateData } = profile as any;
+    
     const { data, error } = await supabase
       .from('user_profiles')
-      .update(profile)
+      .update(updateData)
       .eq('id', profile.id)
       .select()
       .single();

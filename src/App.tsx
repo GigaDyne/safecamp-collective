@@ -10,7 +10,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import TripPlannerPage from "@/pages/TripPlannerPage";
 import TripNavigationPage from "@/pages/TripNavigationPage";
 import MapPage from "@/pages/MapPage";
-import IndexPage from "@/pages/IndexPage";
+import Index from "@/pages/Index"; // Using direct import for consistency
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import SiteDetailPage from "@/pages/SiteDetailPage";
 import NearbyPage from "@/pages/NearbyPage";
@@ -28,46 +28,42 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route index element={<IndexPage />} />
-        <Route path="/auth">
-          <Route path="login" element={<LoginPage />} />
-          <Route path="register" element={<SignUpPage />} />
-          <Route path="verify" element={<VerifyEmailPage />} />
-        </Route>
-        <Route path="/" element={<MainLayout />}>
-          <Route path="map" element={<MapPage />} />
-          <Route path="site/:id" element={<SiteDetailPage />} />
-          <Route path="profile" element={<ProtectedRoute />}>
-            <Route index element={<ProfilePage />} />
-          </Route>
-          <Route path="search" element={<NearbyPage />} />
-          <Route path="my-campsites" element={<ProtectedRoute />}>
-            <Route index element={<FavoritesPage />} />
-          </Route>
-          <Route path="add-site" element={<ProtectedRoute />}>
-            <Route index element={<AddSitePage />} />
-          </Route>
-          <Route path="review/:id" element={<ProtectedRoute />}>
-            <Route index element={<ReviewPage />} />
-          </Route>
-          <Route path="planner" element={<ProtectedRoute />}>
-            <Route index element={<TripPlannerPage />} />
-          </Route>
-          <Route path="navigation/:id" element={<ProtectedRoute />}>
-            <Route index element={<TripNavigationPage />} />
-          </Route>
-          <Route path="creator/:id" element={<CreatorProfilePage />} />
-          <Route path="messages" element={<ProtectedRoute />}>
-            <Route index element={<MessagesPage />} />
-          </Route>
-          <Route path="community-help" element={<CommunityHelpPage />} />
-        </Route>
+        {/* Public routes that don't require authentication */}
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/payment-success" element={<PaymentSuccessPage />} />
         <Route path="/payment-cancel" element={<PaymentCancelPage />} />
-        <Route path="*" element={<NotFound />} />
-        <Route path="/trip-planner" element={<ProtectedRoute />}>
-          <Route index element={<TripPlannerPage />} />
+        
+        {/* Legacy auth routes redirect to new ones */}
+        <Route path="/auth/login" element={<Navigate to="/login" replace />} />
+        <Route path="/auth/register" element={<Navigate to="/signup" replace />} />
+        <Route path="/auth/verify" element={<Navigate to="/verify-email" replace />} />
+        
+        {/* Main app layout with optional auth requirements */}
+        <Route path="/" element={<MainLayout />}>
+          {/* Public routes within MainLayout */}
+          <Route path="map" element={<MapPage />} />
+          <Route path="site/:id" element={<SiteDetailPage />} />
+          <Route path="search" element={<NearbyPage />} />
+          <Route path="creator/:id" element={<CreatorProfilePage />} />
+          
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute requireAuth={true} />}>
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="my-campsites" element={<FavoritesPage />} />
+            <Route path="add-site" element={<AddSitePage />} />
+            <Route path="review/:id" element={<ReviewPage />} />
+            <Route path="planner" element={<TripPlannerPage />} />
+            <Route path="navigation/:id" element={<TripNavigationPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="community-help" element={<CommunityHelpPage />} />
+          </Route>
         </Route>
+        
+        {/* Catch-all 404 page */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
     </AuthProvider>

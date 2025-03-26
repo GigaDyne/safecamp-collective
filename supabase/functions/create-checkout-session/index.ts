@@ -47,9 +47,17 @@ serve(async (req) => {
       throw new Error('No email found')
     }
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    // Retrieve Stripe secret key from environment
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      throw new Error('Stripe secret key not configured in environment variables');
+    }
+    
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
     });
+
+    console.log(`Creating checkout for: ${email}, type: ${type}`);
 
     // Check if we already have a customer for this email or use provided customer ID
     let customer_id = stripe_customer_id;

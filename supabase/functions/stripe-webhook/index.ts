@@ -18,12 +18,19 @@ serve(async (req) => {
     return new Response('Webhook secret missing', { status: 500 });
   }
 
+  // Retrieve Stripe secret key from environment
+  const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+  if (!stripeSecretKey) {
+    console.error('Stripe secret key not configured');
+    return new Response('Stripe secret key missing', { status: 500 });
+  }
+
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
   );
 
-  const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  const stripe = new Stripe(stripeSecretKey, {
     apiVersion: '2023-10-16',
   });
 

@@ -12,7 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isEmailVerified: boolean; 
-  isOfflineMode: boolean; // Added missing property
+  isOfflineMode: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null, needsEmailVerification?: boolean }>;
   signOut: () => Promise<void>;
@@ -39,13 +39,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [isOfflineMode, setIsOfflineMode] = useState(false); // Added missing state
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
+  // Check online/offline status
   useEffect(() => {
-    // Check if we're in offline mode
     const checkConnectivity = async () => {
       try {
         const online = navigator.onLine;
@@ -53,8 +53,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setIsOfflineMode(true);
           console.log("Operating in offline mode");
         } else {
-          // Additional check against Supabase could be done here
-          setIsOfflineMode(false);
+          // Additional check against Supabase
+          const { error } = await supabase.auth.getSession();
+          setIsOfflineMode(!!error);
+          
+          if (error) {
+            console.log("Supabase connection error, operating in offline mode:", error);
+          }
         }
       } catch (error) {
         console.error("Error checking connectivity:", error);
@@ -65,8 +70,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     checkConnectivity();
     
     // Add event listeners for online/offline status
-    const handleOnline = () => setIsOfflineMode(false);
-    const handleOffline = () => setIsOfflineMode(true);
+    const handleOnline = () => {
+      setIsOfflineMode(false);
+      console.log("App is now online");
+    };
+    
+    const handleOffline = () => {
+      setIsOfflineMode(true);
+      console.log("App is now offline");
+    };
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -77,55 +89,69 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
+  // Auth state management with improved session handling
   useEffect(() => {
-    // Set up authentication listener
+    console.log("Setting up auth state listener");
+    
+    // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, currentSession) => {
         console.log("Auth state changed:", event);
         
-        if (session) {
-          setSession(session);
-          setUser(session.user);
-          setIsAuthenticated(true);
-          
-          // Check email verification if applicable
-          setIsEmailVerified(
-            session.user.email_confirmed_at !== null ||
-            session.user.email?.includes("anonymous") ||
-            session.user.email?.includes("guest") ||
-            false
-          );
-          
-          // Handle sign in and sign up events
-          if (event === 'SIGNED_IN') {
-            if (location.pathname === '/login' || location.pathname === '/signup') {
-              navigate('/');
+        // Use setTimeout to prevent potential deadlocks with Supabase client
+        setTimeout(() => {
+          if (currentSession) {
+            console.log("Session found in auth state change");
+            setSession(currentSession);
+            setUser(currentSession.user);
+            setIsAuthenticated(true);
+            
+            // Check email verification
+            setIsEmailVerified(
+              !!currentSession.user.email_confirmed_at ||
+              !!currentSession.user.email?.includes("anonymous") ||
+              !!currentSession.user.email?.includes("guest")
+            );
+            
+            // Handle sign in and sign up events
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+              const isAuthPage = location.pathname === '/login' || 
+                              location.pathname === '/signup' || 
+                              location.pathname === '/auth/login' || 
+                              location.pathname === '/auth/register';
+                              
+              if (isAuthPage) {
+                navigate('/');
+              }
             }
-          } 
-        } else {
-          setSession(null);
-          setUser(null);
-          setIsAuthenticated(false);
-          setIsEmailVerified(false);
-          
-          // Don't redirect to login if on signup or login pages
-          if (
-            event === 'SIGNED_OUT' && 
-            location.pathname !== '/login' && 
-            location.pathname !== '/signup' &&
-            location.pathname !== '/verify-email'
-          ) {
-            navigate('/login');
+          } else {
+            console.log("No session in auth state change");
+            setSession(null);
+            setUser(null);
+            setIsAuthenticated(false);
+            setIsEmailVerified(false);
+            
+            // Only redirect to login from protected pages
+            if (
+              event === 'SIGNED_OUT' && 
+              location.pathname !== '/login' && 
+              location.pathname !== '/signup' &&
+              location.pathname !== '/auth/login' && 
+              location.pathname !== '/auth/register' &&
+              location.pathname !== '/verify-email' &&
+              !location.pathname.startsWith('/auth/')
+            ) {
+              navigate('/login');
+            }
           }
-        }
-        
-        setIsLoading(false);
+        }, 0);
       }
     );
 
-    // Check initial session
+    // Then check for existing session
     const checkSession = async () => {
       try {
+        console.log("Checking initial session");
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -134,17 +160,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         
         if (data && data.session) {
+          console.log("Initial session found");
           setSession(data.session);
           setUser(data.session.user);
           setIsAuthenticated(true);
           
-          // Check email verification if applicable
+          // Check email verification
           setIsEmailVerified(
-            data.session.user.email_confirmed_at !== null ||
-            data.session.user.email?.includes("anonymous") ||
-            data.session.user.email?.includes("guest") ||
-            false
+            !!data.session.user.email_confirmed_at ||
+            !!data.session.user.email?.includes("anonymous") ||
+            !!data.session.user.email?.includes("guest")
           );
+        } else {
+          console.log("No initial session found");
         }
       } catch (error) {
         console.error("Session check failed:", error);
@@ -325,7 +353,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading,
     isAuthenticated,
     isEmailVerified,
-    isOfflineMode, // Added to the context value
+    isOfflineMode,
     signIn: handleSignIn,
     signUp: handleSignUp,
     signOut: handleSignOut,
