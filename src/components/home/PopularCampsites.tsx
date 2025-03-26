@@ -14,6 +14,14 @@ interface FeaturedCampsite {
   image_url: string;
 }
 
+// Static reliable image URLs
+const reliableImageUrls = [
+  'https://images.unsplash.com/photo-1472396961693-142e6e269027',
+  'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9',
+  'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86',
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e'
+];
+
 const PopularCampsites: React.FC = () => {
   const navigate = useNavigate();
   const { data: featuredCampsites = [] } = useFeaturedCampsites();
@@ -25,24 +33,20 @@ const PopularCampsites: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {featuredCampsites.slice(0, 3).map((campsite) => (
+          {featuredCampsites.slice(0, 3).map((campsite, index) => (
             <div key={campsite.id} className="group cursor-pointer" onClick={() => navigate(`/site/${campsite.id}`)}>
               <div className="overflow-hidden rounded-md mb-2 h-32">
-                {campsite.image_url ? (
-                  <img 
-                    src={campsite.image_url} 
-                    alt={campsite.name} 
-                    className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null; 
-                      e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Lone_Rock_Beach_Campground.jpg';
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-32 bg-muted flex items-center justify-center rounded-md">
-                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
+                {/* Use static reliable images from the array */}
+                <img 
+                  src={reliableImageUrls[index % reliableImageUrls.length]} 
+                  alt={campsite.name} 
+                  className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null; 
+                    // If even our reliable URLs fail, use a further fallback
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1469474968028-56623f02e42e';
+                  }}
+                />
               </div>
               <h3 className="font-medium text-sm line-clamp-1">{campsite.name}</h3>
               <p className="text-xs text-muted-foreground">{campsite.location}</p>
