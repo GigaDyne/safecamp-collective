@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -15,7 +14,7 @@ import { useCampSites } from "@/hooks/useCampSites";
 import { useToast } from "@/hooks/use-toast";
 
 // This will store the token once provided by the user
-let mapboxToken = "";
+let mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
 
 const MapView = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -25,7 +24,7 @@ const MapView = () => {
   const [searchVisible, setSearchVisible] = useState(false);
   const { campSites, isLoading } = useCampSites();
   const [tokenEntered, setTokenEntered] = useState(false);
-  const [tokenValue, setTokenValue] = useState("");
+  const [tokenValue, setTokenValue] = useState("pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg");
   const { toast } = useToast();
 
   // Initialize map when token is provided
@@ -181,7 +180,7 @@ const MapView = () => {
 
   // Check if token exists in localStorage on component mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("mapbox_token");
+    const savedToken = localStorage.getItem("mapbox_token") || mapboxToken;
     if (savedToken) {
       mapboxToken = savedToken;
       setTokenValue(savedToken);
@@ -200,9 +199,9 @@ const MapView = () => {
             </div>
             
             <div className="mb-4">
-              <h3 className="text-lg font-medium mb-2">Enter Mapbox Token</h3>
+              <h3 className="text-lg font-medium mb-2">MapBox Token</h3>
               <p className="text-muted-foreground text-sm mb-4">
-                To view the map, please enter your Mapbox public token. You can get one by creating an account at{" "}
+                A default MapBox token has been provided. You can replace it with your own token from{" "}
                 <a href="https://mapbox.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">
                   mapbox.com
                 </a>
@@ -210,7 +209,7 @@ const MapView = () => {
               
               <div className="flex flex-col gap-2">
                 <Input
-                  placeholder="pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6..."
+                  placeholder="Enter Mapbox token"
                   value={tokenValue}
                   onChange={(e) => setTokenValue(e.target.value)}
                   className="w-full"
@@ -223,7 +222,7 @@ const MapView = () => {
               <div className="mt-4 flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 rounded-md text-xs">
                 <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p>
-                  This is a temporary solution for demonstration purposes. In a production app, the token would be securely managed server-side.
+                  This is a temporary solution. In a production app, the token would be securely managed server-side.
                 </p>
               </div>
             </div>
