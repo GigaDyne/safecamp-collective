@@ -14,11 +14,13 @@ const AppHeader: React.FC = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center">
           <Link to="/" className="flex items-center">
-            <img 
-              src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
-              alt="SafeCamp Logo" 
-              className="h-10 w-10"
-            />
+            <div className="h-10 w-10 overflow-hidden rounded-full bg-background">
+              <img 
+                src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
+                alt="SafeCamp Logo" 
+                className="h-full w-full object-contain mix-blend-multiply"
+              />
+            </div>
             <span className="ml-2 text-xl font-bold">SafeCamp</span>
           </Link>
         </div>

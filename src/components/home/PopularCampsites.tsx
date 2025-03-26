@@ -29,11 +29,13 @@ const PopularCampsites: React.FC = () => {
     <Card className="border border-border/50">
       <CardHeader className="pb-2">
         <CardTitle className="text-xl flex items-center">
-          <img 
-            src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
-            alt="SafeCamp Logo" 
-            className="h-5 w-5 mr-2"
-          />
+          <div className="h-5 w-5 overflow-hidden rounded-full bg-background mr-2">
+            <img 
+              src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
+              alt="SafeCamp Logo" 
+              className="h-full w-full object-contain mix-blend-multiply"
+            />
+          </div>
           Popular Campsites
         </CardTitle>
       </CardHeader>
