@@ -11,8 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { saveReview } from "@/hooks/useCampSites";
+import { useCampSiteReviews } from "@/hooks/useCampSites";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/lib/supabase";
 
 // Form schema
 const reviewSchema = z.object({
@@ -34,6 +35,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
   const { toast } = useToast();
   const navigate = useNavigate();
   const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const { addReview, isAddingReview } = useCampSiteReviews(siteId);
   
   // Initialize form
   const form = useForm<ReviewFormValues>({
@@ -94,15 +97,56 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
     );
   };
 
-  // Handle image upload (mock, just for demo)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  // Upload image to Supabase Storage
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${siteId}/${uuidv4()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('review-images')
+        .upload(filePath, file);
+      
+      if (error) throw error;
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('review-images')
+        .getPublicUrl(filePath);
+      
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
 
-    // For demo purposes, we're just creating object URLs
-    // In a real app, you'd upload to a storage service
-    const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-    setImages(prev => [...prev, ...newImages]);
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setUploading(true);
+    
+    try {
+      // Upload each file to Supabase
+      const uploadPromises = Array.from(files).map(uploadImage);
+      const uploadedUrls = await Promise.all(uploadPromises);
+      
+      // Filter out any failed uploads
+      const validUrls = uploadedUrls.filter(url => url !== null) as string[];
+      
+      setImages(prev => [...prev, ...validUrls]);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error uploading your images. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Remove an image
@@ -114,7 +158,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
   const onSubmit = (values: ReviewFormValues) => {
     // Create the review object
     const review = {
-      id: uuidv4(),
       siteId,
       userId: "user-" + Date.now(), // In a real app, this would be the actual user ID
       userName: "Anonymous User", // In a real app, this would be the actual username
@@ -122,25 +165,20 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
       cellSignal: parseInt(values.cellSignal),
       noiseLevel: parseInt(values.noiseLevel),
       comment: values.comment,
-      date: new Date().toLocaleDateString(),
       images: images.length > 0 ? images : undefined,
     };
 
-    // Save the review (in a real app, this would be an API call)
-    saveReview(review);
-    
-    // Show success toast
-    toast({
-      title: "Review submitted!",
-      description: "Thank you for sharing your experience at this campsite.",
+    // Save the review using our custom hook
+    addReview(review, {
+      onSuccess: () => {
+        // Call the success callback or navigate back
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate(`/site/${siteId}`);
+        }
+      }
     });
-
-    // Call the success callback or navigate back
-    if (onSuccess) {
-      onSuccess();
-    } else {
-      navigate(`/site/${siteId}`);
-    }
   };
 
   return (
@@ -204,22 +242,37 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
                   </div>
                 ))}
                 
-                <label className="flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-md aspect-square cursor-pointer hover:bg-muted/50 transition-colors">
+                <label className={`flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-md aspect-square cursor-pointer hover:bg-muted/50 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
                     type="file"
                     accept="image/*"
                     multiple
                     className="sr-only"
                     onChange={handleImageUpload}
+                    disabled={uploading}
                   />
-                  <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Add Photos</span>
+                  {uploading ? (
+                    <div className="animate-pulse text-center">
+                      <span className="text-xs text-muted-foreground">Uploading...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Add Photos</span>
+                    </>
+                  )}
                 </label>
               </div>
             </div>
             
             {/* Submit Button */}
-            <Button type="submit" className="w-full">Submit Review</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isAddingReview}
+            >
+              {isAddingReview ? "Submitting..." : "Submit Review"}
+            </Button>
           </form>
         </Form>
       </div>

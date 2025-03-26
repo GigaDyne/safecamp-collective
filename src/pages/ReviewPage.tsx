@@ -4,11 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReviewForm from "@/components/reviews/ReviewForm";
 import { useCampSites } from "@/hooks/useCampSites";
+import { useToast } from "@/hooks/use-toast";
 
 const ReviewPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { campSites } = useCampSites();
+  const { toast } = useToast();
   
   // Find the campsite
   const site = campSites?.find(site => site.id === id);
@@ -20,6 +22,10 @@ const ReviewPage = () => {
   
   // Handle successful review submission
   const handleReviewSuccess = () => {
+    toast({
+      title: "Review Submitted",
+      description: "Thank you for your feedback! It will help other campers.",
+    });
     navigate(`/site/${id}`);
   };
   
