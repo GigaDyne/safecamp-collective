@@ -32,20 +32,53 @@ const SignUpPage = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
   
-  // Check Supabase connectivity on component mount
+  // Check Supabase connectivity on component mount and when network status changes
   useEffect(() => {
     const checkConnection = async () => {
-      const isConnected = await checkSupabaseConnectivity();
-      setIsOnline(isConnected);
-      
-      if (!isConnected) {
+      try {
+        const isConnected = await checkSupabaseConnectivity();
+        setIsOnline(isConnected);
+        
+        if (!isConnected) {
+          setConnectionError(
+            "We're having trouble connecting to our servers. You can continue as a guest or try again later."
+          );
+        } else {
+          setConnectionError(null);
+        }
+      } catch (error) {
+        console.error("Connection check error:", error);
+        setIsOnline(false);
         setConnectionError(
           "We're having trouble connecting to our servers. You can continue as a guest or try again later."
         );
       }
     };
     
+    // Check connection initially
     checkConnection();
+    
+    // Also set up listeners for online/offline status
+    const handleOnline = () => {
+      console.log("Browser reports online status");
+      checkConnection();
+    };
+    
+    const handleOffline = () => {
+      console.log("Browser reports offline status");
+      setIsOnline(false);
+      setConnectionError(
+        "Your device appears to be offline. You can continue as a guest or try again when you're back online."
+      );
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
   
   const form = useForm<SignUpFormValues>({
@@ -59,11 +92,19 @@ const SignUpPage = () => {
 
   const onSubmit = async (data: SignUpFormValues) => {
     setIsSubmitting(true);
-    setConnectionError(null);
     try {
+      if (!isOnline) {
+        setConnectionError("You appear to be offline. Please continue as a guest or try again when you're back online.");
+        return;
+      }
+      
       const result = await signUp(data.email, data.password);
       if (result?.error) {
-        if (result.error.message === "Failed to fetch" || result.error.message?.includes("network")) {
+        if (result.error.message === "Failed to fetch" || 
+            result.error.message?.includes("network") ||
+            result.error.message?.includes("abort") ||
+            result.error.code === "NETWORK_ERROR" ||
+            result.error.status === 0) {
           setConnectionError("Unable to connect to the authentication service. You can continue as a guest or try again later.");
           setIsOnline(false);
         } else {
@@ -71,9 +112,16 @@ const SignUpPage = () => {
         }
       }
     } catch (error: any) {
-      setConnectionError(error.message || "An unexpected error occurred.");
-      if (error.message === "Failed to fetch" || error.message?.includes("network")) {
+      console.error("Sign up error:", error);
+      if (error.message === "Failed to fetch" || 
+          error.message?.includes("network") ||
+          error.message?.includes("abort") ||
+          error.code === "NETWORK_ERROR" ||
+          error.status === 0) {
+        setConnectionError("Unable to connect to the authentication service. You can continue as a guest or try again later.");
         setIsOnline(false);
+      } else {
+        setConnectionError(error.message || "An unexpected error occurred.");
       }
     } finally {
       setIsSubmitting(false);
@@ -84,6 +132,9 @@ const SignUpPage = () => {
     setIsGuestLoading(true);
     try {
       await continueAsGuest();
+    } catch (error) {
+      console.error("Error continuing as guest:", error);
+      setConnectionError("Failed to set up guest access. Please try again.");
     } finally {
       setIsGuestLoading(false);
     }

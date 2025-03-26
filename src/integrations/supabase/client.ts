@@ -10,5 +10,23 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
+  },
+  global: {
+    // Add a timeout to network requests to fail faster when network is down
+    fetch: (...args) => {
+      const [url, options] = args;
+      const controller = new AbortController();
+      const { signal } = controller;
+      
+      // Set timeout to 5 seconds to quickly detect network issues
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      return fetch(url, {
+        ...options,
+        signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
+      });
+    }
   }
 });

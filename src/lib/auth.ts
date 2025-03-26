@@ -9,7 +9,14 @@ export const checkSupabaseConnectivity = async (): Promise<boolean> => {
     // Instead of querying a specific table that might not exist,
     // we'll use a simple authentication check which doesn't require specific table access
     const start = Date.now();
-    const { error } = await supabase.auth.getSession();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    
+    const { error } = await supabase.auth.getSession({
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     const elapsed = Date.now() - start;
     
     console.log(`Supabase connectivity check: ${error ? 'failed' : 'succeeded'} in ${elapsed}ms`);
@@ -69,6 +76,12 @@ export const ensureAuthenticated = async (): Promise<User> => {
 // Sign in anonymously
 export const signInAnonymously = async (): Promise<User> => {
   try {
+    // First check connectivity
+    const isConnected = await checkSupabaseConnectivity();
+    if (!isConnected) {
+      throw new Error("No connection to authentication service");
+    }
+    
     const randomEmail = `anonymous-${uuidv4()}@safecampapp.com`;
     const randomPassword = uuidv4();
     

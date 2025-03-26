@@ -13,12 +13,15 @@ import { useEffect } from "react"
 export function Toaster() {
   const { toasts, dismiss } = useToast()
 
-  // Auto-dismiss all toasts after 2 seconds
+  // Auto-dismiss non-error toasts after 3 seconds
   useEffect(() => {
     toasts.forEach((toast) => {
+      // Skip auto-dismiss for error toasts (variant: destructive)
+      if (toast.variant === "destructive") return;
+      
       const timer = setTimeout(() => {
         dismiss(toast.id)
-      }, 2000)
+      }, 3000)
 
       return () => clearTimeout(timer)
     })
