@@ -26,10 +26,12 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
     try {
       mapboxgl.accessToken = mapboxToken;
       
+      console.log("Initializing Mapbox map with token:", mapboxToken ? "Token exists" : "No token");
+      
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-97.9222, 39.3820],
+        center: [-97.9222, 39.3820], // Center of US
         zoom: 3
       });
 
@@ -44,6 +46,12 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
       map.current.on('load', () => {
         console.log("Map loaded successfully");
         setMapInitialized(true);
+      });
+      
+      // Add error event listener
+      map.current.on('error', (e) => {
+        console.error("Mapbox error:", e);
+        setError("Error loading map. Please check your Mapbox token and network connection.");
       });
     } catch (error) {
       console.error("Error initializing map:", error);

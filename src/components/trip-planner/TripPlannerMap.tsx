@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -14,6 +15,7 @@ import { createStopMarker } from './map-utils/createStopMarker';
 import MapLegend from './map-components/MapLegend';
 import MapLoadingState from './map-components/MapLoadingState';
 import MapError from './map-components/MapError';
+import MapDebugInfo from './map-components/MapDebugInfo';
 import { useMapInitialization } from './hooks/useMapInitialization';
 
 interface TripPlannerMapProps {
@@ -32,12 +34,14 @@ const TripPlannerMap = ({
   isLoading,
   mapboxToken,
   selectedStops,
-  onAddToItinerary
+  onAddToItinerary,
+  setTripStops
 }: TripPlannerMapProps) => {
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const { toast } = useToast();
+  const [showDebug, setShowDebug] = useState(true);
   
   const {
     mapContainer,
@@ -387,6 +391,19 @@ const TripPlannerMap = ({
     });
   }, [tripStops, selectedStops, onAddToItinerary, toast]);
 
+  // Toggle debug info with triple click on map
+  useEffect(() => {
+    const handleTripleClick = () => {
+      setShowDebug(prev => !prev);
+    };
+    
+    document.addEventListener('dblclick', handleTripleClick);
+    
+    return () => {
+      document.removeEventListener('dblclick', handleTripleClick);
+    };
+  }, []);
+
   if (error) {
     return <MapError message={error} />;
   }
@@ -394,9 +411,14 @@ const TripPlannerMap = ({
   return (
     <ContextMenu>
       <ContextMenuTrigger className="relative h-full w-full">
-        <div ref={mapContainer} className="absolute inset-0" style={{ height: '100%', width: '100%' }} />
+        <div 
+          ref={mapContainer} 
+          className="absolute inset-0" 
+          style={{ height: '100%', width: '100%' }} 
+          data-testid="map-container"
+        />
         
-        {isLoading && <MapLoadingState />}
+        {isLoading && <MapLoadingState message="Planning your trip..." />}
         
         {!mapboxToken && (
           <MapLoadingState message="Please set your Mapbox token using the settings button in the top right corner." />
@@ -406,6 +428,16 @@ const TripPlannerMap = ({
           <div className="absolute bottom-4 left-4 right-4 bg-card p-4 rounded-md shadow-md text-center">
             <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
           </div>
+        )}
+        
+        {showDebug && (
+          <MapDebugInfo 
+            mapboxToken={mapboxToken}
+            mapInitialized={mapInitialized}
+            mapContainerRef={mapContainer}
+            mapRef={map}
+            error={error}
+          />
         )}
         
         <MapLegend />

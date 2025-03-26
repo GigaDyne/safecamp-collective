@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -72,6 +73,12 @@
     --caution: 35 92% 50%;
     --danger: 0 70% 50%;
   }
+}
+
+/* Make sure the map container fills its parent */
+.mapboxgl-map {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* Add animation for marker pulse effect */

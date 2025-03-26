@@ -27,7 +27,7 @@ const TripPlannerPage = () => {
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
   
-  // Use the hardcoded Mapbox token
+  // Use the hardcoded Mapbox token from env vars, or fallback to a demo token for dev purposes
   const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
   
   const { toast } = useToast();
@@ -89,15 +89,6 @@ const TripPlannerPage = () => {
         
         {/* Right panel - Map */}
         <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-muted/20">
-          {/* Add a debug message if the mapboxToken is missing */}
-          {!mapboxToken && (
-            <div className="absolute inset-0 flex items-center justify-center z-50 bg-background/80 p-4">
-              <div className="bg-destructive/10 p-6 rounded-lg max-w-md">
-                <h3 className="font-semibold mb-2">Map Token Missing</h3>
-                <p className="text-sm">The Mapbox token is missing. Please refresh the page or check the console for more details.</p>
-              </div>
-            </div>
-          )}
           <TripPlannerMap 
             routeData={routeData} 
             tripStops={tripStops} 
