@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import debounce from "lodash.debounce";
 
@@ -9,12 +10,14 @@ interface AddressAutocompleteInputProps {
     lng: number;
   }) => void;
   mapboxToken: string;
+  className?: string; // Added className prop
 }
 
 const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   placeholder = "Enter a location",
   onSelect,
   mapboxToken,
+  className = "", // Default to empty string
 }) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -47,7 +50,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <input
         type="text"
         value={query}
