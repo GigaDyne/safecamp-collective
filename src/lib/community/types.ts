@@ -92,6 +92,13 @@ export interface Conversation {
   last_message?: Message;
 }
 
+// Create a simplified commenter type that matches what we're getting from the API
+export type CommentUser = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
 export interface ProfileComment {
   id: string;
   profile_id: string;
@@ -99,5 +106,5 @@ export interface ProfileComment {
   content: string;
   created_at: string;
   updated_at: string;
-  commenter?: UserProfile;
+  commenter?: CommentUser; // Now using the simpler CommentUser type
 }
