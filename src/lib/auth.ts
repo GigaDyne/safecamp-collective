@@ -5,6 +5,23 @@ import { User } from "@/lib/supabase";
 // Local storage key for anonymous auth
 const ANONYMOUS_AUTH_KEY = "anonymous_auth";
 
+// Function to sign in anonymously - defined here since it was being imported from supabase.ts previously
+export const signInAnonymously = async () => {
+  // Generate a random email and password for anonymous auth
+  const randomEmail = `anonymous-${Math.random().toString(36).substring(2)}@nomad.camp`;
+  const randomPassword = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+  
+  // Store credentials in localStorage for future sessions
+  localStorage.setItem('anonymous_email', randomEmail);
+  localStorage.setItem('anonymous_password', randomPassword);
+  
+  // Create a new user
+  return supabase.auth.signUp({
+    email: randomEmail,
+    password: randomPassword,
+  });
+};
+
 // Check if user is authenticated
 export const ensureAuthenticated = async (): Promise<User | undefined> => {
   // Check if already authenticated
@@ -39,19 +56,21 @@ export const ensureAuthenticated = async (): Promise<User | undefined> => {
     }
   }
   
-  // Create new anonymous user using the imported function
-  const { data: signInData, error: signInError } = await signInAnonymously();
-  
-  if (signInError) {
-    throw new Error('Failed to authenticate anonymously');
+  // Create new anonymous user
+  try {
+    const { data: signInData, error: signInError } = await signInAnonymously();
+    
+    if (signInError) {
+      throw new Error('Failed to authenticate anonymously');
+    }
+    
+    return signInData?.user ? {
+      id: signInData.user.id,
+      email: signInData.user.email || '',
+      createdAt: new Date(signInData.user.created_at || Date.now()).toLocaleDateString()
+    } : undefined;
+  } catch (error) {
+    console.error('Anonymous authentication error:', error);
+    return undefined;
   }
-  
-  return signInData?.user ? {
-    id: signInData.user.id,
-    email: signInData.user.email || '',
-    createdAt: new Date(signInData.user.created_at || Date.now()).toLocaleDateString()
-  } : undefined;
 };
-
-// Export the signInAnonymously function
-export { signInAnonymously } from "@/lib/supabase";
