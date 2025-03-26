@@ -9,13 +9,10 @@ export const checkSupabaseConnectivity = async (): Promise<boolean> => {
     // Instead of querying a specific table that might not exist,
     // we'll use a simple authentication check which doesn't require specific table access
     const start = Date.now();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
     
     // Call getSession without arguments
     const { error } = await supabase.auth.getSession();
     
-    clearTimeout(timeoutId);
     const elapsed = Date.now() - start;
     
     console.log(`Supabase connectivity check: ${error ? 'failed' : 'succeeded'} in ${elapsed}ms`);
@@ -81,7 +78,8 @@ export const signInAnonymously = async (): Promise<User> => {
       throw new Error("No connection to authentication service");
     }
     
-    const randomEmail = `anonymous-${uuidv4()}@safecampapp.com`;
+    // Use direct domain name instead of anonymous-safecampapp.com which seems to be invalid
+    const randomEmail = `guest-${uuidv4()}@nomad.camp`;
     const randomPassword = uuidv4();
     
     const { data, error } = await supabase.auth.signUp({
@@ -109,7 +107,7 @@ export const signInAnonymously = async (): Promise<User> => {
     // Fallback to a local mock user if anonymous sign-in fails
     const mockUser = {
       id: `offline-${uuidv4()}`,
-      email: 'guest@safecampapp.com',
+      email: 'guest@nomad.camp',
       createdAt: new Date().toLocaleDateString()
     };
     

@@ -22,8 +22,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       // Set timeout to 5 seconds to quickly detect network issues
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
+      // Add request ID to help with debugging
+      const requestId = `req-${Math.random().toString(36).substring(2, 9)}`;
+      const headers = new Headers(options?.headers || {});
+      headers.set('x-request-id', requestId);
+      
       return fetch(url, {
         ...options,
+        headers,
         signal,
       }).finally(() => {
         clearTimeout(timeoutId);
