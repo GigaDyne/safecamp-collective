@@ -27,15 +27,29 @@ import { FlagReason, formatFlagForSupabase } from "@/lib/supabase";
 
 interface FlagSiteDialogProps {
   siteId: string;
-  siteName: string;
+  siteName?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const FlagSiteDialog: React.FC<FlagSiteDialogProps> = ({ siteId, siteName }) => {
+const FlagSiteDialog: React.FC<FlagSiteDialogProps> = ({ 
+  siteId, 
+  siteName = "this site",
+  isOpen,
+  onClose
+}) => {
   const [reason, setReason] = useState<FlagReason | "">("");
   const [details, setDetails] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+
+  // Handle controlled vs uncontrolled mode
+  const isControlled = isOpen !== undefined && onClose !== undefined;
+  const dialogOpen = isControlled ? isOpen : open;
+  const setDialogOpen = isControlled ? (value: boolean) => {
+    if (!value && onClose) onClose();
+  } : setOpen;
 
   const handleSubmit = async () => {
     if (!reason) {
@@ -76,7 +90,7 @@ const FlagSiteDialog: React.FC<FlagSiteDialogProps> = ({ siteId, siteName }) => 
       // Reset form and close dialog
       setReason("");
       setDetails("");
-      setOpen(false);
+      setDialogOpen(false);
     } catch (error) {
       console.error("Error flagging site:", error);
       toast({
@@ -90,17 +104,19 @@ const FlagSiteDialog: React.FC<FlagSiteDialogProps> = ({ siteId, siteName }) => 
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4 gap-2 border-border/50 text-muted-foreground"
-        >
-          <Flag className="h-4 w-4" />
-          Flag this site
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4 gap-2 border-border/50 text-muted-foreground"
+          >
+            <Flag className="h-4 w-4" />
+            Flag this site
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Flag {siteName}</DialogTitle>

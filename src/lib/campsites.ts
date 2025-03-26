@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { CampSite, formatCampsiteForSupabase, mapSupabaseCampsite } from "@/lib/supabase";
 import { mockCampSites } from "@/data/mockData";
@@ -32,6 +31,36 @@ export const fetchCampSites = async (): Promise<CampSite[]> => {
   } catch (error) {
     console.error('Error in fetchCampSites:', error);
     return mockCampSites; // Fallback to mock data
+  }
+};
+
+// Fetch a single campsite by ID
+export const fetchCampSiteById = async (id: string): Promise<CampSite | null> => {
+  try {
+    // Ensure user is authenticated
+    await ensureAuthenticated();
+    
+    // Fetch campsite from Supabase
+    const { data, error } = await supabase
+      .from('campsites')
+      .select('*')
+      .eq('id', id)
+      .single() as any;
+    
+    if (error) {
+      console.error('Error fetching campsite by ID:', error);
+      // Try to find the campsite in mock data as fallback
+      const mockCampsite = mockCampSites.find(site => site.id === id);
+      return mockCampsite || null;
+    }
+    
+    // Map to our format
+    return mapSupabaseCampsite(data);
+  } catch (error) {
+    console.error('Error in fetchCampSiteById:', error);
+    // Try to find the campsite in mock data as fallback
+    const mockCampsite = mockCampSites.find(site => site.id === id);
+    return mockCampsite || null;
   }
 };
 

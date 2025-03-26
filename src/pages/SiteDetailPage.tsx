@@ -102,6 +102,11 @@ const SiteDetailPage: React.FC = () => {
     );
   }
 
+  // Calculate average safety rating for reviews
+  const averageSafety = reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.safetyRating, 0) / reviews.length
+    : site.safetyRating || 0;
+
   return (
     <div className="container mx-auto px-4 py-6 pb-20">
       {/* Header with back button and title */}
@@ -257,6 +262,7 @@ const SiteDetailPage: React.FC = () => {
           <ReviewsList
             reviews={reviews}
             isLoading={isLoadingReviews}
+            averageSafety={averageSafety}
             onWriteReview={() => navigate(`/review/${site.id}`)}
           />
         </TabsContent>
@@ -269,9 +275,10 @@ const SiteDetailPage: React.FC = () => {
 
       {/* Flag dialog */}
       <FlagSiteDialog
+        siteId={site.id}
+        siteName={site.name}
         isOpen={showFlagDialog}
         onClose={() => setShowFlagDialog(false)}
-        siteId={site.id}
       />
     </div>
   );

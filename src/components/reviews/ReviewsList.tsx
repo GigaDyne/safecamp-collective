@@ -12,16 +12,32 @@ import { Button } from "@/components/ui/button";
 
 interface ReviewsListProps {
   reviews: Review[];
-  averageSafety: number;
-  onAddReview: () => void;
+  averageSafety?: number;
+  isLoading?: boolean;
+  onAddReview?: () => void;
+  onWriteReview?: () => void;
 }
 
 const ReviewsList: React.FC<ReviewsListProps> = ({ 
-  reviews, 
-  averageSafety,
-  onAddReview 
+  reviews = [], 
+  averageSafety = 0,
+  isLoading = false,
+  onAddReview,
+  onWriteReview 
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const handleAddOrWriteReview = () => {
+    if (onAddReview) {
+      onAddReview();
+    } else if (onWriteReview) {
+      onWriteReview();
+    }
+  };
+  
+  // Calculate average safety if not provided
+  const calculatedSafety = averageSafety || (reviews.length > 0 
+    ? reviews.reduce((sum, review) => sum + review.safetyRating, 0) / reviews.length
+    : 0);
   
   // Function to determine safety class based on rating
   const getSafetyClass = (rating: number) => {
@@ -55,6 +71,17 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
     setSelectedImage(imageUrl);
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="bg-secondary/50 rounded-lg p-4 h-20"></div>
+        {[1, 2].map(i => (
+          <div key={i} className="bg-card/50 border border-border/50 rounded-lg p-4 h-32"></div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       variants={containerVariants}
@@ -87,7 +114,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
       <motion.div variants={itemVariants} className="bg-secondary/50 rounded-lg p-4">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-xl font-bold">{averageSafety.toFixed(1)}</p>
+            <p className="text-xl font-bold">{calculatedSafety.toFixed(1)}</p>
             <p className="text-xs text-muted-foreground">
               Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
             </p>
@@ -95,7 +122,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
           
           <button 
             className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium"
-            onClick={onAddReview}
+            onClick={handleAddOrWriteReview}
           >
             Add Review
           </button>
