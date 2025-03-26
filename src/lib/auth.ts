@@ -1,5 +1,6 @@
 
-import { supabase, User } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { User } from "@/lib/supabase";
 
 // Local storage key for anonymous auth
 const ANONYMOUS_AUTH_KEY = "anonymous_auth";
@@ -10,7 +11,12 @@ export const ensureAuthenticated = async (): Promise<User | undefined> => {
   const { data, error } = await supabase.auth.getUser();
   
   if (!error && data.user) {
-    return data.user;
+    // Convert Supabase User to our User type
+    return {
+      id: data.user.id,
+      email: data.user.email || '',
+      createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
+    };
   }
   
   // Try to sign in with stored anonymous credentials
@@ -24,19 +30,28 @@ export const ensureAuthenticated = async (): Promise<User | undefined> => {
     });
     
     if (!error && data.user) {
-      return data.user;
+      // Convert Supabase User to our User type
+      return {
+        id: data.user.id,
+        email: data.user.email || '',
+        createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
+      };
     }
   }
   
-  // Create new anonymous user using the function from supabase.ts
+  // Create new anonymous user using the imported function
   const { data: signInData, error: signInError } = await signInAnonymously();
   
   if (signInError) {
     throw new Error('Failed to authenticate anonymously');
   }
   
-  return signInData?.user;
+  return signInData?.user ? {
+    id: signInData.user.id,
+    email: signInData.user.email || '',
+    createdAt: new Date(signInData.user.created_at || Date.now()).toLocaleDateString()
+  } : undefined;
 };
 
-// Re-export for convenience
+// Export the signInAnonymously function
 export { signInAnonymously } from "@/lib/supabase";

@@ -2,8 +2,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import { Filter, Plus } from "lucide-react";
-import { useCampSites, useAddCampSite, ensureAuthenticated } from "@/hooks/useCampSites";
+import { useCampSites, useAddCampSite } from "@/hooks/useCampSites";
 import { CampSite } from "@/lib/supabase";
+import { ensureAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import MapControls from "./MapControls";
 import SearchBar from "./SearchBar";

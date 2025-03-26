@@ -1,9 +1,12 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CampSite, Review } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { fetchCampSites, saveCampSite } from "@/lib/campsites";
 import { fetchSiteReviews, saveReview } from "@/lib/reviews";
+import { ensureAuthenticated } from "@/lib/auth";
+
+// Re-export ensureAuthenticated from auth.ts for backward compatibility
+export { ensureAuthenticated } from "@/lib/auth";
 
 // Re-export types from Supabase lib to make them available to components
 export type { CampSite, Review } from "@/lib/supabase";
