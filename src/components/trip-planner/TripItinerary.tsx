@@ -1,15 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { 
   Save, 
   Trash2, 
-  GasPump, 
+  Fuel, 
   Droplet, 
   Route, 
   MapPin, 
   ArrowUp, 
   ArrowDown, 
-  Check
+  Check,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -34,13 +34,11 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
   const [tripName, setTripName] = useState("");
 
   useEffect(() => {
-    // Load saved trips on component mount
     const trips = loadTripPlans();
     setSavedTrips(trips);
   }, []);
 
   const handleAddStop = (stop: TripStop) => {
-    // Don't add duplicates
     if (selectedStops.some(s => s.id === stop.id)) {
       return;
     }
@@ -63,10 +61,8 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
     const newStops = [...selectedStops];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     
-    // Swap the stops
     [newStops[index], newStops[targetIndex]] = [newStops[targetIndex], newStops[index]];
     
-    // Update order property
     const updatedStops = newStops.map((stop, idx) => ({
       ...stop,
       order: idx
@@ -132,7 +128,7 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
       case 'campsite':
         return <MapPin className="h-4 w-4 text-green-500" />;
       case 'gas':
-        return <GasPump className="h-4 w-4 text-red-500" />;
+        return <Fuel className="h-4 w-4 text-red-500" />;
       case 'water':
         return <Droplet className="h-4 w-4 text-blue-500" />;
       case 'dump':
@@ -144,7 +140,6 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
 
   const renderEta = (distanceMeters: number) => {
     const distanceMiles = distanceMeters / 1609.34;
-    // Assume average speed of 55 mph
     const timeHours = distanceMiles / 55;
     
     const hours = Math.floor(timeHours);
@@ -317,3 +312,4 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
 };
 
 export default TripItinerary;
+
