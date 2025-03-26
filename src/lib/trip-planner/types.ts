@@ -1,63 +1,38 @@
-
-// Types for trip planning
-export interface TripPlanRequest {
-  startLocation: string;
-  endLocation: string;
-  bufferDistance: number;
-  includeCampsites: boolean;
-  includeGasStations: boolean;
-  includeWaterStations: boolean;
-  includeDumpStations: boolean;
-  includeWalmarts: boolean;
-  includePropaneStations: boolean;
-  includeRepairShops: boolean;
-  mapboxToken?: string; // Added mapboxToken as an optional parameter
-}
-
-export interface TripPlanResponse {
-  routeData: RouteData;
-  availableStops: TripStop[];
-}
-
-export interface RouteData {
-  geometry: {
-    coordinates: number[][];
-    type: string;
-  };
-  distance: number;
-  duration: number;
-  startLocation: string;
-  endLocation: string;
-}
-
 export interface TripStop {
   id: string;
   name: string;
-  type: 'campsite' | 'gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair';
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  distanceFromRoute: number;
-  distance?: number;
-  eta?: string;
-  safetyRating?: number;
-  isSelected?: boolean;
-  details?: {
-    description?: string;
-    features?: string[];
-    images?: string[];
-    reviewCount?: number;
-  };
-  order?: number; // Added order for sorting in the itinerary
+  location: string;
+  coordinates: { lat: number; lng: number };
+  details?: any;
+  order?: number;
 }
 
-// Define the SavedTrip interface that was missing
+export interface RouteData {
+  distance: number;
+  duration: number;
+  geometry: [number, number][];
+}
+
 export interface SavedTrip {
   id: string;
   name: string;
-  stops: TripStop[];
-  created: string;
   startLocation: string;
   endLocation: string;
+  stops: TripStop[];
+  routeData?: RouteData | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SupabaseTrip {
+  id: string;
+  owner_id: string;
+  is_guest: boolean;
+  name: string;
+  start_location: string;
+  end_location: string;
+  stops: TripStop[];
+  route_data?: RouteData | null;
+  created_at: string;
+  updated_at: string;
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Navigation, MapPin, Info, Share2 } from "lucide-react";
@@ -10,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation as useCurrentLocation } from "@/hooks/useLocation";
 import TripNavigationMap from "@/components/trip-planner/TripNavigationMap";
+import { useAuth } from "@/providers/AuthProvider";
 
 const TripNavigationPage = () => {
   const navigate = useNavigate();
@@ -19,34 +19,50 @@ const TripNavigationPage = () => {
   const [currentStopIndex, setCurrentStopIndex] = useState(0);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const { location, getLocation } = useCurrentLocation();
+  const { isAuthenticated, isOfflineMode } = useAuth();
   const { toast } = useToast();
   
   // Load the trip data
   useEffect(() => {
-    if (!tripId) {
-      navigate("/trip-planner");
-      return;
+    async function loadTrip() {
+      if (!tripId) {
+        navigate("/trip-planner");
+        return;
+      }
+      
+      try {
+        const tripData = await getTripPlanById(tripId);
+        if (tripData) {
+          setTrip(tripData);
+          // Sort stops by order to ensure proper sequence
+          if (tripData.stops) {
+            const sortedStops = [...tripData.stops].sort((a, b) => 
+              (a.order || 0) - (b.order || 0)
+            );
+            tripData.stops = sortedStops;
+          }
+        } else {
+          toast({
+            title: "Trip not found",
+            description: "The requested trip could not be found",
+            variant: "destructive",
+          });
+          navigate("/trip-planner");
+        }
+      } catch (error) {
+        console.error("Error loading trip:", error);
+        toast({
+          title: "Error",
+          description: "There was a problem loading your trip",
+          variant: "destructive",
+        });
+        navigate("/trip-planner");
+      } finally {
+        setIsLoading(false);
+      }
     }
     
-    const tripData = getTripPlanById(tripId);
-    if (tripData) {
-      setTrip(tripData);
-      // Sort stops by order to ensure proper sequence
-      if (tripData.stops) {
-        const sortedStops = [...tripData.stops].sort((a, b) => 
-          (a.order || 0) - (b.order || 0)
-        );
-        tripData.stops = sortedStops;
-      }
-    } else {
-      toast({
-        title: "Trip not found",
-        description: "The requested trip could not be found",
-        variant: "destructive",
-      });
-      navigate("/trip-planner");
-    }
-    setIsLoading(false);
+    loadTrip();
   }, [tripId, navigate, toast]);
   
   // Update user location periodically
@@ -116,8 +132,6 @@ const TripNavigationPage = () => {
   const handleShare = async () => {
     if (!trip) return;
     
-    // In a real app, you'd generate a shareable link
-    // For demo purposes, we'll just copy the current URL
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast({

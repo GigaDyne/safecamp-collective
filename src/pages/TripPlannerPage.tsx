@@ -1,12 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, Settings } from "lucide-react";
+import { ChevronLeft, Settings, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import TripPlannerMap from "@/components/trip-planner/TripPlannerMap";
 import TripPlannerForm from "@/components/trip-planner/TripPlannerForm";
 import TripItinerary from "@/components/trip-planner/TripItinerary";
-import { TripStop, RouteData } from "@/lib/trip-planner/types";
+import { TripStop, RouteData, SavedTrip } from "@/lib/trip-planner/types";
+import { saveTripPlan } from "@/lib/trip-planner/trip-storage";
+import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "@/providers/AuthProvider";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +29,11 @@ const TripPlannerPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [tripName, setTripName] = useState("My Trip");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  
+  const { user, isAuthenticated, isOfflineMode } = useAuth();
   
   // Use the hardcoded Mapbox token from env vars, or fallback to a demo token for dev purposes
   const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
@@ -57,6 +65,57 @@ const TripPlannerPage = () => {
       description: `Added ${stop.name} to your itinerary`,
     });
   };
+  
+  // Handle saving the trip
+  const handleSaveTrip = async () => {
+    if (selectedStops.length === 0) {
+      toast({
+        title: "Cannot save trip",
+        description: "Please add at least one stop to your itinerary",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setShowSaveDialog(true);
+  };
+  
+  const confirmSaveTrip = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Create a new trip object
+      const newTrip: SavedTrip = {
+        id: uuidv4(),
+        name: tripName,
+        startLocation: tripStops.length > 0 ? tripStops[0].name : "Starting Point",
+        endLocation: tripStops.length > 0 ? tripStops[tripStops.length - 1].name : "Destination",
+        stops: selectedStops,
+        routeData: routeData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save the trip to storage
+      await saveTripPlan(newTrip);
+      
+      toast({
+        title: "Trip saved",
+        description: `"${tripName}" has been saved${isAuthenticated ? " to your account" : " locally"}`,
+      });
+      
+      setShowSaveDialog(false);
+    } catch (error) {
+      console.error("Error saving trip:", error);
+      toast({
+        title: "Error",
+        description: "There was a problem saving your trip",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="relative h-screen flex flex-col">
@@ -74,14 +133,27 @@ const TripPlannerPage = () => {
           <h1 className="text-xl font-semibold">Trip Planner</h1>
         </div>
         
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowTokenDialog(true)}
-          className="text-primary-foreground hover:bg-primary/80"
-        >
-          <Settings className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSaveTrip}
+            className="text-primary-foreground hover:bg-primary/80"
+            disabled={selectedStops.length === 0}
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Save Trip
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowTokenDialog(true)}
+            className="text-primary-foreground hover:bg-primary/80"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] overflow-hidden">
@@ -145,6 +217,47 @@ const TripPlannerPage = () => {
               }}
             >
               Save Token
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Save Trip Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save Trip</DialogTitle>
+            <DialogDescription>
+              {isAuthenticated 
+                ? "Save this trip to your account." 
+                : "Save this trip locally. Sign in to sync your trips across devices."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="trip-name" className="text-sm font-medium">
+                Trip Name
+              </label>
+              <Input
+                id="trip-name"
+                placeholder="Enter trip name"
+                value={tripName}
+                onChange={(e) => setTripName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSaveDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmSaveTrip}
+              disabled={isSaving || !tripName.trim()}
+            >
+              {isSaving ? "Saving..." : "Save Trip"}
             </Button>
           </DialogFooter>
         </DialogContent>

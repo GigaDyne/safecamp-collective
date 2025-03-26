@@ -1,10 +1,10 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { User } from "@/lib/supabase";
 import { signInAnonymously } from "@/lib/auth";
+import { associateGuestTripsWithUser } from "@/lib/trip-planner/trip-storage";
 
 interface AuthContextType {
   user: User | null;
@@ -30,17 +30,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for active session on initial load
     const checkSession = async () => {
       setIsLoading(true);
       try {
-        // Check for offline user first
         const offlineUser = localStorage.getItem('offline_user');
         if (offlineUser) {
           const parsedUser = JSON.parse(offlineUser) as User;
           setUser(parsedUser);
           setIsAuthenticated(true);
-          setIsEmailVerified(true); // Offline users are always "verified"
+          setIsEmailVerified(true);
           setIsOfflineMode(true);
           setIsLoading(false);
           return;
@@ -58,11 +56,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const { data: userData } = await supabase.auth.getUser();
           
           if (userData.user) {
-            // Check if email is verified
             const isVerified = userData.user.email_confirmed_at !== null;
             setIsEmailVerified(isVerified);
             
-            // Set user data
             setUser({
               id: userData.user.id,
               email: userData.user.email || '',
@@ -87,7 +83,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
 
-    // Subscribe to auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
@@ -97,11 +92,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             try {
               const { data } = await supabase.auth.getUser();
               if (data.user) {
-                // Check if email is verified
                 const isVerified = data.user.email_confirmed_at !== null;
                 setIsEmailVerified(isVerified);
                 
-                // Set user data
                 setUser({
                   id: data.user.id,
                   email: data.user.email || '',
@@ -122,11 +115,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsOfflineMode(false);
           navigate("/login");
         } else if (event === "USER_UPDATED") {
-          // Refresh user data when updated
           try {
             const { data } = await supabase.auth.getUser();
             if (data.user) {
-              // Check if email is verified
               const isVerified = data.user.email_confirmed_at !== null;
               setIsEmailVerified(isVerified);
               
@@ -137,7 +128,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 });
               }
               
-              // Set user data
               setUser({
                 id: data.user.id,
                 email: data.user.email || '',
@@ -220,7 +210,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive"
         });
         
-        // Send another verification email
         await supabase.auth.resend({
           type: 'signup',
           email
@@ -238,6 +227,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       setIsAuthenticated(true);
       setIsOfflineMode(false);
+      
+      try {
+        await associateGuestTripsWithUser(data.user.id);
+      } catch (error) {
+        console.error("Error associating guest trips:", error);
+      }
       
       toast({
         title: "Sign In Successful",
@@ -276,20 +271,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Generate a mock offline user
       const mockUser: User = {
         id: `offline-${Math.random().toString(36).substring(2)}`,
         email: 'guest@nomad.camp',
         createdAt: new Date().toLocaleDateString()
       };
       
-      // Store offline user in localStorage
       localStorage.setItem('offline_user', JSON.stringify(mockUser));
       
-      // Set user state
       setUser(mockUser);
       setIsAuthenticated(true);
-      setIsEmailVerified(true); // Offline users are always "verified"
+      setIsEmailVerified(true);
       setIsOfflineMode(true);
       
       toast({
@@ -312,9 +304,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // Check if in offline mode
       if (isOfflineMode) {
-        // Clear offline user data
         localStorage.removeItem('offline_user');
         
         setUser(null);
@@ -331,7 +321,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // Regular sign out
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
