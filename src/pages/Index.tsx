@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Map, Navigation, MapPin, Shield } from "lucide-react";
@@ -15,7 +16,7 @@ const Index = () => {
         <div className="mb-6 flex justify-center">
           <div className="h-24 w-24 overflow-hidden rounded-full bg-transparent">
             <img 
-              src="/lovable-uploads/0e349219-2a18-4d3a-b419-cef60a0b18f5.png" 
+              src="/lovable-uploads/def200c5-de41-49bb-b376-ac14a7bdc292.png" 
               alt="SafeCamp Logo" 
               className="h-full w-full object-contain"
             />

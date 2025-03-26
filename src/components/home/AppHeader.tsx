@@ -16,7 +16,7 @@ const AppHeader: React.FC = () => {
           <Link to="/" className="flex items-center">
             <div className="h-10 w-10 overflow-hidden rounded-full bg-transparent">
               <img 
-                src="/lovable-uploads/0e349219-2a18-4d3a-b419-cef60a0b18f5.png" 
+                src="/lovable-uploads/def200c5-de41-49bb-b376-ac14a7bdc292.png" 
                 alt="SafeCamp Logo" 
                 className="h-full w-full object-contain"
               />

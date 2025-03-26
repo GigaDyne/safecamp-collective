@@ -1,8 +1,16 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useFeaturedCampsites } from "@/hooks/useFeaturedCampsites";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const reliableImageUrls = [
+  'https://images.unsplash.com/photo-1472396961693-142e6e269027',
+  'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9',
+  'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86',
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e'
+];
 
 const PopularCampsites: React.FC = () => {
   const navigate = useNavigate();
