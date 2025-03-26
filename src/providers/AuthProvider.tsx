@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -30,32 +31,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    let isMounted = true;
     const checkSession = async () => {
+      if (!isMounted) return;
       setIsLoading(true);
+      
       try {
+        // Check for offline user first
         const offlineUser = localStorage.getItem('offline_user');
         if (offlineUser) {
           const parsedUser = JSON.parse(offlineUser) as User;
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-          setIsEmailVerified(true);
-          setIsOfflineMode(true);
-          setIsLoading(false);
+          if (isMounted) {
+            setUser(parsedUser);
+            setIsAuthenticated(true);
+            setIsEmailVerified(true);
+            setIsOfflineMode(true);
+            setIsLoading(false);
+          }
           return;
         }
 
-        const { data, error } = await supabase.auth.getSession();
-        if (error) {
-          console.warn("Session check error, might be offline:", error);
-          setIsOfflineMode(true);
-          setIsLoading(false);
-          return;
-        }
+        // Add a timeout for Supabase auth check
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Auth check timeout")), 5000);
+        });
         
-        if (data?.session) {
+        // Try to get session with timeout
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]).catch(error => {
+          console.warn("Session check timed out:", error);
+          return { data: { session: null }, error };
+        });
+        
+        if (!isMounted) return;
+        
+        if (sessionResult && 'data' in sessionResult && sessionResult.data?.session) {
           const { data: userData } = await supabase.auth.getUser();
           
-          if (userData.user) {
+          if (userData?.user && isMounted) {
             const isVerified = userData.user.email_confirmed_at !== null;
             setIsEmailVerified(isVerified);
             
@@ -70,28 +85,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error("Session check error:", error);
-        setIsOfflineMode(true);
-        toast({
-          title: "Offline Mode",
-          description: "You are in offline mode. Some features may be limited.",
-          variant: "default"
-        });
+        if (isMounted) {
+          setIsOfflineMode(true);
+          toast({
+            title: "Offline Mode",
+            description: "You are in offline mode. Some features may be limited.",
+            variant: "default"
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkSession();
 
+    // Set up the auth state change listener AFTER the initial session check
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
+        
+        if (!isMounted) return;
         
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           if (session) {
             try {
               const { data } = await supabase.auth.getUser();
-              if (data.user) {
+              if (data?.user && isMounted) {
                 const isVerified = data.user.email_confirmed_at !== null;
                 setIsEmailVerified(isVerified);
                 
@@ -109,19 +131,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
         } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setIsAuthenticated(false);
-          setIsEmailVerified(false);
-          setIsOfflineMode(false);
-          navigate("/login");
+          if (isMounted) {
+            setUser(null);
+            setIsAuthenticated(false);
+            setIsEmailVerified(false);
+            setIsOfflineMode(false);
+            navigate("/login");
+          }
         } else if (event === "USER_UPDATED") {
           try {
             const { data } = await supabase.auth.getUser();
-            if (data.user) {
+            if (data?.user && isMounted) {
               const isVerified = data.user.email_confirmed_at !== null;
               setIsEmailVerified(isVerified);
               
-              if (isVerified && !isEmailVerified) {
+              if (isVerified && !isEmailVerified && isMounted) {
                 toast({
                   title: "Email Verified",
                   description: "Your email has been successfully verified."
@@ -142,6 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, [navigate, toast, isEmailVerified]);

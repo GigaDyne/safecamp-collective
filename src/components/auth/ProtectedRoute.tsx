@@ -1,5 +1,5 @@
-
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -15,27 +15,45 @@ const ProtectedRoute = ({
   const { isAuthenticated, isLoading, isEmailVerified, isOfflineMode } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
+  const [isLoadingTimeout, setIsLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    if (isLoading) {
+      const timeoutId = setTimeout(() => {
+        setIsLoadingTimeout(true);
+      }, 5000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isLoading]);
+  
+  if (isLoading && !isLoadingTimeout) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center">
         <Spinner size="lg" />
+        <p className="mt-4 text-muted-foreground">Loading authentication status...</p>
       </div>
     );
   }
 
-  // If authentication is required but user is not authenticated
+  if (isLoading && isLoadingTimeout) {
+    console.log("Authentication loading timed out, continuing as guest");
+    
+    if (requireAuth) {
+      return <Navigate to="/login" state={{ from: location, timeout: true }} replace />;
+    }
+    
+    return <Outlet />;
+  }
+
   if (requireAuth && !isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If email verification is required but user's email is not verified
-  // Skip this check if user is in offline mode
   if (requireAuth && requireVerification && !isEmailVerified && !isOfflineMode) {
     return <Navigate to="/verify-email" replace />;
   }
 
-  // If user is authenticated but tries to access login/signup pages
   if (!requireAuth && isAuthenticated) {
     return <Navigate to="/" replace />;
   }
