@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -260,7 +261,7 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 export const signInAnonymously = async () => {
   try {
-    const randomEmail = `anonymous-${uuidv4()}@safecampapp.com';
+    const randomEmail = `anonymous-${uuidv4()}@safecampapp.com`;
     const randomPassword = uuidv4();
     
     const { data, error } = await supabase.auth.signUp({
