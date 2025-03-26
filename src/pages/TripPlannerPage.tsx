@@ -44,7 +44,13 @@ const TripPlannerPage = () => {
       return;
     }
     
-    setSelectedStops(prev => [...prev, { ...stop, order: prev.length }]);
+    // Add the stop to selectedStops with the correct order
+    const newStop = { 
+      ...stop, 
+      order: selectedStops.length 
+    };
+    
+    setSelectedStops(prev => [...prev, newStop]);
     
     toast({
       title: "Stop added",
@@ -92,6 +98,7 @@ const TripPlannerPage = () => {
             tripStops={tripStops} 
             setTripStops={setTripStops} 
             routeData={routeData}
+            selectedStops={selectedStops}
             onSelectedStopsChange={setSelectedStops}
           />
         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Save, 
@@ -25,6 +24,7 @@ interface TripItineraryProps {
   tripStops: TripStop[];
   setTripStops: (stops: TripStop[]) => void;
   routeData: RouteData | null;
+  selectedStops?: TripStop[];
   onSelectedStopsChange?: (stops: TripStop[]) => void;
 }
 
@@ -32,36 +32,41 @@ const TripItinerary = ({
   tripStops, 
   setTripStops, 
   routeData,
+  selectedStops = [],
   onSelectedStopsChange
 }: TripItineraryProps) => {
   const { toast } = useToast();
-  const [selectedStops, setSelectedStops] = useState<TripStop[]>([]);
-  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [tripName, setTripName] = useState("");
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
 
   useEffect(() => {
     const trips = loadTripPlans();
     setSavedTrips(trips);
   }, []);
 
-  // Notify parent component when selected stops change
-  useEffect(() => {
-    if (onSelectedStopsChange) {
-      onSelectedStopsChange(selectedStops);
-    }
-  }, [selectedStops, onSelectedStopsChange]);
-
   const handleAddStop = (stop: TripStop) => {
     if (selectedStops.some(s => s.id === stop.id)) {
       return;
     }
     
-    setSelectedStops(prev => [...prev, { ...stop, order: prev.length }]);
+    const newStops = [...selectedStops, { ...stop, order: selectedStops.length }];
+    
+    if (onSelectedStopsChange) {
+      onSelectedStopsChange(newStops);
+    }
   };
 
   const handleRemoveStop = (stopId: string) => {
-    setSelectedStops(prev => prev.filter(stop => stop.id !== stopId));
+    const newStops = selectedStops.filter(stop => stop.id !== stopId)
+      .map((stop, idx) => ({
+        ...stop,
+        order: idx
+      }));
+    
+    if (onSelectedStopsChange) {
+      onSelectedStopsChange(newStops);
+    }
   };
 
   const handleMoveStop = (index: number, direction: 'up' | 'down') => {
@@ -82,7 +87,9 @@ const TripItinerary = ({
       order: idx
     }));
     
-    setSelectedStops(updatedStops);
+    if (onSelectedStopsChange) {
+      onSelectedStopsChange(updatedStops);
+    }
   };
 
   const handleSaveTrip = () => {

@@ -64,12 +64,14 @@ export const useMapPopup = ({
     
     const isAlreadyAdded = selectedStops.some(s => s.id === stop.id);
     
-    // Create popup content using the utility function
-    const popupContent = StopPopupContent({
+    // Create the utility instance first
+    const popupUtil = StopPopupContent({
       stop,
       onAddToItinerary: (clickedStop) => {
         onAddToItinerary(clickedStop);
-        popupRef.current?.remove();
+        if (popupRef.current) {
+          popupRef.current.remove();
+        }
         
         toast({
           title: "Stop added",
@@ -79,6 +81,9 @@ export const useMapPopup = ({
       isAlreadyAdded
     });
     
+    // Now correctly call createPopupContent() to get the DOM element
+    const popupContent = popupUtil.createPopupContent();
+    
     popupRef.current = new mapboxgl.Popup({ 
       offset: 25, 
       closeButton: true,
@@ -87,7 +92,7 @@ export const useMapPopup = ({
       maxWidth: '300px'
     })
       .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
-      .setDOMContent(popupContent.createPopupContent())
+      .setDOMContent(popupContent)
       .addTo(map.current);
     
     map.current.flyTo({

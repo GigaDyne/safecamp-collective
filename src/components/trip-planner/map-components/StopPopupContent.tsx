@@ -7,7 +7,7 @@ interface StopPopupContentProps {
   isAlreadyAdded: boolean;
 }
 
-// Not a React component, just a utility function
+// This is a utility function, not a React component
 const StopPopupContent = ({ 
   stop, 
   onAddToItinerary, 
