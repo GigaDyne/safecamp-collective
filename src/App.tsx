@@ -17,6 +17,7 @@ import PaymentCancelPage from "@/pages/PaymentCancelPage";
 import { Toaster } from "@/components/ui/toaster";
 import IndexPage from "@/pages/IndexPage";
 import MapPage from "@/pages/MapPage";
+import MessagesPage from "@/pages/MessagesPage";
 import LoginPage from "@/pages/AuthPages/LoginPage";
 import SignUpPage from "@/pages/AuthPages/SignUpPage";
 import VerifyEmailPage from "@/pages/AuthPages/VerifyEmailPage";
@@ -63,6 +64,12 @@ function App() {
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancel" element={<PaymentCancelPage />} />
           
+          {/* New home page outside MainLayout */}
+          <Route path="/" element={<IndexPage />} />
+          
+          {/* Messages page outside MainLayout */}
+          <Route path="/messages" element={<MessagesPage />} />
+          
           {/* Protected routes that require authentication but not email verification */}
           <Route element={<ProtectedRoute requireVerification={false} />}>
             {/* These routes are accessible with or without email verification */}
@@ -71,8 +78,7 @@ function App() {
           
           {/* Protected routes that require both authentication and email verification */}
           <Route element={<ProtectedRoute requireAuth={true} requireVerification={true} />}>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<IndexPage />} />
+            <Route element={<MainLayout />}>
               <Route path="map" element={<MapPage />} />
               <Route path="nearby" element={<NearbyPage />} />
               <Route path="favorites" element={<FavoritesPage />} />

@@ -1,72 +1,311 @@
 
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { MapPin, Search, Navigation } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Map, Navigation, MapPin, Shield } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/AuthProvider";
+import { createCheckoutSession } from "@/lib/community/payment";
 
-const IndexPage = () => {
+interface CampCardProps {
+  title: string;
+  description: string;
+  image: string;
+  author: string;
+  price?: number | "Free";
+  days?: number;
+  avatarSrc?: string;
+}
+
+const CampCard: React.FC<CampCardProps> = ({
+  title,
+  description,
+  image,
+  author,
+  price,
+  days,
+  avatarSrc,
+}) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Handle navigation to map view
-  const handleExploreClick = () => {
-    navigate("/map", { replace: false });
+  const handleUnlock = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (typeof price === "number" && price > 0) {
+      // This is a placeholder for now - in a real implementation, you would have 
+      // the actual Stripe price ID stored in your database
+      const priceId = "price_placeholder";
+      const checkoutUrl = await createCheckoutSession(priceId, 'premium_campsite');
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      }
+    } else {
+      // Navigate to the campsite detail page if it's free
+      // In a real implementation, you'd navigate to the actual campsite ID
+      navigate("/map");
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <div className="text-center max-w-md">
-        <div className="mb-6 flex justify-center">
-          <div className="bg-primary/10 p-4 rounded-full">
-            <Map className="h-12 w-12 text-primary" />
-          </div>
+    <div className="border-b border-border/50 pb-6 mb-6">
+      <div className="flex items-start gap-3 mb-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={avatarSrc} />
+          <AvatarFallback>{author.charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col">
+          <div className="font-medium">{author}</div>
+          {days !== undefined && <div className="text-sm text-muted-foreground">{days} days ago</div>}
         </div>
-        
-        <h1 className="text-3xl font-bold mb-3">Welcome to SafeCamp</h1>
-        
-        <p className="text-muted-foreground mb-8">
-          Find and share safe camping spots for nomads and adventurers. 
-          Browse our map to discover locations rated by the community.
-        </p>
-        
-        <div className="grid grid-cols-1 gap-4 mb-8">
-          <div className="flex items-start border rounded-lg p-4 text-left">
-            <MapPin className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-medium text-sm mb-1">Discover Safe Locations</h3>
-              <p className="text-xs text-muted-foreground">
-                Browse campsites rated by safety, cell signal, and quietness
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start border rounded-lg p-4 text-left">
-            <Shield className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-medium text-sm mb-1">Community Ratings</h3>
-              <p className="text-xs text-muted-foreground">
-                See what others say about locations before you go
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start border rounded-lg p-4 text-left">
-            <Navigation className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-medium text-sm mb-1">Share Your Finds</h3>
-              <p className="text-xs text-muted-foreground">
-                Add new campsites and help others find safe places to stay
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <Button 
-          className="w-full"
-          size="lg"
-          onClick={handleExploreClick}
-        >
-          Explore the Map
-        </Button>
       </div>
+
+      <h2 className="text-xl font-semibold mb-2">{title}</h2>
+      <p className="text-muted-foreground mb-4">{description}</p>
+
+      <div className="flex items-center justify-between">
+        <div>
+          {typeof price === "number" ? (
+            <div className="text-primary text-lg font-semibold">${price.toFixed(2)}</div>
+          ) : (
+            <div className="text-muted-foreground">Free</div>
+          )}
+        </div>
+        
+        {typeof price === "number" && price > 0 ? (
+          <Button onClick={handleUnlock}>Unlock Spot</Button>
+        ) : (
+          <div className="text-muted-foreground font-medium">Free</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface MonetizationCardProps {
+  title: string;
+  description: string;
+  image: string;
+  icon?: React.ReactNode;
+}
+
+const MonetizationCard: React.FC<MonetizationCardProps> = ({
+  title,
+  description,
+  image,
+  icon,
+}) => {
+  return (
+    <div className="mb-8">
+      <div className="relative rounded-lg overflow-hidden mb-4">
+        <img 
+          src={image} 
+          alt={title} 
+          className="w-full h-40 object-cover"
+        />
+        {icon && (
+          <div className="absolute bottom-3 right-3">
+            {icon}
+          </div>
+        )}
+      </div>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </div>
+  );
+};
+
+const IndexPage = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/map?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  return (
+    <div className="bg-background min-h-screen">
+      {/* Header */}
+      <header className="border-b border-border/50 py-4">
+        <div className="container mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center">
+              <svg 
+                className="h-8 w-8 text-blue-500" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M3 21V3L12 12L21 3V21" 
+                  fill="currentColor" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                />
+              </svg>
+              <span className="ml-2 text-xl font-bold">SafeCamp</span>
+            </Link>
+          </div>
+
+          <div className="flex items-center space-x-6">
+            <Link 
+              to="/map"
+              className={cn(
+                "flex items-center text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <MapPin className="mr-1 h-4 w-4" />
+              Discover
+            </Link>
+            <Link 
+              to="/messages"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Messages
+            </Link>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate("/map")}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+            <Link to="/profile">
+              <Avatar>
+                <AvatarImage src="/lovable-uploads/e227a530-8933-42cb-94f2-a78a64261f5c.png" />
+                <AvatarFallback>JW</AvatarFallback>
+              </Avatar>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="mb-6">
+              <form onSubmit={handleSearch} className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search campsites"
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+            </div>
+
+            <div className="mb-8">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate("/trip-planner")}
+              >
+                <Navigation className="mr-2 h-4 w-4 text-blue-500" />
+                Plan a Trip
+              </Button>
+            </div>
+
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Popular Campsites</h2>
+              
+              <div className="space-y-6">
+                <div>
+                  <div className="overflow-hidden rounded-lg mb-2">
+                    <img 
+                      src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80&w=600" 
+                      alt="Sunset Ridge" 
+                      className="w-full h-40 object-cover transition-transform hover:scale-105"
+                    />
+                  </div>
+                  <h3 className="font-semibold">Sunset Ridge</h3>
+                  <p className="text-sm text-muted-foreground">posted by Saran T.</p>
+                </div>
+                
+                <div>
+                  <div className="overflow-hidden rounded-lg mb-2">
+                    <img 
+                      src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=600" 
+                      alt="Forest Hollow" 
+                      className="w-full h-40 object-cover transition-transform hover:scale-105"
+                    />
+                  </div>
+                  <h3 className="font-semibold">Forest Hollow</h3>
+                  <p className="text-sm text-muted-foreground">posted by Ryan M.</p>
+                </div>
+              </div>
+              
+              <Button variant="link" className="mt-4 px-0" onClick={() => navigate("/map")}>
+                View all
+              </Button>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-1">
+            <h1 className="text-2xl font-bold mb-6">Recent Campsites</h1>
+            
+            <CampCard 
+              title="Secluded Riverbank"
+              description="A quiet, hidden spot by the river. Great for a peaceful night's sleep. Good cell service here too!"
+              image=""
+              author="Madison R"
+              price={3.00}
+              days={3}
+              avatarSrc="https://i.pravatar.cc/150?img=25"
+            />
+            
+            <CampCard 
+              title="Mountain Meadow"
+              description="A safe, open field with stunning mountain views. Stayed here last weekend."
+              image=""
+              author="Luke H"
+              price="Free"
+              days={5}
+              avatarSrc="https://i.pravatar.cc/150?img=52"
+            />
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="lg:col-span-1">
+            <h2 className="text-2xl font-bold mb-6">Monetization</h2>
+            
+            <MonetizationCard 
+              title="Share Your Spots"
+              description="Post your top camping locations and earn from others unlocking them."
+              image="https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&q=80&w=600"
+            />
+            
+            <MonetizationCard 
+              title="Subscribers"
+              description="Share exclusive content with your subscribers for a monthly fee."
+              image="/lovable-uploads/e227a530-8933-42cb-94f2-a78a64261f5c.png"
+            />
+            
+            <MonetizationCard 
+              title="Request Aid"
+              description="Reach out to the community for support when you need it."
+              image="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80&w=600"
+            />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
