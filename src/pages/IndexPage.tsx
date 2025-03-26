@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { MapPin, Search, Navigation } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,16 +38,12 @@ const CampCard: React.FC<CampCardProps> = ({
     }
 
     if (typeof price === "number" && price > 0) {
-      // This is a placeholder for now - in a real implementation, you would have 
-      // the actual Stripe price ID stored in your database
       const priceId = "price_placeholder";
       const checkoutUrl = await createCheckoutSession(priceId, 'premium_campsite');
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       }
     } else {
-      // Navigate to the campsite detail page if it's free
-      // In a real implementation, you'd navigate to the actual campsite ID
       navigate("/map");
     }
   };
@@ -135,7 +131,6 @@ const IndexPage = () => {
 
   return (
     <div className="bg-background min-h-screen">
-      {/* Header */}
       <header className="border-b border-border/50 py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center">
@@ -195,10 +190,8 @@ const IndexPage = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Sidebar */}
           <div className="lg:col-span-1">
             <div className="mb-6">
               <form onSubmit={handleSearch} className="relative">
@@ -227,19 +220,21 @@ const IndexPage = () => {
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4">Popular Campsites</h2>
               
-              {featuredCampsites.map((campsite) => (
-                <div key={campsite.id} className="mb-6">
-                  <div className="overflow-hidden rounded-lg mb-2">
-                    <img 
-                      src={campsite.image_url} 
-                      alt={campsite.name} 
-                      className="w-full h-40 object-cover transition-transform hover:scale-105"
-                    />
+              <div className="space-y-4">
+                {featuredCampsites.map((campsite) => (
+                  <div key={campsite.id} className="mb-4">
+                    <div className="overflow-hidden rounded-lg mb-2">
+                      <img 
+                        src={campsite.image_url} 
+                        alt={campsite.name} 
+                        className="w-full h-40 object-cover transition-transform hover:scale-105"
+                      />
+                    </div>
+                    <h3 className="font-semibold">{campsite.name}</h3>
+                    <p className="text-sm text-muted-foreground">provided by SafeCamp</p>
                   </div>
-                  <h3 className="font-semibold">{campsite.name}</h3>
-                  <p className="text-sm text-muted-foreground">provided by SafeCamp</p>
-                </div>
-              ))}
+                ))}
+              </div>
               
               <Button variant="link" className="mt-4 px-0" onClick={() => navigate("/map")}>
                 View all
@@ -247,7 +242,6 @@ const IndexPage = () => {
             </div>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-1">
             <h1 className="text-2xl font-bold mb-6">Recent Campsites</h1>
             
@@ -272,7 +266,6 @@ const IndexPage = () => {
             />
           </div>
 
-          {/* Right Sidebar */}
           <div className="lg:col-span-1">
             <h2 className="text-2xl font-bold mb-6">Monetization</h2>
             
