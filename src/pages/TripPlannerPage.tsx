@@ -22,6 +22,7 @@ const TripPlannerPage = () => {
   const navigate = useNavigate();
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [tripStops, setTripStops] = useState<TripStop[]>([]);
+  const [selectedStops, setSelectedStops] = useState<TripStop[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
@@ -30,6 +31,21 @@ const TripPlannerPage = () => {
   const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
   
   const { toast } = useToast();
+
+  // Handle adding a stop to the itinerary
+  const handleAddToItinerary = (stop: TripStop) => {
+    // Check if the stop is already in the itinerary
+    if (selectedStops.some(s => s.id === stop.id)) {
+      return;
+    }
+    
+    setSelectedStops(prev => [...prev, { ...stop, order: prev.length }]);
+    
+    toast({
+      title: "Stop added",
+      description: `Added ${stop.name} to your itinerary`,
+    });
+  };
 
   // Remove token dialog logic since we're using a hardcoded token
   return (
@@ -63,6 +79,7 @@ const TripPlannerPage = () => {
             tripStops={tripStops} 
             setTripStops={setTripStops} 
             routeData={routeData}
+            onSelectedStopsChange={setSelectedStops}
           />
         </div>
         
@@ -74,6 +91,8 @@ const TripPlannerPage = () => {
             setTripStops={setTripStops}
             isLoading={isLoading}
             mapboxToken={mapboxToken}
+            selectedStops={selectedStops}
+            onAddToItinerary={handleAddToItinerary}
           />
         </div>
       </div>

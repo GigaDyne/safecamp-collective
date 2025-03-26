@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Save, 
@@ -24,9 +25,15 @@ interface TripItineraryProps {
   tripStops: TripStop[];
   setTripStops: (stops: TripStop[]) => void;
   routeData: RouteData | null;
+  onSelectedStopsChange?: (stops: TripStop[]) => void;
 }
 
-const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProps) => {
+const TripItinerary = ({ 
+  tripStops, 
+  setTripStops, 
+  routeData,
+  onSelectedStopsChange
+}: TripItineraryProps) => {
   const { toast } = useToast();
   const [selectedStops, setSelectedStops] = useState<TripStop[]>([]);
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
@@ -37,6 +44,13 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
     const trips = loadTripPlans();
     setSavedTrips(trips);
   }, []);
+
+  // Notify parent component when selected stops change
+  useEffect(() => {
+    if (onSelectedStopsChange) {
+      onSelectedStopsChange(selectedStops);
+    }
+  }, [selectedStops, onSelectedStopsChange]);
 
   const handleAddStop = (stop: TripStop) => {
     if (selectedStops.some(s => s.id === stop.id)) {
@@ -312,4 +326,3 @@ const TripItinerary = ({ tripStops, setTripStops, routeData }: TripItineraryProp
 };
 
 export default TripItinerary;
-
