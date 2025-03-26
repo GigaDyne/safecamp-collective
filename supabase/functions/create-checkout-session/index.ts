@@ -80,19 +80,46 @@ serve(async (req) => {
       metadata.type = 'premium_campsite';
     } else if (type === 'donation' && item_id) {
       metadata.help_request_id = item_id;
+      metadata.recipient_id = creator_id || '';
       metadata.type = 'donation';
+    }
+
+    // Handle donation differently - we need to create a price on the fly
+    let lineItems;
+    if (type === 'donation') {
+      // Extract amount from price_id format: price_donation_20
+      const amountStr = price_id.split('_').pop() || '0';
+      const amount = parseInt(amountStr, 10);
+      
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error('Invalid donation amount');
+      }
+
+      // Create the line item for the donation
+      lineItems = [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Donation',
+            description: item_id ? 'Donation for help request' : 'General donation',
+          },
+          unit_amount: amount * 100, // Stripe uses cents
+        },
+        quantity: 1,
+      }];
+    } else {
+      // For subscriptions and premium campsites, use the provided price ID
+      lineItems = [{
+        price: price_id,
+        quantity: 1,
+      }];
     }
 
     // Create checkout session based on type
     const session = await stripe.checkout.sessions.create({
       customer: customer_id,
       customer_email: customer_id ? undefined : email,
-      line_items: [
-        {
-          price: price_id,
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: type === 'subscription' ? 'subscription' : 'payment',
       success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/payment-cancel`,

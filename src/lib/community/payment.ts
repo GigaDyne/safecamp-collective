@@ -60,3 +60,33 @@ export async function checkSubscription(creatorId: string): Promise<boolean> {
     return false;
   }
 }
+
+export async function processDonation(
+  amount: number,
+  recipientId: string,
+  helpRequestId?: string,
+  message?: string
+): Promise<string | null> {
+  try {
+    // Create a price ID for one-time payment
+    // This will be a dynamic price created on the server
+    const priceId = `price_donation_${amount}`;
+    
+    const url = await createCheckoutSession(
+      priceId,
+      'donation',
+      helpRequestId,
+      recipientId
+    );
+    
+    return url;
+  } catch (error) {
+    console.error('Error processing donation:', error);
+    toast({
+      title: 'Donation error',
+      description: 'Could not process your donation. Please try again.',
+      variant: 'destructive',
+    });
+    return null;
+  }
+}

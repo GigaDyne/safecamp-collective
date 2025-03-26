@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,11 +22,10 @@ import SignUpPage from "@/pages/AuthPages/SignUpPage";
 import VerifyEmailPage from "@/pages/AuthPages/VerifyEmailPage";
 import { AuthProvider } from "@/providers/AuthProvider";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import CommunityHelpPage from "./pages/CommunityHelpPage";
 
-// Create a client
 const queryClient = new QueryClient();
 
-// Create ScrollToTop component
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   
@@ -39,7 +37,6 @@ const ScrollToTop = () => {
 };
 
 function App() {
-  // Persist scroll position on route change
   const location = useLocation();
 
   useEffect(() => {
@@ -51,32 +48,24 @@ function App() {
       <AuthProvider>
         <ScrollToTop />
         <Routes>
-          {/* Public routes */}
           <Route element={<ProtectedRoute requireAuth={false} />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
           </Route>
           
-          {/* Verification route - accessible to anyone */}
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           
-          {/* Payment success/cancel routes */}
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancel" element={<PaymentCancelPage />} />
           
-          {/* New home page outside MainLayout */}
           <Route path="/" element={<IndexPage />} />
           
-          {/* Messages page outside MainLayout */}
           <Route path="/messages" element={<MessagesPage />} />
           
-          {/* Protected routes that require authentication but not email verification */}
           <Route element={<ProtectedRoute requireVerification={false} />}>
-            {/* These routes are accessible with or without email verification */}
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
           
-          {/* Protected routes that require both authentication and email verification */}
           <Route element={<ProtectedRoute requireAuth={true} requireVerification={true} />}>
             <Route element={<MainLayout />}>
               <Route path="map" element={<MapPage />} />
@@ -89,6 +78,12 @@ function App() {
               <Route path="trip-navigation/:tripId" element={<TripNavigationPage />} />
             </Route>
           </Route>
+          
+          <Route path="/community-help" element={
+            <MainLayout>
+              <CommunityHelpPage />
+            </MainLayout>
+          } />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

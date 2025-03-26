@@ -43,6 +43,10 @@ const PaymentSuccessPage = () => {
     navigate("/profile");
   };
 
+  const handleViewHelpRequests = () => {
+    navigate("/community-help");
+  };
+
   if (loading) {
     return (
       <div className="container max-w-md mx-auto py-16 px-4 text-center">
@@ -79,18 +83,23 @@ const PaymentSuccessPage = () => {
             {paymentDetails?.type === "subscription" 
               ? "Your subscription has been activated." 
               : paymentDetails?.type === "donation"
-                ? "Your donation has been processed." 
+                ? "Your donation has been processed. Thank you for your generosity!" 
                 : "Your purchase has been completed."}
           </p>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col space-y-2">
           <Button className="w-full" onClick={handleContinue}>
             Continue to Profile
           </Button>
+          {paymentDetails?.type === "donation" && (
+            <Button variant="outline" className="w-full" onClick={handleViewHelpRequests}>
+              View Help Requests
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </div>
   );
-};
+}
 
 export default PaymentSuccessPage;

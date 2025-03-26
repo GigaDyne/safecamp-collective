@@ -179,6 +179,37 @@ export async function createHelpRequest(request: Omit<HelpRequest, 'id' | 'amoun
   return data;
 }
 
+export async function getUserHelpRequests(userId: string): Promise<HelpRequest[]> {
+  const { data, error } = await supabase
+    .from('help_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false }) as any;
+  
+  if (error) {
+    console.error('Error fetching user help requests:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function updateHelpRequest(requestId: string, updates: Partial<HelpRequest>): Promise<HelpRequest | null> {
+  const { data, error } = await supabase
+    .from('help_requests')
+    .update(updates)
+    .eq('id', requestId)
+    .select('*')
+    .single() as any;
+  
+  if (error) {
+    console.error('Error updating help request:', error);
+    return null;
+  }
+  
+  return data;
+}
+
 // Premium Campsite Functions
 export async function getPremiumCampsites(userId: string): Promise<PremiumCampsite[]> {
   const { data, error } = await supabase
@@ -217,6 +248,21 @@ export async function getDonationsReceived(userId: string): Promise<Donation[]> 
   
   if (error) {
     console.error('Error fetching donations received:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function getHelpRequestDonations(helpRequestId: string): Promise<Donation[]> {
+  const { data, error } = await supabase
+    .from('donations')
+    .select('*')
+    .eq('help_request_id', helpRequestId)
+    .order('created_at', { ascending: false }) as any;
+  
+  if (error) {
+    console.error('Error fetching help request donations:', error);
     return [];
   }
   
