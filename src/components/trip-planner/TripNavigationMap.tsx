@@ -18,11 +18,20 @@ const TripNavigationMap = ({
   currentStopIndex,
   userLocation
 }: TripNavigationMapProps) => {
-  const { mapContainer, loading } = useNavigationMap({
+  const { mapContainer, loading, map } = useNavigationMap({
     tripStops,
     currentStopIndex,
     userLocation
   });
+
+  // Log when the component renders to help with debugging
+  React.useEffect(() => {
+    console.log("TripNavigationMap rendering with:", {
+      stopsCount: tripStops.length,
+      currentIndex: currentStopIndex,
+      hasUserLocation: !!userLocation
+    });
+  }, [tripStops, currentStopIndex, userLocation]);
 
   return (
     <div className="relative w-full h-full">

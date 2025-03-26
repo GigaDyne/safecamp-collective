@@ -63,8 +63,12 @@ const getDirections = async (start: string, end: string, mapboxToken: string): P
     throw new Error("No route found");
   }
 
+  // Ensure the route data is properly structured for our application
   return {
-    geometry: data.routes[0].geometry,
+    geometry: {
+      type: 'LineString',
+      coordinates: data.routes[0].geometry.coordinates
+    },
     distance: data.routes[0].distance,
     duration: data.routes[0].duration,
     startLocation: start,
@@ -285,6 +289,14 @@ export const planTrip = async (
     endLocation,
     mapboxToken
   );
+  
+  // Log the route data for debugging
+  console.log("Route data fetched:", {
+    hasGeometry: !!routeData.geometry,
+    coordinateCount: routeData.geometry?.coordinates?.length || 0,
+    start: startLocation,
+    end: endLocation
+  });
   
   // Find stops along the route
   const stops: TripStop[] = [];

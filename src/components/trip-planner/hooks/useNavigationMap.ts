@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { TripStop } from '@/lib/trip-planner/types';
 import { createNavigationMarker } from '../map-utils/createNavigationMarker';
@@ -10,149 +10,247 @@ interface UseNavigationMapProps {
   userLocation: { lat: number; lng: number } | null;
 }
 
-export const useNavigationMap = ({
-  tripStops,
-  currentStopIndex,
-  userLocation
+export const useNavigationMap = ({ 
+  tripStops, 
+  currentStopIndex, 
+  userLocation 
 }: UseNavigationMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapInitialized, setMapInitialized] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const routeRef = useRef<{ source: string; layer: string } | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || map.current) return;
     
-    const mapboxToken = localStorage.getItem("mapbox_token") || "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
+    const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
     
-    if (!mapboxToken) {
-      console.error("No Mapbox token found");
-      return;
+    try {
+      mapboxgl.accessToken = mapboxToken;
+      
+      // Create map
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/outdoors-v12',
+        center: [-97.7431, 30.2672], // Default to Austin, TX
+        zoom: 13
+      });
+      
+      // Add navigation controls
+      map.current.addControl(
+        new mapboxgl.NavigationControl({ showCompass: true }),
+        'top-right'
+      );
+      
+      // Wait for map to load
+      map.current.on('load', () => {
+        console.log("Navigation map loaded");
+        setLoading(false);
+        
+        // Add route line if we have stops
+        addRouteLines();
+        
+        // Add markers for stops
+        addStopMarkers();
+      });
+    } catch (error) {
+      console.error("Error initializing navigation map:", error);
+      setLoading(false);
     }
     
-    mapboxgl.accessToken = mapboxToken;
-    
-    const initialCenter = tripStops.length > 0 
-      ? [tripStops[0].coordinates.lng, tripStops[0].coordinates.lat]
-      : [-95.7129, 37.0902];
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
-      center: initialCenter as [number, number],
-      zoom: 10
-    });
-    
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    map.current.addControl(
-      new mapboxgl.GeolocateControl({
-        positionOptions: {
-          enableHighAccuracy: true
-        },
-        trackUserLocation: true
-      }),
-      'top-right'
-    );
-    
-    map.current.on('load', () => {
-      setMapInitialized(true);
-      setLoading(false);
-    });
-    
     return () => {
+      // Cleanup
       if (map.current) {
+        console.log("Cleaning up navigation map");
         map.current.remove();
         map.current = null;
       }
-      Object.values(markersRef.current).forEach(marker => marker.remove());
-      if (userMarkerRef.current) userMarkerRef.current.remove();
     };
   }, []);
   
-  // Update trip stop markers
-  useEffect(() => {
-    if (!map.current || !mapInitialized || tripStops.length === 0) return;
+  // Add or update route lines between stops
+  const addRouteLines = () => {
+    if (!map.current || !map.current.loaded() || tripStops.length < 2) return;
     
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
-    
-    tripStops.forEach((stop, index) => {
-      const isCurrentStop = index === currentStopIndex;
-      const el = createNavigationMarker(stop.type, isCurrentStop, index);
+    try {
+      // Remove existing route if it exists
+      if (routeRef.current) {
+        if (map.current.getLayer(routeRef.current.layer)) {
+          map.current.removeLayer(routeRef.current.layer);
+        }
+        if (map.current.getSource(routeRef.current.source)) {
+          map.current.removeSource(routeRef.current.source);
+        }
+      }
       
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
-        .addTo(map.current!);
+      // Create coordinates array from stops
+      const coordinates = tripStops.map(stop => [
+        stop.coordinates.lng, 
+        stop.coordinates.lat
+      ]);
       
-      markersRef.current[stop.id] = marker;
-    });
-    
-    if (tripStops.length > 1) {
-      const bounds = new mapboxgl.LngLatBounds();
-      tripStops.forEach(stop => {
-        bounds.extend([stop.coordinates.lng, stop.coordinates.lat]);
+      // Don't add empty routes
+      if (coordinates.length < 2) return;
+      
+      // Add route source
+      const sourceId = 'navigation-route';
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: coordinates
+          }
+        }
       });
-      map.current.fitBounds(bounds, { padding: 100 });
+      
+      // Add route layer
+      const layerId = 'navigation-route-line';
+      map.current.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#8B5CF6',
+          'line-width': 4,
+          'line-opacity': 0.8
+        }
+      });
+      
+      // Save reference to route
+      routeRef.current = { source: sourceId, layer: layerId };
+      
+      // Fit bounds to include all stops
+      const bounds = new mapboxgl.LngLatBounds();
+      coordinates.forEach(coord => {
+        bounds.extend(coord as [number, number]);
+      });
+      
+      map.current.fitBounds(bounds, {
+        padding: 100,
+        maxZoom: 15
+      });
+    } catch (error) {
+      console.error("Error adding route line:", error);
     }
-  }, [tripStops, mapInitialized, currentStopIndex]);
+  };
   
-  // Focus on current stop
-  useEffect(() => {
-    if (!map.current || !mapInitialized || tripStops.length === 0) return;
+  // Add markers for all stops
+  const addStopMarkers = () => {
+    if (!map.current || tripStops.length === 0) return;
     
-    const currentStop = tripStops[currentStopIndex];
-    if (!currentStop) return;
-    
-    map.current.flyTo({
-      center: [currentStop.coordinates.lng, currentStop.coordinates.lat],
-      zoom: 13,
-      essential: true
-    });
-  }, [currentStopIndex, tripStops, mapInitialized]);
+    try {
+      // Remove existing markers
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+      
+      // Add markers for each stop
+      tripStops.forEach((stop, index) => {
+        const isCurrentStop = index === currentStopIndex;
+        const el = createNavigationMarker(stop.type, isCurrentStop, index);
+        
+        const marker = new mapboxgl.Marker({
+          element: el
+        })
+          .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
+          .addTo(map.current!);
+        
+        // Add popup with stop info
+        new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: true,
+          offset: 25,
+          className: 'stop-popup'
+        })
+          .setHTML(`
+            <div class="p-2">
+              <h3 class="font-semibold text-sm">${stop.name}</h3>
+              <p class="text-xs text-gray-600">${stop.type || 'Stop'}</p>
+            </div>
+          `)
+          .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
+          .setMaxWidth('300px');
+        
+        markersRef.current.push(marker);
+      });
+    } catch (error) {
+      console.error("Error adding stop markers:", error);
+    }
+  };
   
   // Update user location marker
   useEffect(() => {
-    if (!map.current || !mapInitialized || !userLocation) return;
+    if (!map.current || !userLocation) return;
     
-    if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-    }
-    
-    const el = document.createElement('div');
-    el.className = 'user-marker';
-    el.style.width = '20px';
-    el.style.height = '20px';
-    el.style.borderRadius = '50%';
-    el.style.backgroundColor = '#4338ca';
-    el.style.border = '3px solid white';
-    el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
-    
-    el.style.animation = 'pulse 2s infinite';
-    
-    userMarkerRef.current = new mapboxgl.Marker(el)
-      .setLngLat([userLocation.lng, userLocation.lat])
-      .addTo(map.current);
+    try {
+      // Remove existing user marker
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+      }
       
-    if (!document.getElementById('map-marker-pulse-style')) {
-      const style = document.createElement('style');
-      style.id = 'map-marker-pulse-style';
-      style.textContent = `
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.2); opacity: 0.7; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-      `;
-      document.head.appendChild(style);
+      // Create user marker element
+      const el = document.createElement('div');
+      el.className = 'user-location-marker';
+      el.style.backgroundColor = '#3b82f6';
+      el.style.width = '15px';
+      el.style.height = '15px';
+      el.style.borderRadius = '50%';
+      el.style.border = '3px solid white';
+      el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
+      
+      // Add pulsing effect
+      const pulse = document.createElement('div');
+      pulse.className = 'user-location-pulse';
+      pulse.style.position = 'absolute';
+      pulse.style.top = '-8px';
+      pulse.style.left = '-8px';
+      pulse.style.right = '-8px';
+      pulse.style.bottom = '-8px';
+      pulse.style.borderRadius = '50%';
+      pulse.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+      pulse.style.animation = 'pulse 2s ease-out infinite';
+      el.appendChild(pulse);
+      
+      // Create and add marker
+      userMarkerRef.current = new mapboxgl.Marker({
+        element: el
+      })
+        .setLngLat([userLocation.lng, userLocation.lat])
+        .addTo(map.current);
+      
+      // Add animation keyframes to document if not already added
+      if (!document.getElementById('user-marker-animation')) {
+        const style = document.createElement('style');
+        style.id = 'user-marker-animation';
+        style.textContent = `
+          @keyframes pulse {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    } catch (error) {
+      console.error("Error updating user location marker:", error);
     }
-  }, [userLocation, mapInitialized]);
-
-  return {
-    mapContainer,
-    loading,
-    markersRef
-  };
+  }, [userLocation]);
+  
+  // Update markers when stops or current index changes
+  useEffect(() => {
+    if (map.current && map.current.loaded()) {
+      addStopMarkers();
+      addRouteLines();
+    }
+  }, [tripStops, currentStopIndex]);
+  
+  return { mapContainer, map: map.current, loading };
 };
