@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, MapPin } from "lucide-react";
 import { TripStop, RouteData } from "@/lib/trip-planner/types";
 import { createMapPinElement } from "@/components/map/MapPin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
