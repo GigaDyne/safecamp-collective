@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -125,4 +124,32 @@
 
 .animate-fade-in {
   animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Custom styles for map popups */
+.trip-planner-popup .mapboxgl-popup-content {
+  border-radius: 0.5rem;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid hsl(var(--border));
+}
+
+.trip-planner-popup .mapboxgl-popup-close-button {
+  padding: 0 6px;
+  font-size: 16px;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  top: 8px;
+  right: 8px;
+}
+
+.trip-planner-popup .mapboxgl-popup-close-button:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  color: hsl(var(--foreground));
+  border-radius: 4px;
+}
+
+.trip-planner-popup .mapboxgl-popup-tip {
+  border-top-color: hsl(var(--border)) !important;
 }

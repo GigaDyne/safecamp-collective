@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { Loader2, Plus, MapPin } from "lucide-react";
+import { Loader2, Plus, MapPin, Info } from "lucide-react";
 import { TripStop, RouteData } from "@/lib/trip-planner/types";
 import { createMapPinElement } from "@/components/map/MapPin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -249,32 +249,104 @@ const TripPlannerMap = ({
         
         // Create popup content
         const popupContent = document.createElement('div');
-        popupContent.className = 'p-2';
+        popupContent.className = 'p-3 min-w-[200px]';
         
-        // Stop name and type
+        // Stop name and type with icon
+        const titleContainer = document.createElement('div');
+        titleContainer.className = 'flex items-center gap-2 mb-2';
+        
+        // Add icon based on stop type
+        const iconContainer = document.createElement('div');
+        let iconColor = 'bg-green-500';
+        let iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+        
+        switch (stop.type) {
+          case 'gas':
+            iconColor = 'bg-red-500';
+            iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22a2 2 0 0 0 2-2v-8.5a2 2 0 0 0-2-2"/><path d="M14 22a2 2 0 0 0 2-2v-8.5a2 2 0 0 0-2-2"/><rect width="8" height="5" x="7" y="5" rx="1"/><path d="M7 5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2"/><path d="M8 13v-2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1Z"/></svg>';
+            break;
+          case 'water':
+            iconColor = 'bg-blue-500';
+            iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a8 8 0 0 1-8-8c0-4.314 7-12 8-12s8 7.686 8 12a8 8 0 0 1-8 8Z"/></svg>';
+            break;
+          case 'dump':
+            iconColor = 'bg-amber-500';
+            iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+            break;
+        }
+        
+        iconContainer.className = `w-6 h-6 rounded-full ${iconColor} flex items-center justify-center text-white`;
+        iconContainer.innerHTML = iconSvg;
+        titleContainer.appendChild(iconContainer);
+        
+        // Stop name with larger font
         const title = document.createElement('h3');
-        title.className = 'font-medium text-sm mb-1';
+        title.className = 'font-semibold text-base';
         title.textContent = stop.name;
-        popupContent.appendChild(title);
+        titleContainer.appendChild(title);
+        
+        popupContent.appendChild(titleContainer);
+        
+        // Details section
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'space-y-2 mb-3';
+        
+        // Stop type
+        const typeTag = document.createElement('div');
+        typeTag.className = 'inline-block bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded mb-2';
+        typeTag.textContent = stop.type.charAt(0).toUpperCase() + stop.type.slice(1);
+        detailsContainer.appendChild(typeTag);
         
         // Distance from route
         const distance = document.createElement('p');
-        distance.className = 'text-xs text-muted-foreground mb-2';
-        distance.textContent = stop.distanceFromRoute 
+        distance.className = 'text-xs text-muted-foreground flex items-center gap-1';
+        
+        const infoIcon = document.createElement('span');
+        infoIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+        distance.appendChild(infoIcon);
+        
+        const distanceText = document.createElement('span');
+        distanceText.textContent = stop.distanceFromRoute 
           ? `${(stop.distanceFromRoute / 1609.34).toFixed(1)} mi from route` 
           : "On route";
-        popupContent.appendChild(distance);
+        distance.appendChild(distanceText);
+        
+        detailsContainer.appendChild(distance);
+        
+        // Add details if available
+        if (stop.details && (stop.details.description || stop.details.features?.length)) {
+          const description = document.createElement('p');
+          description.className = 'text-xs mt-2';
+          description.textContent = stop.details.description || '';
+          detailsContainer.appendChild(description);
+          
+          if (stop.details.features?.length) {
+            const features = document.createElement('div');
+            features.className = 'flex flex-wrap gap-1 mt-1';
+            
+            stop.details.features.slice(0, 3).forEach(feature => {
+              const featureTag = document.createElement('span');
+              featureTag.className = 'text-xs bg-muted px-1.5 py-0.5 rounded-sm';
+              featureTag.textContent = feature;
+              features.appendChild(featureTag);
+            });
+            
+            detailsContainer.appendChild(features);
+          }
+        }
+        
+        popupContent.appendChild(detailsContainer);
         
         // Add to itinerary button
         const addButtonContainer = document.createElement('div');
-        addButtonContainer.className = 'flex justify-end mt-2';
+        addButtonContainer.className = 'flex justify-end mt-3';
         
         // Check if stop is already in itinerary
         const alreadyAdded = selectedStops.some(s => s.id === stop.id);
         
         if (!alreadyAdded) {
           const addButton = document.createElement('button');
-          addButton.className = 'px-2 py-1 bg-primary text-primary-foreground text-xs rounded-md flex items-center gap-1';
+          addButton.className = 'px-2.5 py-1.5 bg-primary text-primary-foreground text-xs rounded-md flex items-center gap-1.5 font-medium hover:bg-primary/90 transition-colors';
           addButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Add to Itinerary';
           
           addButton.addEventListener('click', (e) => {
@@ -286,15 +358,21 @@ const TripPlannerMap = ({
           addButtonContainer.appendChild(addButton);
         } else {
           const addedText = document.createElement('span');
-          addedText.className = 'text-xs text-green-600 font-medium';
-          addedText.textContent = 'Added to itinerary';
+          addedText.className = 'text-xs text-green-600 font-medium flex items-center gap-1';
+          addedText.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Added to itinerary';
           addButtonContainer.appendChild(addedText);
         }
         
         popupContent.appendChild(addButtonContainer);
         
-        // Create and show popup
-        popupRef.current = new mapboxgl.Popup({ offset: 25, closeButton: false })
+        // Create and show popup with improved styling
+        popupRef.current = new mapboxgl.Popup({ 
+          offset: 25, 
+          closeButton: true,
+          closeOnClick: false,
+          className: 'trip-planner-popup',
+          maxWidth: '300px'
+        })
           .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
           .setDOMContent(popupContent)
           .addTo(map.current!);
