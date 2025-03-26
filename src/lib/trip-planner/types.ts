@@ -1,3 +1,4 @@
+
 export interface TripStop {
   id: string;
   name: string;
@@ -5,12 +6,19 @@ export interface TripStop {
   coordinates: { lat: number; lng: number };
   details?: any;
   order?: number;
+  type?: 'campsite' | 'gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair';
+  safetyRating?: number;
+  distanceFromRoute?: number;
+  distance?: number;
+  eta?: string;
 }
 
 export interface RouteData {
   distance: number;
   duration: number;
-  geometry: [number, number][];
+  geometry: [number, number][] | { coordinates: [number, number][] };
+  startLocation?: string;
+  endLocation?: string;
 }
 
 export interface SavedTrip {
@@ -35,4 +43,23 @@ export interface SupabaseTrip {
   route_data?: RouteData | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TripPlanRequest {
+  startLocation: string;
+  endLocation: string;
+  bufferDistance: number;
+  includeCampsites?: boolean;
+  includeGasStations?: boolean;
+  includeWaterStations?: boolean;
+  includeDumpStations?: boolean;
+  includeWalmarts?: boolean;
+  includePropaneStations?: boolean;
+  includeRepairShops?: boolean;
+  mapboxToken?: string;
+}
+
+export interface TripPlanResponse {
+  routeData: RouteData;
+  availableStops: TripStop[];
 }
