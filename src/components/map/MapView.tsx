@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { Search, Filter, Plus, X } from "lucide-react";
@@ -101,6 +100,7 @@ const MapView = () => {
       landType: "unknown",
       safetyRating: siteData.safetyRating,
       cellSignal: siteData.cellSignal,
+      accessibility: siteData.accessibility || 3, // Default value for accessibility
       quietness: siteData.noiseLevel,
       features: [
         ...(siteData.isRemote ? ["Remote"] : []),

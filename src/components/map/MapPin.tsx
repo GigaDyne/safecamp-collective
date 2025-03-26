@@ -1,5 +1,5 @@
 
-import { MouseEvent } from "react";
+import { MouseEvent as ReactMouseEvent } from "react";
 import { 
   Popover,
   PopoverContent,
@@ -11,7 +11,7 @@ import { CampSite } from "@/hooks/useCampSites";
 
 interface MapPinProps {
   site: CampSite;
-  onClick: (e: MouseEvent, siteId: string) => void;
+  onClick: (e: ReactMouseEvent, siteId: string) => void;
 }
 
 // Helper function to create a custom map pin element
@@ -25,7 +25,8 @@ export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEve
   pin.className = 'w-10 h-10 flex items-center justify-center transform-gpu transition-all duration-300 hover:scale-110 cursor-pointer';
   
   if (onClick) {
-    pin.addEventListener('click', onClick);
+    // Convert React's MouseEvent to DOM MouseEvent
+    pin.addEventListener('click', onClick as EventListener);
   }
   
   // Determine pin color based on safety rating
@@ -56,7 +57,7 @@ export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEve
 };
 
 const MapPin = ({ site, onClick }: MapPinProps) => {
-  const handleClick = (e: MouseEvent) => {
+  const handleClick = (e: ReactMouseEvent) => {
     e.stopPropagation();
     onClick(e, site.id);
   };
