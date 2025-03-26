@@ -1,52 +1,152 @@
 
-import { useState, useEffect, useRef } from "react";
-import { mockCampSites } from "@/data/mockData";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, mapSupabaseReview, formatReviewForSupabase } from "@/lib/supabase";
+import { 
+  supabase, 
+  CampSite, 
+  Review,
+  mapSupabaseCampsite, 
+  mapSupabaseReview, 
+  formatReviewForSupabase,
+  formatCampsiteForSupabase,
+  signInAnonymously
+} from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { useToast } from "@/hooks/use-toast";
-
-// Types
-export type CampSite = {
-  id: string;
-  name: string;
-  description: string;
-  location: string;
-  coordinates: { lat: number; lng: number };
-  latitude: number;
-  longitude: number;
-  landType: string;
-  safetyRating: number;
-  cellSignal: number;
-  accessibility: number;
-  quietness: number;
-  features: string[];
-  images: string[];
-  reviewCount: number;
-};
-
-export type Review = {
-  id: string;
-  siteId: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  safetyRating: number;
-  cellSignal: number;
-  noiseLevel: number;
-  comment: string;
-  date: string;
-  images?: string[];
-};
+import { mockCampSites } from "@/data/mockData";
 
 // Local storage keys for fallback
 const REVIEWS_STORAGE_KEY = "campsite-reviews";
+const ANONYMOUS_AUTH_KEY = "anonymous_auth";
 
-// In a real app, this would fetch from an API
+// Check if user is authenticated
+export const ensureAuthenticated = async () => {
+  // Check if already authenticated
+  const { user, error } = await supabase.auth.getUser();
+  
+  if (!error && user) {
+    return user;
+  }
+  
+  // Try to sign in with stored anonymous credentials
+  const anonEmail = localStorage.getItem('anonymous_email');
+  const anonPassword = localStorage.getItem('anonymous_password');
+  
+  if (anonEmail && anonPassword) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: anonEmail,
+      password: anonPassword,
+    });
+    
+    if (!error && data.user) {
+      return data.user;
+    }
+  }
+  
+  // Create new anonymous user
+  const { data, error: signInError } = await signInAnonymously();
+  
+  if (signInError) {
+    throw new Error('Failed to authenticate anonymously');
+  }
+  
+  return data?.user;
+};
+
+// Fetch campsites from Supabase
 const fetchCampSites = async (): Promise<CampSite[]> => {
-  // Simulate API call with a delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return mockCampSites;
+  try {
+    // Ensure user is authenticated
+    await ensureAuthenticated();
+    
+    // Fetch campsites from Supabase
+    const { data, error } = await supabase
+      .from('campsites')
+      .select('*');
+    
+    if (error) {
+      console.error('Error fetching campsites:', error);
+      return mockCampSites; // Fallback to mock data
+    }
+    
+    if (!data || data.length === 0) {
+      // If no campsites in database, seed with mock data
+      await seedCampsitesIfEmpty();
+      return mockCampSites;
+    }
+    
+    // Map to our format
+    return data.map(mapSupabaseCampsite);
+  } catch (error) {
+    console.error('Error in fetchCampSites:', error);
+    return mockCampSites; // Fallback to mock data
+  }
+};
+
+// Seed campsites if none exist
+const seedCampsitesIfEmpty = async () => {
+  try {
+    // Check if campsites table exists and is empty
+    const { count, error } = await supabase
+      .from('campsites')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('Error checking campsites:', error);
+      return;
+    }
+    
+    if (count === 0) {
+      // Convert mock data to Supabase format
+      const formattedCampsites = mockCampSites.map(site => formatCampsiteForSupabase(site));
+      
+      // Insert mock data
+      const { error: insertError } = await supabase
+        .from('campsites')
+        .insert(formattedCampsites);
+      
+      if (insertError) {
+        console.error('Error seeding campsites:', insertError);
+      } else {
+        console.log('Successfully seeded campsites');
+      }
+    }
+  } catch (error) {
+    console.error('Error in seedCampsitesIfEmpty:', error);
+  }
+};
+
+// Function to save campsite to Supabase
+export const saveCampSite = async (campsite: Omit<CampSite, 'id'>): Promise<CampSite> => {
+  try {
+    // Ensure user is authenticated
+    await ensureAuthenticated();
+    
+    // Format campsite for Supabase
+    const supabaseCampsite = formatCampsiteForSupabase(campsite);
+    
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from('campsites')
+      .insert(supabaseCampsite)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Map back to our format
+    return mapSupabaseCampsite(data);
+  } catch (error) {
+    console.error('Error saving campsite to Supabase:', error);
+    
+    // Fallback - create an in-memory campsite
+    const newCampsite = {
+      ...campsite,
+      id: uuidv4(),
+    };
+    
+    return newCampsite;
+  }
 };
 
 // Helper function to get stored reviews from localStorage (fallback)
@@ -57,9 +157,10 @@ export const getStoredReviews = (): Review[] => {
 
 // Function to save review to Supabase
 export const saveReview = async (review: Omit<Review, 'id' | 'date'>): Promise<Review> => {
-  const { toast } = useToast();
-  
   try {
+    // Ensure user is authenticated
+    await ensureAuthenticated();
+    
     // Format review for Supabase
     const supabaseReview = formatReviewForSupabase(review);
     
@@ -71,6 +172,9 @@ export const saveReview = async (review: Omit<Review, 'id' | 'date'>): Promise<R
       .single();
     
     if (error) throw error;
+    
+    // Update campsite review count
+    await updateCampsiteReviewCount(review.siteId);
     
     // Map back to our format
     return mapSupabaseReview(data);
@@ -89,23 +193,51 @@ export const saveReview = async (review: Omit<Review, 'id' | 'date'>): Promise<R
     const updatedReviews = [...currentReviews, newReview];
     localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(updatedReviews));
     
-    toast({
-      title: "Offline Mode",
-      description: "Your review has been saved locally and will sync when you're back online.",
-      variant: "destructive",
-    });
-    
     return newReview;
   }
 };
 
+// Function to update campsite review count
+const updateCampsiteReviewCount = async (siteId: string) => {
+  try {
+    // Get current review count
+    const { count, error: countError } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact' })
+      .eq('site_id', siteId);
+    
+    if (countError) throw countError;
+    
+    // Update the campsite with new review count
+    const { error: updateError } = await supabase
+      .from('campsites')
+      .update({ review_count: count || 1 })
+      .eq('id', siteId);
+    
+    if (updateError) throw updateError;
+  } catch (error) {
+    console.error('Error updating campsite review count:', error);
+  }
+};
+
 export function useCampSites() {
+  const { toast } = useToast();
+  
   // Use React Query to handle data fetching, caching, and loading states
   const { data: campSites, isLoading, error } = useQuery({
     queryKey: ['campSites'],
     queryFn: fetchCampSites,
     staleTime: 5 * 60 * 1000, // Data remains fresh for 5 minutes
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    retry: 1, // Only retry once
+    onError: (error) => {
+      toast({
+        title: "Error loading campsites",
+        description: "Failed to load campsites. Using offline data instead.",
+        variant: "destructive",
+      });
+      console.error('Error in useCampSites query:', error);
+    }
   });
 
   return { campSites, isLoading, error };
@@ -125,6 +257,9 @@ export function useCampSiteReviews(siteId: string) {
     queryKey: ['campSiteReviews', siteId],
     queryFn: async () => {
       try {
+        // Ensure user is authenticated
+        await ensureAuthenticated();
+        
         // Get reviews from Supabase
         const { data, error } = await supabase
           .from('reviews')
@@ -158,7 +293,7 @@ export function useCampSiteReviews(siteId: string) {
   // Mutation for adding a new review
   const addReviewMutation = useMutation({
     mutationFn: (newReview: Omit<Review, 'id' | 'date'>) => saveReview(newReview),
-    onSuccess: (savedReview) => {
+    onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['campSiteReviews', siteId] });
       
@@ -183,5 +318,36 @@ export function useCampSiteReviews(siteId: string) {
     error,
     addReview: addReviewMutation.mutate,
     isAddingReview: addReviewMutation.isPending
+  };
+}
+
+// Hook to add a new campsite
+export function useAddCampSite() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const addCampSiteMutation = useMutation({
+    mutationFn: (newCampSite: Omit<CampSite, 'id'>) => saveCampSite(newCampSite),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campSites'] });
+      
+      toast({
+        title: "Campsite added!",
+        description: "Your campsite has been added to the map.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding campsite:', error);
+      toast({
+        title: "Error",
+        description: "There was an error adding your campsite. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  return {
+    addCampSite: addCampSiteMutation.mutate,
+    isAdding: addCampSiteMutation.isPending
   };
 }

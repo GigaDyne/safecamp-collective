@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import { Filter, Plus } from "lucide-react";
-import { mockCampSites } from "@/data/mockData";
-import { useCampSites, CampSite } from "@/hooks/useCampSites";
+import { useCampSites, CampSite, useAddCampSite } from "@/hooks/useCampSites";
+import { ensureAuthenticated } from "@/hooks/useCampSites";
 import { useToast } from "@/hooks/use-toast";
 import MapControls from "./MapControls";
 import SearchBar from "./SearchBar";
@@ -20,13 +20,11 @@ import { Button } from "@/components/ui/button";
 // This will store the token once provided by the user - moved inside component to prevent refresh loops
 const localStorageTokenKey = "mapbox_token";
 
-// In-memory storage for user-submitted campsites
-let userSubmittedCampSites: CampSite[] = [];
-
 const MapView = () => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const { campSites: apiCampSites, isLoading } = useCampSites();
+  const { addCampSite } = useAddCampSite();
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
     // Initialize from localStorage only once, on component mount
     return localStorage.getItem(localStorageTokenKey) || "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
@@ -34,7 +32,6 @@ const MapView = () => {
   const [tokenEntered, setTokenEntered] = useState(false);
   const [showAddSiteDialog, setShowAddSiteDialog] = useState(false);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
-  const [allCampSites, setAllCampSites] = useState<CampSite[]>([]);
   const [filteredCampSites, setFilteredCampSites] = useState<CampSite[]>([]);
   const { toast } = useToast();
   
@@ -64,34 +61,42 @@ const MapView = () => {
     if (mapboxToken) {
       setTokenEntered(true);
     }
-  }, [mapboxToken]);
-
-  // Combine API and user-submitted campsites
-  useEffect(() => {
-    if (apiCampSites) {
-      setAllCampSites([...apiCampSites, ...userSubmittedCampSites]);
-    } else {
-      setAllCampSites([...mockCampSites, ...userSubmittedCampSites]);
-    }
-  }, [apiCampSites]);
+    
+    // Ensure user is authenticated for Supabase
+    const authenticateUser = async () => {
+      try {
+        await ensureAuthenticated();
+      } catch (error) {
+        console.error('Authentication error:', error);
+        toast({
+          title: "Authentication Error",
+          description: "Unable to authenticate. Some features may be limited.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    authenticateUser();
+  }, [mapboxToken, toast]);
 
   // Apply filters to campsites
   useEffect(() => {
-    const filtered = allCampSites.filter(site => 
-      site.safetyRating >= filterCriteria.safetyRating &&
-      site.cellSignal >= filterCriteria.cellSignal &&
-      site.quietness >= filterCriteria.quietness
-      // Distance filter would be applied here in a real implementation
-    );
-    
-    setFilteredCampSites(filtered);
-  }, [allCampSites, filterCriteria]);
+    if (apiCampSites) {
+      const filtered = apiCampSites.filter(site => 
+        site.safetyRating >= filterCriteria.safetyRating &&
+        site.cellSignal >= filterCriteria.cellSignal &&
+        site.quietness >= filterCriteria.quietness
+        // Distance filter would be applied here in a real implementation
+      );
+      
+      setFilteredCampSites(filtered);
+    }
+  }, [apiCampSites, filterCriteria]);
 
   // Handle campsite submission - memoized to prevent rerenders
   const handleAddSite = useCallback((siteData: any) => {
     // Convert form data to CampSite format
-    const newCampSite: CampSite = {
-      id: siteData.id || String(Date.now()),
+    const newCampSite: Omit<CampSite, 'id'> = {
       name: siteData.name || `Campsite at ${siteData.latitude.toFixed(4)}, ${siteData.longitude.toFixed(4)}`,
       description: siteData.description || "",
       location: `${siteData.latitude.toFixed(4)}, ${siteData.longitude.toFixed(4)}`,
@@ -110,23 +115,14 @@ const MapView = () => {
         ...(siteData.isFreeToStay ? ["Free"] : []),
       ],
       images: siteData.images || [],
-      reviewCount: 1,
+      reviewCount: 0,
     };
 
-    // Update our in-memory array without triggering rerenders
-    userSubmittedCampSites = [...userSubmittedCampSites, newCampSite];
-    
-    // Update allCampSites to include the new site
-    setAllCampSites(prevSites => [...prevSites, newCampSite]);
+    // Save to Supabase
+    addCampSite(newCampSite);
     
     // Close the dialog
     setShowAddSiteDialog(false);
-    
-    // Show success message
-    toast({
-      title: "Campsite Added",
-      description: "Your campsite has been added to the map.",
-    });
     
     // If we have the map reference, fly to the new campsite
     if (map.current) {
@@ -136,7 +132,7 @@ const MapView = () => {
         essential: true,
       });
     }
-  }, [toast]);
+  }, [addCampSite]);
 
   // Handle filter application - memoized to prevent rerenders
   const handleApplyFilters = useCallback((filters: FilterCriteria) => {
@@ -161,7 +157,7 @@ const MapView = () => {
       {/* Map Container */}
       <MapInitializer 
         mapboxToken={mapboxToken}
-        campSites={filteredCampSites.length > 0 ? filteredCampSites : allCampSites}
+        campSites={filteredCampSites.length > 0 ? filteredCampSites : apiCampSites || []}
         isLoading={isLoading}
         onMapReady={handleMapReady}
       />
