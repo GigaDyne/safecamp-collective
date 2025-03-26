@@ -40,6 +40,79 @@ export interface CountyCrimeData {
   safety_score: number; // 0-100, higher is safer
 }
 
+// Generate more mock data points for better visualization
+const generateMockCrimeData = (centerLat: number, centerLng: number, count: number = 10): CountyCrimeData[] => {
+  const result: CountyCrimeData[] = [];
+  
+  // Generate a grid of points around the center
+  for (let i = 0; i < count; i++) {
+    for (let j = 0; j < count; j++) {
+      // Create a grid with some randomness
+      const latOffset = (i - count/2) * 0.1 + (Math.random() * 0.05 - 0.025);
+      const lngOffset = (j - count/2) * 0.1 + (Math.random() * 0.05 - 0.025);
+      
+      const lat = centerLat + latOffset;
+      const lng = centerLng + lngOffset;
+      
+      // Create random safety score with some spatial correlation
+      // Areas to the north and east are generally safer in this mock data
+      const baseSafety = 50 + (latOffset * 100) + (lngOffset * 100);
+      const safetyScore = Math.max(20, Math.min(95, Math.round(baseSafety + (Math.random() * 30 - 15))));
+      
+      // Scale crime statistics based on safety score (lower safety = higher crime)
+      const violentCrimeBase = Math.round((100 - safetyScore) * 6);
+      const propertyCrimeBase = Math.round((100 - safetyScore) * 30);
+      
+      result.push({
+        county_name: `County ${i*count + j + 1}`,
+        state_abbr: getStateFromCoordinates(lat, lng),
+        fips_state_code: '00',
+        fips_county_code: `${i*count + j + 1}`.padStart(3, '0'),
+        lat,
+        lng,
+        crime_stats: [
+          {
+            county: `County ${i*count + j + 1}`,
+            state: getStateNameFromCoordinates(lat, lng),
+            violent_crime: violentCrimeBase + Math.floor(Math.random() * 30),
+            property_crime: propertyCrimeBase + Math.floor(Math.random() * 100),
+            homicide: Math.floor((100 - safetyScore) / 20) + Math.floor(Math.random() * 3),
+            rape: Math.floor((100 - safetyScore) / 10) + Math.floor(Math.random() * 10),
+            robbery: Math.floor((100 - safetyScore) / 5) + Math.floor(Math.random() * 20),
+            aggravated_assault: Math.floor((100 - safetyScore) / 3) + Math.floor(Math.random() * 40),
+            burglary: Math.floor((100 - safetyScore) * 1.5) + Math.floor(Math.random() * 50),
+            larceny: Math.floor((100 - safetyScore) * 2) + Math.floor(Math.random() * 100),
+            motor_vehicle_theft: Math.floor((100 - safetyScore) / 2) + Math.floor(Math.random() * 20),
+            arson: Math.floor((100 - safetyScore) / 25) + Math.floor(Math.random() * 3),
+            year: 2022
+          }
+        ],
+        safety_score: safetyScore
+      });
+    }
+  }
+  
+  return result;
+};
+
+// Simple helper to get state abbreviation from coordinates
+const getStateFromCoordinates = (lat: number, lng: number): string => {
+  // This is just a simple mock implementation
+  if (lng < -100) return 'CA';
+  if (lng < -90) return 'TX';
+  if (lng < -80) return 'FL';
+  return 'NY';
+};
+
+// Simple helper to get state name from coordinates
+const getStateNameFromCoordinates = (lat: number, lng: number): string => {
+  // This is just a simple mock implementation
+  if (lng < -100) return 'California';
+  if (lng < -90) return 'Texas';
+  if (lng < -80) return 'Florida';
+  return 'New York';
+};
+
 // Mock data for development since the actual FBI API requires registration
 const MOCK_CRIME_DATA: { [key: string]: CountyCrimeData[] } = {
   // Map regions to mock data (using rough coordinates as keys)
@@ -170,6 +243,8 @@ export const fetchCrimeData = debounce(async (params: CrimeDataParams): Promise<
   }
   
   try {
+    console.log("Fetching crime data for region around:", params.lat, params.lng);
+    
     // For real implementation, uncomment this code and use the actual API
     // const response = await fetch(
     //   `${FBI_API_BASE_URL}/api/summarized/counties/${getStateFromLatLng(params.lat, params.lng)}/all?api_key=${API_KEY}`
@@ -178,14 +253,17 @@ export const fetchCrimeData = debounce(async (params: CrimeDataParams): Promise<
     // const data = await response.json();
     // return processCrimeData(data, params);
 
-    // Using mock data for development
-    console.log("Fetching crime data for region around:", params.lat, params.lng);
+    // Using mock data for development - first check our static mock data
     const regionKey = getRegionKey(params.lat, params.lng);
     
     // Simulate API response delay
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    return MOCK_CRIME_DATA[regionKey] || [];
+    // Use static mock data if available for this region, otherwise generate dynamic mock data
+    const mockData = MOCK_CRIME_DATA[regionKey] || generateMockCrimeData(params.lat, params.lng, 5);
+    console.log(`Generated ${mockData.length} mock crime data points`);
+    
+    return mockData;
   } catch (error) {
     console.error("Error fetching crime data:", error);
     return []; // Return empty array instead of rejecting

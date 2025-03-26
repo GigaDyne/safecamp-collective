@@ -15,7 +15,10 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
 
   // Fetch crime data when the map moves
   useEffect(() => {
-    if (!map.current || !enabled) return;
+    if (!map.current || !enabled) {
+      console.log("Crime data disabled or map not available");
+      return;
+    }
 
     const handleMapMove = () => {
       if (!map.current || !enabled) return;
@@ -23,6 +26,7 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
       const center = map.current.getCenter();
       const zoom = map.current.getZoom();
       
+      console.log("Fetching crime data for", center.lat, center.lng, "at zoom", zoom);
       setIsLoading(true);
       
       // Ensure fetchCrimeData is called only when map is ready
@@ -33,6 +37,7 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
           zoom
         })
           .then(data => {
+            console.log("Received crime data:", data.length, "counties");
             setCrimeData(data);
             setError(null);
           })
@@ -54,7 +59,18 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
 
     // Initial fetch - wrap in a try/catch to handle any initialization errors
     try {
-      handleMapMove();
+      console.log("Setting up crime data fetch");
+      // Only fetch if the map is loaded
+      if (map.current.loaded()) {
+        console.log("Map is loaded, fetching crime data now");
+        handleMapMove();
+      } else {
+        console.log("Map not loaded yet, waiting for load event");
+        map.current.once('load', () => {
+          console.log("Map loaded, now fetching crime data");
+          handleMapMove();
+        });
+      }
 
       // Add event listeners
       map.current.on("moveend", handleMapMove);

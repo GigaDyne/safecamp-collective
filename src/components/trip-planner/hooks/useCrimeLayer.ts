@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { CountyCrimeData, crimeDataToGeoJSON, getSafetyColor } from "@/lib/trip-planner/crime-data-service";
@@ -14,15 +15,20 @@ export const useCrimeLayer = ({ map, crimeData, enabled, onMarkerClick }: UseCri
   
   // Add crime data layer to the map
   useEffect(() => {
-    if (!map.current || !map.current.loaded() || crimeData.length === 0 || !enabled) {
+    if (!map.current || !map.current.loaded() || !enabled) {
       return cleanup();
     }
+    
+    console.log("Crime layer enabled:", enabled);
+    console.log("Crime data available:", crimeData.length);
     
     const mapInstance = map.current;
     
     const addLayers = () => {
       // Convert crime data to GeoJSON
       const geoJson = crimeDataToGeoJSON(crimeData);
+      
+      console.log("Adding crime data layers with data:", geoJson);
       
       // Add source if it doesn't exist
       if (!mapInstance.getSource('crime-data')) {
@@ -66,7 +72,7 @@ export const useCrimeLayer = ({ map, crimeData, enabled, onMarkerClick }: UseCri
               0, 2,
               9, 20
             ],
-            'heatmap-opacity': 0.7
+            'heatmap-opacity': 0.8
           }
         });
       }
@@ -77,6 +83,7 @@ export const useCrimeLayer = ({ map, crimeData, enabled, onMarkerClick }: UseCri
           id: 'crime-points',
           type: 'circle',
           source: 'crime-data',
+          minzoom: 7, // Only show points when zoomed in
           paint: {
             'circle-radius': [
               'interpolate', ['linear'], ['zoom'],
@@ -92,7 +99,7 @@ export const useCrimeLayer = ({ map, crimeData, enabled, onMarkerClick }: UseCri
             ],
             'circle-stroke-width': 1,
             'circle-stroke-color': '#ffffff',
-            'circle-opacity': 0.7
+            'circle-opacity': 0.9
           }
         });
         

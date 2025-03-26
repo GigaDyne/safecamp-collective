@@ -54,7 +54,7 @@ const TripPlannerMap = ({
 }: TripPlannerMapProps) => {
   const { toast } = useToast();
   const [showDebug, setShowDebug] = useState(false);
-  const [showCrimeData, setShowCrimeData] = useState(false);
+  const [showCrimeData, setShowCrimeData] = useState(true); // Default to true for testing
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   
   // Initialize the map
@@ -94,6 +94,23 @@ const TripPlannerMap = ({
     mapInitialized
   });
 
+  // Use the URL search params to check if crime data should be shown
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const crimeParam = params.get('showCrime');
+    
+    // If the param exists and is 'true', enable crime data
+    if (crimeParam === 'true') {
+      setShowCrimeData(true);
+    }
+    
+    // Find crime toggle in page and set it to checked if showCrimeData is true
+    const crimeToggle = document.querySelector('input[name="crime-data"]') as HTMLInputElement;
+    if (crimeToggle && showCrimeData) {
+      crimeToggle.checked = true;
+    }
+  }, []);
+
   // Handle crime data
   const { crimeData, isLoading: isCrimeDataLoading } = useCrimeData({
     map,
@@ -123,6 +140,13 @@ const TripPlannerMap = ({
     };
   }, []);
 
+  // Log useful debug info
+  useEffect(() => {
+    console.log("Crime data enabled:", showCrimeData);
+    console.log("Crime data loaded:", crimeData.length);
+    console.log("Map initialized:", mapInitialized);
+  }, [showCrimeData, crimeData.length, mapInitialized]);
+
   // If there's an error, show the error component
   if (error) {
     return <MapError message={error} />;
@@ -139,8 +163,14 @@ const TripPlannerMap = ({
         />
         
         {isCrimeDataLoading && showCrimeData && (
-          <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border">
+          <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
             Loading crime data...
+          </div>
+        )}
+        
+        {showCrimeData && crimeData.length > 0 && (
+          <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
+            Showing crime data for {crimeData.length} areas
           </div>
         )}
         
