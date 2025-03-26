@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,9 +36,9 @@ const TripPlannerForm = ({
   const [includeGasStations, setIncludeGasStations] = useState(true);
   const [includeWaterStations, setIncludeWaterStations] = useState(true);
   const [includeDumpStations, setIncludeDumpStations] = useState(true);
-  const [includeWalmarts, setIncludeWalmarts] = useState(false);
-  const [includePropaneStations, setIncludePropaneStations] = useState(false);
-  const [includeRepairShops, setIncludeRepairShops] = useState(false);
+  const [includeWalmarts, setIncludeWalmarts] = useState(true);
+  const [includePropaneStations, setIncludePropaneStations] = useState(true);
+  const [includeRepairShops, setIncludeRepairShops] = useState(true);
 
   const handleUseCurrentLocation = async () => {
     try {

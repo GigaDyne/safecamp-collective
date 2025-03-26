@@ -163,16 +163,21 @@ const generateMockAmenities = (
   const bufferDistanceKm = bufferDistanceMiles * 1.60934;
   const amenities: TripStop[] = [];
   
-  // Generate an amenity every ~100km along the route
-  const interval = Math.max(Math.floor(route.length / 10), 1);
-  
-  for (let i = 0; i < route.length; i += interval) {
-    const basePoint = route[i];
+  // For each type, generate multiple instances along the route
+  types.forEach(type => {
+    // Generate 3-8 instances of each type
+    const count = Math.floor(Math.random() * 6) + 3;
     
-    // For each type, create a point with random offset
-    types.forEach(type => {
+    // Create evenly spaced points along the route
+    for (let i = 0; i < count; i++) {
+      // Calculate position along the route (spread out evenly)
+      const routeIndex = Math.floor((route.length - 1) * (i / (count - 1)));
+      const basePoint = route[routeIndex];
+      
+      if (!basePoint) continue; // Skip if we somehow got an invalid point
+      
       // Random offset in meters (up to half the buffer distance)
-      const offsetKm = (Math.random() * bufferDistanceKm / 2) / 1000;
+      const offsetKm = (Math.random() * bufferDistanceKm / 2);
       const bearingRad = Math.random() * 2 * Math.PI;
       
       // Calculate new point with offset (approximate)
@@ -185,16 +190,19 @@ const generateMockAmenities = (
       
       switch (type) {
         case 'gas':
-          name = `${['Shell', 'Chevron', 'Mobil', 'BP', 'Love\'s'][Math.floor(Math.random() * 5)]} Gas Station`;
-          details.features = ['Fuel', 'Convenience Store'];
+          name = `${['Shell', 'Chevron', 'Mobil', 'BP', 'Love\'s', 'Circle K', 'Exxon'][Math.floor(Math.random() * 7)]} Gas Station`;
+          details.description = "Fuel station with convenience store.";
+          details.features = ['Fuel', 'Convenience Store', Math.random() > 0.5 ? 'RV Friendly' : 'Restrooms'];
           break;
         case 'water':
-          name = `${['Clear', 'Mountain', 'Spring', 'Pure', 'Fresh'][Math.floor(Math.random() * 5)]} Water Fill`;
-          details.features = ['Potable Water'];
+          name = `${['Clear', 'Mountain', 'Spring', 'Pure', 'Fresh', 'Valley', 'River'][Math.floor(Math.random() * 7)]} Water Fill`;
+          details.description = "Clean potable water fill station.";
+          details.features = ['Potable Water', Math.random() > 0.5 ? 'Free' : 'Paid'];
           break;
         case 'dump':
-          name = `${['RV', 'Campground', 'Park', 'Highway', 'Rest Area'][Math.floor(Math.random() * 5)]} Dump Station`;
-          details.features = ['Sewage Dump', 'Grey Water'];
+          name = `${['RV', 'Campground', 'Park', 'Highway', 'Rest Area', 'Travel Plaza'][Math.floor(Math.random() * 6)]} Dump Station`;
+          details.description = "Dump station for RV waste tanks.";
+          details.features = ['Sewage Dump', 'Grey Water', Math.random() > 0.5 ? 'Rinse Hose' : 'Fee Required'];
           break;
         case 'walmart':
           name = `Walmart Supercenter #${Math.floor(Math.random() * 5000)}`;
@@ -207,11 +215,11 @@ const generateMockAmenities = (
           name = `${['AmeriGas', 'Blue Rhino', 'U-Haul', 'Tractor Supply', 'Suburban Propane'][Math.floor(Math.random() * 5)]} Propane`;
           details = {
             description: "Propane refill and tank exchange station",
-            features: ['Propane Refill', 'Tank Exchange']
+            features: ['Propane Refill', 'Tank Exchange', Math.random() > 0.5 ? 'RV Hookup' : 'Small Tanks Only']
           };
           break;
         case 'repair':
-          name = `${['Quick', 'Express', 'Reliable', 'Pro', 'Ace'][Math.floor(Math.random() * 5)]} ${Math.random() > 0.5 ? 'RV' : 'Auto'} Repair`;
+          name = `${['Quick', 'Express', 'Reliable', 'Pro', 'Ace', 'Expert'][Math.floor(Math.random() * 6)]} ${Math.random() > 0.5 ? 'RV' : 'Auto'} Repair`;
           details = {
             description: `${Math.random() > 0.5 ? 'RV' : 'Automotive'} repair services with experienced technicians`,
             features: ['Maintenance', 'Repairs', Math.random() > 0.5 ? 'RV Specialists' : 'General Mechanics']
@@ -219,18 +227,22 @@ const generateMockAmenities = (
           break;
       }
       
+      // Calculate distance and ETA
+      const distancePercent = routeIndex / (route.length - 1);
+      
       amenities.push({
         id: uuidv4(),
         name,
         type,
         coordinates: { lat, lng },
-        distanceFromRoute: 0, // It's on the route
-        distance: i / route.length * bufferDistanceKm * 1000, // Approximate distance from start
-        eta: formatETA(i / route.length * 3 * 60 * 60), // Estimated time assuming 3 hour trip
-        details
+        distanceFromRoute: offsetKm * 1000, // Convert to meters
+        distance: distancePercent * bufferDistanceKm * 1000, // Approximate distance from start in meters
+        eta: formatETA(distancePercent * 3 * 60 * 60), // Estimated time assuming 3 hour trip
+        details,
+        safetyRating: Math.floor(Math.random() * 3) + 3 // Random safety rating 3-5
       });
-    });
-  }
+    }
+  });
   
   return amenities;
 };
