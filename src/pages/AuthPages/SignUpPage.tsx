@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/providers/AuthProvider";
-import { LogIn, Lock, Mail, Shield, UserX } from "lucide-react";
+import { LogIn, Lock, Mail, Shield, UserX, Wifi, WifiOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { checkSupabaseConnectivity } from "@/lib/auth";
 
 const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -29,6 +30,23 @@ const SignUpPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
+  
+  // Check Supabase connectivity on component mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      const isConnected = await checkSupabaseConnectivity();
+      setIsOnline(isConnected);
+      
+      if (!isConnected) {
+        setConnectionError(
+          "We're having trouble connecting to our servers. You can continue as a guest or try again later."
+        );
+      }
+    };
+    
+    checkConnection();
+  }, []);
   
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -45,14 +63,18 @@ const SignUpPage = () => {
     try {
       const result = await signUp(data.email, data.password);
       if (result?.error) {
-        if (result.error.message === "Failed to fetch") {
+        if (result.error.message === "Failed to fetch" || result.error.message?.includes("network")) {
           setConnectionError("Unable to connect to the authentication service. You can continue as a guest or try again later.");
+          setIsOnline(false);
         } else {
           setConnectionError(result.error.message || "An error occurred during sign up.");
         }
       }
     } catch (error: any) {
       setConnectionError(error.message || "An unexpected error occurred.");
+      if (error.message === "Failed to fetch" || error.message?.includes("network")) {
+        setIsOnline(false);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -74,6 +96,23 @@ const SignUpPage = () => {
           <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
           <CardDescription className="text-center">
             Enter your details to create a new account
+            {isOnline !== null && (
+              <div className="flex justify-center mt-2">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isOnline ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {isOnline ? (
+                    <>
+                      <Wifi className="w-3 h-3 mr-1" />
+                      Connected
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3 mr-1" />
+                      Offline Mode
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
         
@@ -164,7 +203,7 @@ const SignUpPage = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || isOnline === false}
               >
                 {isSubmitting ? "Creating account..." : "Sign Up"}
                 {!isSubmitting && <LogIn className="ml-2 h-4 w-4" />}

@@ -1,11 +1,32 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
 const supabaseUrl = 'https://supabase.safecampapp.lovable.dev';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb3dsZ2x2Z2trc2ZyY2x5cHliIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODYzMTgwMDEsImV4cCI6MjAwMTg5NDAwMX0.z6DLVe3A6nZoG7qn3afCqiAJf5qr9MaDYN8xLcXSvvs';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  global: {
+    fetch: (...args) => {
+      const [url, options] = args;
+      const controller = new AbortController();
+      const { signal } = controller;
+      
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      return fetch(url, {
+        ...options,
+        signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
+      });
+    }
+  }
+});
 
 // Database Types
 export type SupabaseUser = {
@@ -210,30 +231,38 @@ export const formatFlagForSupabase = (flag: Omit<Flag, 'id' | 'createdAt'>): Omi
 
 // Auth functions
 export const signUpWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-  
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Error in signUpWithEmail:', error);
+    return { data: null, error };
+  }
 };
 
 export const signInWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  
-  return { data, error };
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    return { data, error };
+  } catch (error) {
+    console.error('Error in signInWithEmail:', error);
+    return { data: null, error };
+  }
 };
 
 export const signInAnonymously = async () => {
   try {
-    // Generate a random email and password for anonymous users
-    const randomEmail = `anonymous-${uuidv4()}@safecampapp.com`;
+    const randomEmail = `anonymous-${uuidv4()}@safecampapp.com';
     const randomPassword = uuidv4();
     
-    // Create a new anonymous user
     const { data, error } = await supabase.auth.signUp({
       email: randomEmail,
       password: randomPassword,
@@ -241,7 +270,6 @@ export const signInAnonymously = async () => {
     
     if (error) throw error;
     
-    // Store credentials in localStorage for future sessions
     localStorage.setItem('anonymous_email', randomEmail);
     localStorage.setItem('anonymous_password', randomPassword);
     
@@ -253,24 +281,31 @@ export const signInAnonymously = async () => {
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  try {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  } catch (error) {
+    console.error('Error in signOut:', error);
+    return { error };
+  }
 };
 
 export const getCurrentUser = async () => {
-  const { data, error } = await supabase.auth.getUser();
-  return { user: data.user, error };
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    return { user: data.user, error };
+  } catch (error) {
+    console.error('Error in getCurrentUser:', error);
+    return { user: null, error };
+  }
 };
 
-// Create tables in Supabase if they don't exist
 export const initializeSupabase = async () => {
   try {
-    // Check if we need to create tables
     const { error: checkError } = await supabase
       .from('campsites')
       .select('count', { count: 'exact', head: true });
     
-    // If we get an error like "relation does not exist", we need to create the tables
     if (checkError && checkError.message.includes('does not exist')) {
       console.log('Tables do not exist, initializing Supabase schema...');
       
