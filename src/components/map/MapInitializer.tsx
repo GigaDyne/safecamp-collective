@@ -11,9 +11,10 @@ interface MapInitializerProps {
   mapboxToken: string;
   campSites: CampSite[] | undefined;
   isLoading: boolean;
+  onMapReady?: (map: mapboxgl.Map) => void;
 }
 
-const MapInitializer = ({ mapboxToken, campSites, isLoading }: MapInitializerProps) => {
+const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapInitializerProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -78,6 +79,10 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading }: MapInitializerPro
           },
         });
 
+        if (onMapReady && map.current) {
+          onMapReady(map.current);
+        }
+
         toast({
           title: "Map loaded successfully!",
           description: "You can now explore safe camping spots.",
@@ -121,7 +126,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading }: MapInitializerPro
         map.current = null;
       }
     };
-  }, [mapboxToken, toast]);
+  }, [mapboxToken, toast, onMapReady]);
 
   // Add markers for camp sites
   useEffect(() => {
@@ -135,7 +140,13 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading }: MapInitializerPro
     campSites.forEach(site => {
       if (!map.current) return;
       
-      const markerElement = createMapPinElement(site.safetyRating);
+      const handleMarkerClick = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/site/${site.id}`);
+      };
+      
+      const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
       
       const marker = new mapboxgl.Marker({
         element: markerElement,
@@ -143,10 +154,6 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading }: MapInitializerPro
         .setLngLat([site.longitude, site.latitude])
         .addTo(map.current);
         
-      marker.getElement().addEventListener('click', () => {
-        navigate(`/site/${site.id}`);
-      });
-      
       markersRef.current.push(marker);
     });
   }, [campSites, isLoading, navigate, mapboxToken]);
