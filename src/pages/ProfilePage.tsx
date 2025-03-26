@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/providers/AuthProvider";
 import { LogOut, Mail, Shield, AlertTriangle, ArrowLeft, User, CreditCard, MessageSquare, DollarSign, Heart, Edit, Save, Upload, X } from "lucide-react";
 import { getUserProfile, updateUserProfile, getCreatorSubscriptionPlans, createSubscriptionPlan, getUserSubscriptions, getSubscribersForCreator, getProfileComments, addProfileComment } from "@/lib/community/api";
@@ -32,6 +32,8 @@ const ProfilePage = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Creator states
   const [isCreator, setIsCreator] = useState(false);
@@ -77,36 +79,48 @@ const ProfilePage = () => {
   useEffect(() => {
     if (user?.id) {
       const loadUserData = async () => {
-        const profile = await getUserProfile(user.id);
-        if (profile) {
-          setUserProfile(profile);
-          setDisplayName(profile.display_name || "");
-          setBio(profile.bio || "");
-          setAvatarUrl(profile.avatar_url);
-          setIsCreator(profile.is_creator);
-          
-          // If user is creator, load their subscription plans and subscribers
-          if (profile.is_creator) {
-            const plans = await getCreatorSubscriptionPlans(user.id);
-            setSubscriptionPlans(plans);
+        setIsProfileLoading(true);
+        try {
+          const profile = await getUserProfile(user.id);
+          if (profile) {
+            setUserProfile(profile);
+            setDisplayName(profile.display_name || "");
+            setBio(profile.bio || "");
+            setAvatarUrl(profile.avatar_url);
+            setIsCreator(profile.is_creator);
             
-            const subs = await getSubscribersForCreator(user.id);
-            setSubscribers(subs);
+            // If user is creator, load their subscription plans and subscribers
+            if (profile.is_creator) {
+              const plans = await getCreatorSubscriptionPlans(user.id);
+              setSubscriptionPlans(plans);
+              
+              const subs = await getSubscribersForCreator(user.id);
+              setSubscribers(subs);
+            }
+            
+            // Load user's subscriptions
+            const userSubs = await getUserSubscriptions(user.id);
+            setSubscriptions(userSubs);
+            
+            // Load comments
+            const profileComments = await getProfileComments(user.id);
+            setComments(profileComments);
           }
-          
-          // Load user's subscriptions
-          const userSubs = await getUserSubscriptions(user.id);
-          setSubscriptions(userSubs);
-          
-          // Load comments
-          const profileComments = await getProfileComments(user.id);
-          setComments(profileComments);
+        } catch (error) {
+          console.error("Error loading user data:", error);
+          toast({
+            title: "Error loading profile",
+            description: "There was a problem loading your profile data. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsProfileLoading(false);
         }
       };
       
       loadUserData();
     }
-  }, [user?.id]);
+  }, [user?.id, toast]);
 
   // Handle avatar file change
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,12 +191,16 @@ const ProfilePage = () => {
   const saveProfile = async () => {
     if (!user?.id || !userProfile) return;
     
+    setIsSaving(true);
     try {
       // Upload avatar if there's a new file
       let newAvatarUrl = avatarUrl;
       if (avatarFile) {
         newAvatarUrl = await uploadAvatar();
-        if (!newAvatarUrl) return; // Upload failed
+        if (!newAvatarUrl) {
+          setIsSaving(false);
+          return; // Upload failed
+        }
       }
       
       const updatedProfile = await updateUserProfile({
@@ -202,6 +220,8 @@ const ProfilePage = () => {
           title: "Profile updated",
           description: "Your profile has been updated successfully.",
         });
+      } else {
+        throw new Error("Failed to update profile");
       }
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -210,6 +230,8 @@ const ProfilePage = () => {
         description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -373,6 +395,15 @@ const ProfilePage = () => {
       });
     }
   };
+
+  if (isProfileLoading) {
+    return (
+      <div className="container max-w-4xl mx-auto py-8 px-4 flex flex-col items-center justify-center min-h-[60vh]">
+        <Spinner size="xl" className="mb-4" />
+        <p className="text-muted-foreground">Loading your profile...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -540,17 +571,30 @@ const ProfilePage = () => {
                         setAvatarUrl(userProfile?.avatar_url || null);
                         setAvatarFile(null);
                       }
+                      // Reset other fields
+                      setDisplayName(userProfile?.display_name || "");
+                      setBio(userProfile?.bio || "");
                     }}
                     className="flex-1"
+                    disabled={isSaving}
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={saveProfile}
                     className="flex-1"
-                    disabled={uploadingAvatar}
+                    disabled={isSaving || uploadingAvatar}
                   >
-                    {uploadingAvatar ? "Saving..." : <><Save className="mr-2 h-4 w-4" /> Save</>}
+                    {isSaving ? (
+                      <>
+                        <Spinner size="sm" className="mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" /> Save
+                      </>
+                    )}
                   </Button>
                 </div>
               ) : (
@@ -569,8 +613,17 @@ const ProfilePage = () => {
                 disabled={isLoggingOut}
                 className="w-full"
               >
-                {isLoggingOut ? "Signing out..." : "Sign Out"}
-                {!isLoggingOut && <LogOut className="ml-2 h-4 w-4" />}
+                {isLoggingOut ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Signing out...
+                  </>
+                ) : (
+                  <>
+                    Sign Out
+                    <LogOut className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>
@@ -830,4 +883,3 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
-

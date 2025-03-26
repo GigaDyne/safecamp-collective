@@ -18,19 +18,29 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 }
 
 export async function updateUserProfile(profile: Partial<UserProfile>): Promise<UserProfile | null> {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .update(profile)
-    .eq('id', profile.id)
-    .select('*')
-    .single() as any;
-  
-  if (error) {
-    console.error('Error updating user profile:', error);
+  if (!profile.id) {
+    console.error('Error updating user profile: Missing user ID');
     return null;
   }
-  
-  return data;
+
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update(profile)
+      .eq('id', profile.id)
+      .select('*')
+      .single() as any;
+    
+    if (error) {
+      console.error('Error updating user profile:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Exception updating user profile:', error);
+    return null;
+  }
 }
 
 // Subscription Plan Functions
