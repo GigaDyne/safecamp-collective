@@ -1,32 +1,72 @@
 
 import { useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import TripPlannerMap from "@/components/trip-planner/TripPlannerMap";
 import TripPlannerForm from "@/components/trip-planner/TripPlannerForm";
 import TripItinerary from "@/components/trip-planner/TripItinerary";
 import { TripStop, RouteData } from "@/lib/trip-planner/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const TripPlannerPage = () => {
   const navigate = useNavigate();
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [tripStops, setTripStops] = useState<TripStop[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
+  const { toast } = useToast();
+
+  const handleSaveToken = () => {
+    if (tokenInput.trim()) {
+      localStorage.setItem("mapbox_token", tokenInput.trim());
+      setShowTokenDialog(false);
+      toast({
+        title: "Success",
+        description: "Mapbox token saved successfully",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Please enter a valid Mapbox token",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="relative h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-primary py-3 px-4 flex items-center text-primary-foreground">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate(-1)} 
-          className="mr-2 text-primary-foreground hover:bg-primary/80"
+      <div className="bg-primary py-3 px-4 flex items-center justify-between text-primary-foreground">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate(-1)} 
+            className="mr-2 text-primary-foreground hover:bg-primary/80"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-xl font-semibold">Trip Planner</h1>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowTokenDialog(true)}
+          className="text-primary-foreground hover:bg-primary/80"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <Settings className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-semibold">Trip Planner</h1>
       </div>
 
       <div className="flex flex-col md:flex-row h-full overflow-hidden">
@@ -55,6 +95,47 @@ const TripPlannerPage = () => {
           />
         </div>
       </div>
+
+      {/* Dialog for entering Mapbox token */}
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mapbox Token Settings</DialogTitle>
+            <DialogDescription>
+              A Mapbox token is required for location search and mapping functionality. 
+              You can get a free token from <a href="https://mapbox.com/" className="text-primary underline" target="_blank" rel="noopener noreferrer">mapbox.com</a>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              placeholder="Enter your Mapbox token"
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              This token will be stored in your browser's local storage.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTokenDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveToken}>
+              Save Token
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mapbox token warning if not set */}
+      {!localStorage.getItem("mapbox_token") && (
+        <div className="absolute bottom-4 left-0 right-0 mx-auto w-max">
+          <div className="bg-red-500 text-white px-4 py-2 rounded-md shadow-md">
+            Mapbox token is missing. Please set it in the Map view.
+          </div>
+        </div>
+      )}
     </div>
   );
 };
