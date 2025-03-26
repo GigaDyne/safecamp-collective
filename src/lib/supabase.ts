@@ -1,32 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
-
-const supabaseUrl = 'https://owsgbzivtjnvtbylsmep.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93c2dieml2dGpudnRieWxzbWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5OTc2MzIsImV4cCI6MjA1ODU3MzYzMn0.ruSSPjdi1NliO9Sz45uejEDHU-ZNVyvNv85ZzderyWo';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  },
-  global: {
-    fetch: (...args) => {
-      const [url, options] = args;
-      const controller = new AbortController();
-      const { signal } = controller;
-
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      return fetch(url, {
-        ...options,
-        signal,
-      }).finally(() => {
-        clearTimeout(timeoutId);
-      });
-    }
-  }
-});
+import { supabase } from '@/integrations/supabase/client';
 
 // Database Types
 export type SupabaseUser = {
@@ -260,7 +233,7 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 export const signInAnonymously = async () => {
   try {
-    const randomEmail = `anonymous-${uuidv4()}@safecampapp.com`;
+    const randomEmail = `anonymous-${uuidv4()}@nomad.camp`;
     const randomPassword = uuidv4();
     
     const { data, error } = await supabase.auth.signUp({
@@ -308,9 +281,7 @@ export const initializeSupabase = async () => {
     
     if (checkError && checkError.message.includes('does not exist')) {
       console.log('Tables do not exist, initializing Supabase schema...');
-      
       // We would create tables here but that requires admin privileges
-      // In a real app, this would be done through Supabase dashboard or migrations
     }
     
     return { error: null };

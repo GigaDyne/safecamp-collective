@@ -1,3 +1,4 @@
+
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
@@ -21,9 +22,11 @@ const ProtectedRoute = ({
     if (isLoading) {
       const timeoutId = setTimeout(() => {
         setIsLoadingTimeout(true);
-      }, 5000);
+      }, 3000); // Reduced from 5000ms to 3000ms for faster feedback
       
       return () => clearTimeout(timeoutId);
+    } else {
+      setIsLoadingTimeout(false);
     }
   }, [isLoading]);
   

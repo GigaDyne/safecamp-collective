@@ -15,8 +15,15 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
   const [error, setError] = useState<string | null>(null);
   const mapInitializationAttempted = useRef(false);
 
+  // Clear error when token changes
   useEffect(() => {
-    // Only initialize if it hasn't been attempted yet
+    if (mapboxToken) {
+      setError(null);
+    }
+  }, [mapboxToken]);
+
+  useEffect(() => {
+    // Only initialize if we have a container and haven't attempted initialization yet
     if (!mapContainer.current || map.current || mapInitializationAttempted.current) return;
     
     // Mark that we've attempted initialization
@@ -42,7 +49,8 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
         center: [-97.9222, 39.3820], // Center of US
         zoom: 3,
         attributionControl: true,
-        preserveDrawingBuffer: true
+        preserveDrawingBuffer: true,
+        maxZoom: 18
       });
 
       // Add navigation control
@@ -82,10 +90,22 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
     };
   }, [mapboxToken]); // Only re-run when token changes
 
+  // Allow re-initialization if needed
+  const resetMap = () => {
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    setMapInitialized(false);
+    mapInitializationAttempted.current = false;
+    setError(null);
+  };
+
   return {
     mapContainer,
     map,
     mapInitialized,
     error,
+    resetMap
   };
 };
