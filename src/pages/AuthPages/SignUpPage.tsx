@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useAuth } from "@/providers/AuthProvider";
 import { LogIn, Lock, Mail, Shield, UserX } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -27,6 +28,7 @@ const SignUpPage = () => {
   const { signUp, continueAsGuest } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -39,8 +41,18 @@ const SignUpPage = () => {
 
   const onSubmit = async (data: SignUpFormValues) => {
     setIsSubmitting(true);
+    setConnectionError(null);
     try {
-      await signUp(data.email, data.password);
+      const result = await signUp(data.email, data.password);
+      if (result?.error) {
+        if (result.error.message === "Failed to fetch") {
+          setConnectionError("Unable to connect to the authentication service. You can continue as a guest or try again later.");
+        } else {
+          setConnectionError(result.error.message || "An error occurred during sign up.");
+        }
+      }
+    } catch (error: any) {
+      setConnectionError(error.message || "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }
@@ -66,6 +78,22 @@ const SignUpPage = () => {
         </CardHeader>
         
         <CardContent>
+          {connectionError && (
+            <Alert className="mb-6 bg-red-50 border-red-200">
+              <AlertDescription className="text-red-700 flex flex-col space-y-2">
+                <p>{connectionError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="self-start border-red-300 text-red-700 hover:bg-red-50"
+                  onClick={handleGuestAccess}
+                >
+                  Continue as Guest
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField

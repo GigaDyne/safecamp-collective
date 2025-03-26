@@ -5,6 +5,31 @@ import { User } from "@/lib/supabase";
 // Function to sign in anonymously
 export const signInAnonymously = async () => {
   try {
+    // Check if we already have stored credentials
+    const storedEmail = localStorage.getItem('anonymous_email');
+    const storedPassword = localStorage.getItem('anonymous_password');
+    
+    if (storedEmail && storedPassword) {
+      // Try to sign in with stored credentials
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: storedEmail,
+          password: storedPassword
+        });
+        
+        if (!error) {
+          console.log("Successfully signed in with anonymous credentials");
+          return { data, error: null };
+        }
+        
+        // If sign in fails, we'll create a new anonymous account below
+        console.log("Stored anonymous credentials are invalid, creating new account");
+      } catch (e) {
+        console.error("Error signing in with stored anonymous credentials:", e);
+        // Continue to create a new account
+      }
+    }
+    
     // Generate a random email and password for anonymous auth
     const randomEmail = `anonymous-${Math.random().toString(36).substring(2)}@nomad.camp`;
     const randomPassword = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
@@ -19,7 +44,11 @@ export const signInAnonymously = async () => {
       password: randomPassword,
     });
     
-    return { data, error };
+    if (error) {
+      throw error;
+    }
+    
+    return { data, error: null };
   } catch (error) {
     console.error("Anonymous sign-in error:", error);
     
@@ -73,5 +102,21 @@ export const ensureAuthenticated = async (): Promise<User | undefined> => {
     }
     
     return undefined;
+  }
+};
+
+// Check connectivity to Supabase
+export const checkSupabaseConnectivity = async (): Promise<boolean> => {
+  try {
+    const start = Date.now();
+    const { error } = await supabase.from('health_check').select('count', { count: 'exact', head: true });
+    const elapsed = Date.now() - start;
+    
+    console.log(`Supabase connectivity check: ${error ? 'failed' : 'succeeded'} in ${elapsed}ms`);
+    
+    return !error;
+  } catch (e) {
+    console.error("Supabase connectivity check error:", e);
+    return false;
   }
 };

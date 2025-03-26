@@ -12,8 +12,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isEmailVerified: boolean;
   isOfflineMode: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{error?: any}>;
+  signIn: (email: string, password: string) => Promise<{error?: any}>;
   signOut: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
 }
@@ -156,7 +156,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Sign up error:", error);
+        
+        if (error.message === "Failed to fetch") {
+          toast({
+            title: "Connection Error",
+            description: "Unable to connect to the authentication service. Would you like to continue as a guest?",
+            variant: "destructive",
+            action: (
+              <button 
+                onClick={() => continueAsGuest()}
+                className="bg-white text-destructive px-3 py-1 rounded-md text-xs font-medium"
+              >
+                Continue as Guest
+              </button>
+            )
+          });
+        } else {
+          toast({
+            title: "Sign Up Failed",
+            description: error.message || "There was a problem signing up. Please try again.",
+            variant: "destructive"
+          });
+        }
+        
+        return { error };
+      }
       
       toast({
         title: "Sign Up Successful",
@@ -164,6 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       navigate("/verify-email", { state: { email } });
+      return {};
     } catch (error: any) {
       console.error("Sign up error:", error);
       
@@ -188,6 +215,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive"
         });
       }
+      
+      return { error };
     }
   };
 
@@ -198,7 +227,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Sign in error:", error);
+        
+        if (error.message === "Failed to fetch") {
+          toast({
+            title: "Connection Error",
+            description: "Unable to connect to the authentication service. Would you like to continue as a guest?",
+            variant: "destructive",
+            action: (
+              <button 
+                onClick={() => continueAsGuest()}
+                className="bg-white text-destructive px-3 py-1 rounded-md text-xs font-medium"
+              >
+                Continue as Guest
+              </button>
+            )
+          });
+        } else {
+          toast({
+            title: "Sign In Failed",
+            description: error.message || "Invalid email or password. Please try again.",
+            variant: "destructive"
+          });
+        }
+        
+        return { error };
+      }
       
       const isVerified = data.user.email_confirmed_at !== null;
       setIsEmailVerified(isVerified);
@@ -216,7 +271,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
         
         navigate("/verify-email", { state: { email } });
-        return;
+        return {};
       }
       
       setUser({
@@ -240,6 +295,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       navigate("/");
+      return {};
     } catch (error: any) {
       console.error("Sign in error:", error);
       
@@ -264,6 +320,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           variant: "destructive"
         });
       }
+      
+      return { error };
     }
   };
 
