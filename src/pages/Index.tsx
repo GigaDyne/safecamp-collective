@@ -14,7 +14,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="text-center max-w-md">
         <div className="mb-6 flex justify-center">
-          <div className="h-32 w-32 overflow-hidden rounded-full bg-transparent">
+          <div className="h-40 w-40 overflow-hidden rounded-full bg-transparent">
             <img 
               src="/lovable-uploads/def200c5-de41-49bb-b376-ac14a7bdc292.png" 
               alt="SafeCamp Logo" 
