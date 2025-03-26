@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,13 +15,15 @@ interface TripPlannerFormProps {
   setTripStops: (stops: TripStop[]) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  mapboxToken?: string;
 }
 
 const TripPlannerForm = ({ 
   setRouteData, 
   setTripStops,
   isLoading,
-  setIsLoading
+  setIsLoading,
+  mapboxToken
 }: TripPlannerFormProps) => {
   const { toast } = useToast();
   const { location, getLocation } = useLocation();
@@ -72,6 +73,15 @@ const TripPlannerForm = ({
       toast({
         title: "Missing information",
         description: "Please enter both start and end locations",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!mapboxToken) {
+      toast({
+        title: "Missing Mapbox token",
+        description: "Please set your Mapbox token in settings",
         variant: "destructive",
       });
       return;
@@ -127,6 +137,7 @@ const TripPlannerForm = ({
             onLocationSelect={handleStartLocationSelect}
             icon={<MapPin className="h-4 w-4" />}
             onIconClick={handleUseCurrentLocation}
+            mapboxToken={mapboxToken}
           />
         </div>
         
@@ -137,6 +148,7 @@ const TripPlannerForm = ({
             value={endLocation}
             onChange={setEndLocation}
             onLocationSelect={handleEndLocationSelect}
+            mapboxToken={mapboxToken}
           />
         </div>
       </div>
@@ -209,7 +221,7 @@ const TripPlannerForm = ({
       <Button 
         onClick={handlePlanTrip} 
         className="w-full"
-        disabled={isLoading || (!startLocation && !startCoordinates) || (!endLocation && !endCoordinates)}
+        disabled={isLoading || (!startLocation && !startCoordinates) || (!endLocation && !endCoordinates) || !mapboxToken}
       >
         {isLoading ? (
           <>
@@ -220,6 +232,12 @@ const TripPlannerForm = ({
           "Plan Trip"
         )}
       </Button>
+      
+      {!mapboxToken && (
+        <p className="text-sm text-destructive text-center mt-2">
+          Please set your Mapbox token in settings to use the trip planner
+        </p>
+      )}
     </div>
   );
 };

@@ -25,6 +25,7 @@ interface LocationAutocompleteProps {
   onLocationSelect: (location: { placeName: string; coordinates: string }) => void;
   icon?: React.ReactNode;
   onIconClick?: () => void;
+  mapboxToken?: string;
 }
 
 interface Suggestion {
@@ -39,27 +40,16 @@ const LocationAutocomplete = ({
   onChange,
   onLocationSelect,
   icon,
-  onIconClick
+  onIconClick,
+  mapboxToken
 }: LocationAutocompleteProps) => {
   const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
-  const [tokenInput, setTokenInput] = useState("");
+  const [tokenInput, setTokenInput] = useState(() => mapboxToken || "");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Check for token on component mount
-  useEffect(() => {
-    const token = localStorage.getItem("mapbox_token");
-    if (!token) {
-      toast({
-        title: "Missing Mapbox Token",
-        description: "Please set your Mapbox token to use location search",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
 
   const fetchSuggestions = async (query: string) => {
     if (!query || query.length < 3) {
@@ -69,9 +59,7 @@ const LocationAutocomplete = ({
 
     setIsLoading(true);
     
-    const mapboxToken = localStorage.getItem("mapbox_token");
     if (!mapboxToken) {
-      setShowTokenDialog(true);
       setIsLoading(false);
       return;
     }
@@ -127,27 +115,6 @@ const LocationAutocomplete = ({
     setIsOpen(false);
   };
 
-  const handleSaveToken = () => {
-    if (tokenInput.trim()) {
-      localStorage.setItem("mapbox_token", tokenInput.trim());
-      setShowTokenDialog(false);
-      toast({
-        title: "Success",
-        description: "Mapbox token saved successfully",
-      });
-      // Retry the search if there was a value
-      if (value && value.length >= 3) {
-        fetchSuggestions(value);
-      }
-    } else {
-      toast({
-        title: "Error",
-        description: "Please enter a valid Mapbox token",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -167,7 +134,8 @@ const LocationAutocomplete = ({
               value={value}
               onChange={handleInputChange}
               onClick={() => value && suggestions.length > 0 && setIsOpen(true)}
-              className="w-full pr-10"
+              className={`w-full pr-10 ${!mapboxToken ? 'bg-muted' : ''}`}
+              disabled={!mapboxToken}
             />
             {icon && (
               <Button
@@ -176,6 +144,7 @@ const LocationAutocomplete = ({
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={onIconClick}
                 type="button"
+                disabled={!mapboxToken}
               >
                 {icon}
               </Button>
@@ -215,38 +184,6 @@ const LocationAutocomplete = ({
           )}
         </PopoverContent>
       </Popover>
-
-      {/* Dialog for entering Mapbox token */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter Mapbox Token</DialogTitle>
-            <DialogDescription>
-              A Mapbox token is required for location search functionality. 
-              You can get a free token from <a href="https://mapbox.com/" className="text-primary underline" target="_blank" rel="noopener noreferrer">mapbox.com</a>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Enter your Mapbox token"
-              className="w-full"
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              This token will be stored in your browser's local storage.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTokenDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveToken}>
-              Save Token
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

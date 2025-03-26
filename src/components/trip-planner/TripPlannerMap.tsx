@@ -45,33 +45,32 @@ interface TripPlannerMapProps {
   tripStops: TripStop[];
   setTripStops: (stops: TripStop[]) => void;
   isLoading: boolean;
+  mapboxToken?: string;
 }
 
 const TripPlannerMap = ({ 
   routeData, 
   tripStops, 
   setTripStops,
-  isLoading 
+  isLoading,
+  mapboxToken
 }: TripPlannerMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const routeSourceAdded = useRef(false);
-  const [mapToken, setMapToken] = useState<string>(() => {
-    return localStorage.getItem("mapbox_token") || "";
-  });
   const [error, setError] = useState<string | null>(null);
 
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
-    if (!mapToken) {
-      setError("Mapbox token is missing. Please set it in the Map view.");
+    if (!mapboxToken) {
+      setError("Mapbox token is missing. Please set it using the settings button in the top right corner.");
       return;
     }
 
     try {
-      mapboxgl.accessToken = mapToken;
+      mapboxgl.accessToken = mapboxToken;
       
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -98,7 +97,7 @@ const TripPlannerMap = ({
         map.current = null;
       }
     };
-  }, [mapToken]);
+  }, [mapboxToken]);
 
   // Update map when route data changes
   useEffect(() => {
@@ -233,6 +232,13 @@ const TripPlannerMap = ({
           <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
             <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
             <p className="text-sm font-medium">Planning your trip...</p>
+          </div>
+        </div>
+      )}
+      {!mapboxToken && (
+        <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+          <div className="bg-card p-6 rounded-lg shadow-lg">
+            <p className="text-sm font-medium text-center">Please set your Mapbox token using the settings button in the top right corner.</p>
           </div>
         </div>
       )}

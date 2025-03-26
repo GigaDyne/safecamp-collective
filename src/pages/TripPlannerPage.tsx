@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,20 @@ const TripPlannerPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
+  const [mapboxToken, setMapboxToken] = useState(() => localStorage.getItem("mapbox_token") || "");
   const { toast } = useToast();
+
+  // Check for token on component mount and show dialog if missing
+  useEffect(() => {
+    if (!mapboxToken) {
+      setShowTokenDialog(true);
+    }
+  }, [mapboxToken]);
 
   const handleSaveToken = () => {
     if (tokenInput.trim()) {
       localStorage.setItem("mapbox_token", tokenInput.trim());
+      setMapboxToken(tokenInput.trim());
       setShowTokenDialog(false);
       toast({
         title: "Success",
@@ -77,6 +86,7 @@ const TripPlannerPage = () => {
             setTripStops={setTripStops}
             isLoading={isLoading}
             setIsLoading={setIsLoading}
+            mapboxToken={mapboxToken}
           />
           <TripItinerary 
             tripStops={tripStops} 
@@ -92,6 +102,7 @@ const TripPlannerPage = () => {
             tripStops={tripStops} 
             setTripStops={setTripStops}
             isLoading={isLoading}
+            mapboxToken={mapboxToken}
           />
         </div>
       </div>
@@ -100,10 +111,9 @@ const TripPlannerPage = () => {
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mapbox Token Settings</DialogTitle>
+            <DialogTitle>Mapbox Token Required</DialogTitle>
             <DialogDescription>
-              A Mapbox token is required for location search and mapping functionality. 
-              You can get a free token from <a href="https://mapbox.com/" className="text-primary underline" target="_blank" rel="noopener noreferrer">mapbox.com</a>
+              A Mapbox token is required for the Trip Planner to work properly. You can get a free token from <a href="https://mapbox.com/" className="text-primary underline" target="_blank" rel="noopener noreferrer">mapbox.com</a>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -118,7 +128,7 @@ const TripPlannerPage = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTokenDialog(false)}>
+            <Button variant="outline" onClick={() => navigate(-1)}>
               Cancel
             </Button>
             <Button onClick={handleSaveToken}>
@@ -127,15 +137,6 @@ const TripPlannerPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Mapbox token warning if not set */}
-      {!localStorage.getItem("mapbox_token") && (
-        <div className="absolute bottom-4 left-0 right-0 mx-auto w-max">
-          <div className="bg-red-500 text-white px-4 py-2 rounded-md shadow-md">
-            Mapbox token is missing. Please set it in the Map view.
-          </div>
-        </div>
-      )}
     </div>
   );
 };
