@@ -1,12 +1,14 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/providers/AuthProvider";
-import { LogOut, Mail, Shield, AlertTriangle } from "lucide-react";
+import { LogOut, Mail, Shield, AlertTriangle, ArrowLeft } from "lucide-react";
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
   const { user, isEmailVerified, signOut } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -19,11 +21,25 @@ const ProfilePage = () => {
     }
   };
 
+  const handleBackToHome = () => {
+    navigate('/');
+  };
+
   return (
     <div className="container max-w-xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+      <div className="flex items-center space-x-4 mb-6">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handleBackToHome}
+          className="mr-4"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-2xl font-bold">My Profile</h1>
+      </div>
       
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
           <CardDescription>Your account details and status</CardDescription>
