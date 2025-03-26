@@ -12,7 +12,7 @@ const ProtectedRoute = ({
   requireAuth = true,
   requireVerification = true
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, isEmailVerified } = useAuth();
+  const { isAuthenticated, isLoading, isEmailVerified, isOfflineMode } = useAuth();
   const location = useLocation();
 
   // Show loading spinner while checking authentication
@@ -30,7 +30,8 @@ const ProtectedRoute = ({
   }
 
   // If email verification is required but user's email is not verified
-  if (requireAuth && requireVerification && !isEmailVerified) {
+  // Skip this check if user is in offline mode
+  if (requireAuth && requireVerification && !isEmailVerified && !isOfflineMode) {
     return <Navigate to="/verify-email" replace />;
   }
 

@@ -4,15 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { User } from "@/lib/supabase";
+import { signInAnonymously } from "@/lib/auth";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isEmailVerified: boolean;
+  isOfflineMode: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  continueAsGuest: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,8 +34,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const checkSession = async () => {
       setIsLoading(true);
       try {
+        // Check for offline user first
+        const offlineUser = localStorage.getItem('offline_user');
+        if (offlineUser) {
+          const parsedUser = JSON.parse(offlineUser) as User;
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+          setIsEmailVerified(true); // Offline users are always "verified"
+          setIsOfflineMode(true);
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        if (error) {
+          console.warn("Session check error, might be offline:", error);
+          setIsOfflineMode(true);
+          setIsLoading(false);
+          return;
+        }
         
         if (data?.session) {
           const { data: userData } = await supabase.auth.getUser();
@@ -53,10 +74,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error("Session check error:", error);
+        setIsOfflineMode(true);
         toast({
-          title: "Authentication Error",
-          description: "There was a problem checking your session. Please try again.",
-          variant: "destructive"
+          title: "Offline Mode",
+          description: "You are in offline mode. Some features may be limited.",
+          variant: "default"
         });
       } finally {
         setIsLoading(false);
@@ -72,11 +94,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           if (session) {
+            try {
+              const { data } = await supabase.auth.getUser();
+              if (data.user) {
+                // Check if email is verified
+                const isVerified = data.user.email_confirmed_at !== null;
+                setIsEmailVerified(isVerified);
+                
+                // Set user data
+                setUser({
+                  id: data.user.id,
+                  email: data.user.email || '',
+                  createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
+                });
+                
+                setIsAuthenticated(true);
+                setIsOfflineMode(false);
+              }
+            } catch (error) {
+              console.error("Error getting user after auth state change:", error);
+            }
+          }
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setIsAuthenticated(false);
+          setIsEmailVerified(false);
+          setIsOfflineMode(false);
+          navigate("/login");
+        } else if (event === "USER_UPDATED") {
+          // Refresh user data when updated
+          try {
             const { data } = await supabase.auth.getUser();
             if (data.user) {
               // Check if email is verified
               const isVerified = data.user.email_confirmed_at !== null;
               setIsEmailVerified(isVerified);
+              
+              if (isVerified && !isEmailVerified) {
+                toast({
+                  title: "Email Verified",
+                  description: "Your email has been successfully verified."
+                });
+              }
               
               // Set user data
               setUser({
@@ -84,36 +143,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 email: data.user.email || '',
                 createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
               });
-              
-              setIsAuthenticated(true);
             }
-          }
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
-          setIsAuthenticated(false);
-          setIsEmailVerified(false);
-          navigate("/login");
-        } else if (event === "USER_UPDATED") {
-          // Refresh user data when updated
-          const { data } = await supabase.auth.getUser();
-          if (data.user) {
-            // Check if email is verified
-            const isVerified = data.user.email_confirmed_at !== null;
-            setIsEmailVerified(isVerified);
-            
-            if (isVerified && !isEmailVerified) {
-              toast({
-                title: "Email Verified",
-                description: "Your email has been successfully verified."
-              });
-            }
-            
-            // Set user data
-            setUser({
-              id: data.user.id,
-              email: data.user.email || '',
-              createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
-            });
+          } catch (error) {
+            console.error("Error getting user data after USER_UPDATED event:", error);
           }
         }
       }
@@ -144,11 +176,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       navigate("/verify-email", { state: { email } });
     } catch (error: any) {
       console.error("Sign up error:", error);
-      toast({
-        title: "Sign Up Failed",
-        description: error.message || "There was a problem signing up. Please try again.",
-        variant: "destructive"
-      });
+      
+      if (error.message === "Failed to fetch") {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the authentication service. Would you like to continue as a guest?",
+          variant: "destructive",
+          action: (
+            <button 
+              onClick={() => continueAsGuest()}
+              className="bg-white text-destructive px-3 py-1 rounded-md text-xs font-medium"
+            >
+              Continue as Guest
+            </button>
+          )
+        });
+      } else {
+        toast({
+          title: "Sign Up Failed",
+          description: error.message || "There was a problem signing up. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -188,6 +237,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       setIsAuthenticated(true);
+      setIsOfflineMode(false);
       
       toast({
         title: "Sign In Successful",
@@ -197,16 +247,91 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       navigate("/");
     } catch (error: any) {
       console.error("Sign in error:", error);
+      
+      if (error.message === "Failed to fetch") {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to the authentication service. Would you like to continue as a guest?",
+          variant: "destructive",
+          action: (
+            <button 
+              onClick={() => continueAsGuest()}
+              className="bg-white text-destructive px-3 py-1 rounded-md text-xs font-medium"
+            >
+              Continue as Guest
+            </button>
+          )
+        });
+      } else {
+        toast({
+          title: "Sign In Failed",
+          description: error.message || "Invalid email or password. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const continueAsGuest = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Generate a mock offline user
+      const mockUser: User = {
+        id: `offline-${Math.random().toString(36).substring(2)}`,
+        email: 'guest@nomad.camp',
+        createdAt: new Date().toLocaleDateString()
+      };
+      
+      // Store offline user in localStorage
+      localStorage.setItem('offline_user', JSON.stringify(mockUser));
+      
+      // Set user state
+      setUser(mockUser);
+      setIsAuthenticated(true);
+      setIsEmailVerified(true); // Offline users are always "verified"
+      setIsOfflineMode(true);
+      
       toast({
-        title: "Sign In Failed",
-        description: error.message || "Invalid email or password. Please try again.",
+        title: "Guest Mode Activated",
+        description: "You're now browsing as a guest. Some features may be limited."
+      });
+      
+      navigate("/");
+    } catch (error) {
+      console.error("Error in guest mode:", error);
+      toast({
+        title: "Error",
+        description: "There was a problem activating guest mode.",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      // Check if in offline mode
+      if (isOfflineMode) {
+        // Clear offline user data
+        localStorage.removeItem('offline_user');
+        
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsEmailVerified(false);
+        setIsOfflineMode(false);
+        
+        toast({
+          title: "Signed Out",
+          description: "You have been successfully signed out from guest mode."
+        });
+        
+        navigate("/login");
+        return;
+      }
+      
+      // Regular sign out
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -237,9 +362,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         isAuthenticated,
         isEmailVerified,
+        isOfflineMode,
         signUp,
         signIn,
-        signOut
+        signOut,
+        continueAsGuest
       }}
     >
       {children}

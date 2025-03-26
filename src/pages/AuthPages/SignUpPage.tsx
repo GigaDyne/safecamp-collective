@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/providers/AuthProvider";
-import { LogIn, Lock, Mail, Shield } from "lucide-react";
+import { LogIn, Lock, Mail, Shield, UserX } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,8 +24,9 @@ const signUpSchema = z.object({
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const SignUpPage = () => {
-  const { signUp } = useAuth();
+  const { signUp, continueAsGuest } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -41,6 +43,15 @@ const SignUpPage = () => {
       await signUp(data.email, data.password);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGuestAccess = async () => {
+    setIsGuestLoading(true);
+    try {
+      await continueAsGuest();
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -132,6 +143,22 @@ const SignUpPage = () => {
               </Button>
             </form>
           </Form>
+
+          <div className="mt-6">
+            <Separator className="my-4">
+              <span className="px-2 text-xs text-muted-foreground">OR</span>
+            </Separator>
+            
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleGuestAccess}
+              disabled={isGuestLoading}
+            >
+              {isGuestLoading ? "Setting up guest access..." : "Continue as Guest"}
+              {!isGuestLoading && <UserX className="ml-2 h-4 w-4" />}
+            </Button>
+          </div>
         </CardContent>
         
         <CardFooter className="flex flex-col space-y-2">
