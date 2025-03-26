@@ -51,7 +51,7 @@ export const supabase = createClient(
 // Create a bucket for profile images if not exists
 (async () => {
   const { data, error } = await supabase.storage.getBucket('profiles');
-  if (!data && error?.status === 404) {
+  if (!data && error?.statusCode === 404) {
     await supabase.storage.createBucket('profiles', {
       public: true, // Make the bucket public
       fileSizeLimit: 5 * 1024 * 1024, // 5MB
