@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile, SubscriptionPlan, UserSubscription, HelpRequest, PremiumCampsite, Donation, Message, Conversation, ProfileComment } from "./types";
 
@@ -56,6 +55,8 @@ async function createDefaultUserProfile(userId: string): Promise<UserProfile | n
       bio: '',
       avatar_url: '',
       is_creator: false,
+      stripe_account_id: null,
+      stripe_customer_id: null
     };
     
     const { data, error } = await supabase
