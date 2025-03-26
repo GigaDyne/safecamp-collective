@@ -21,7 +21,14 @@ serve(async (req) => {
 
   try {
     // Get the request body
-    const { price_id, type, item_id, creator_id } = await req.json();
+    const { 
+      price_id, 
+      type, 
+      item_id, 
+      creator_id, 
+      stripe_customer_id,
+      user_email
+    } = await req.json();
     
     // Get the session or user object
     const authHeader = req.headers.get('Authorization')!
@@ -33,7 +40,7 @@ serve(async (req) => {
       throw new Error('Not authenticated')
     }
 
-    const email = user.email;
+    const email = user.email || user_email;
     if (!email) {
       throw new Error('No email found')
     }
@@ -42,27 +49,30 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    // Check if we already have a customer for this email
-    const customers = await stripe.customers.list({
-      email: email,
-      limit: 1
-    });
+    // Check if we already have a customer for this email or use provided customer ID
+    let customer_id = stripe_customer_id;
+    
+    if (!customer_id) {
+      const customers = await stripe.customers.list({
+        email: email,
+        limit: 1
+      });
 
-    let customer_id = undefined;
-    if (customers.data.length > 0) {
-      customer_id = customers.data[0].id;
-      
-      // If user is subscribing, check if they're already subscribed
-      if (type === 'subscription' && price_id) {
-        const subscriptions = await stripe.subscriptions.list({
-          customer: customers.data[0].id,
-          status: 'active',
-          price: price_id,
-          limit: 1
-        });
+      if (customers.data.length > 0) {
+        customer_id = customers.data[0].id;
+        
+        // If user is subscribing, check if they're already subscribed
+        if (type === 'subscription' && price_id) {
+          const subscriptions = await stripe.subscriptions.list({
+            customer: customers.data[0].id,
+            status: 'active',
+            price: price_id,
+            limit: 1
+          });
 
-        if (subscriptions.data.length > 0) {
-          throw new Error("You're already subscribed to this plan");
+          if (subscriptions.data.length > 0) {
+            throw new Error("You're already subscribed to this plan");
+          }
         }
       }
     }
@@ -75,6 +85,7 @@ serve(async (req) => {
     if (type === 'subscription' && creator_id) {
       metadata.creator_id = creator_id;
       metadata.type = 'subscription';
+      if (item_id) metadata.plan_id = item_id;
     } else if (type === 'premium_campsite' && item_id) {
       metadata.campsite_id = item_id;
       metadata.type = 'premium_campsite';
@@ -115,6 +126,8 @@ serve(async (req) => {
       }];
     }
 
+    console.log(`Creating ${type} checkout session for user ${user.id}...`);
+    
     // Create checkout session based on type
     const session = await stripe.checkout.sessions.create({
       customer: customer_id,
@@ -127,8 +140,15 @@ serve(async (req) => {
     });
 
     console.log('Payment session created:', session.id);
+    
+    // Check if we need to return the customer ID (for first-time customers)
+    const response: any = { url: session.url };
+    if (!stripe_customer_id && customer_id) {
+      response.customer_id = customer_id;
+    }
+    
     return new Response(
-      JSON.stringify({ url: session.url }),
+      JSON.stringify(response),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
