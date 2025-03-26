@@ -1,20 +1,29 @@
-import { supabase } from "@/lib/supabase";
+
+import { supabase } from "@/integrations/supabase/client";
 import { UserProfile, SubscriptionPlan, UserSubscription, HelpRequest, PremiumCampsite, Donation, Message, Conversation, ProfileComment } from "./types";
 
 // User Profile Functions
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', userId)
-    .single() as any;
-  
-  if (error) {
-    console.error('Error fetching user profile:', error);
+  try {
+    console.log('Fetching profile for user ID:', userId);
+    
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      throw error;
+    }
+    
+    console.log('Profile data retrieved:', data);
+    return data;
+  } catch (error) {
+    console.error('Exception in getUserProfile:', error);
     return null;
   }
-  
-  return data;
 }
 
 export async function updateUserProfile(profile: Partial<UserProfile>): Promise<UserProfile | null> {
@@ -26,7 +35,13 @@ export async function updateUserProfile(profile: Partial<UserProfile>): Promise<
   console.log('🔍 UPDATING PROFILE - Starting update with data:', profile);
   
   // Get current auth session to verify authentication
-  const { data: authData } = await supabase.auth.getUser();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  
+  if (authError) {
+    console.error('❌ Auth error:', authError);
+    throw authError;
+  }
+  
   console.log('🔑 Auth check - Current user:', authData?.user?.id);
 
   if (!authData?.user) {
@@ -47,7 +62,7 @@ export async function updateUserProfile(profile: Partial<UserProfile>): Promise<
       .update(profile)
       .eq('id', profile.id)
       .select()
-      .single() as any;
+      .single();
     
     if (error) {
       console.error('❌ Supabase error updating user profile:', error);

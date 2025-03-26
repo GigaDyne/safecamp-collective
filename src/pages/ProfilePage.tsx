@@ -13,10 +13,9 @@ import { useAuth } from "@/providers/AuthProvider";
 import { LogOut, Mail, Shield, AlertTriangle, ArrowLeft, User, CreditCard, MessageSquare, DollarSign, Heart, Edit, Save, Upload, X } from "lucide-react";
 import { getUserProfile, updateUserProfile, getCreatorSubscriptionPlans, createSubscriptionPlan, getUserSubscriptions, getSubscribersForCreator, getProfileComments, addProfileComment } from "@/lib/community/api";
 import { UserProfile, SubscriptionPlan, UserSubscription, ProfileComment } from "@/lib/community/types";
-import { createCheckoutSession } from "@/lib/community/payment";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client"; // Using the correct Supabase client
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -76,13 +75,16 @@ const ProfilePage = () => {
       const loadUserData = async () => {
         setIsProfileLoading(true);
         try {
+          console.log("Loading profile for user:", user.id);
           const profile = await getUserProfile(user.id);
+          console.log("Profile loaded:", profile);
+          
           if (profile) {
             setUserProfile(profile);
             setDisplayName(profile.display_name || "");
             setBio(profile.bio || "");
             setAvatarUrl(profile.avatar_url);
-            setIsCreator(profile.is_creator);
+            setIsCreator(profile.is_creator || false);
             
             if (profile.is_creator) {
               const plans = await getCreatorSubscriptionPlans(user.id);
@@ -97,6 +99,24 @@ const ProfilePage = () => {
             
             const profileComments = await getProfileComments(user.id);
             setComments(profileComments);
+          } else {
+            // If profile is null, we need to create one
+            console.log("No profile found, attempting to create one");
+            const newProfile = {
+              id: user.id,
+              display_name: user.email?.split('@')[0] || "User",
+              bio: "",
+              avatar_url: null,
+              is_creator: false
+            };
+            
+            const createdProfile = await updateUserProfile(newProfile);
+            if (createdProfile) {
+              setUserProfile(createdProfile);
+              setDisplayName(createdProfile.display_name || "");
+            } else {
+              throw new Error("Failed to create user profile");
+            }
           }
         } catch (error) {
           console.error("Error loading user data:", error);
@@ -139,6 +159,18 @@ const ProfilePage = () => {
     try {
       const fileExt = avatarFile.name.split('.').pop();
       const filePath = `avatars/${user.id}/${Date.now()}.${fileExt}`;
+      
+      // Get bucket info first
+      const { data: bucketData, error: bucketError } = await supabase.storage
+        .getBucket('profiles');
+        
+      // Create bucket if it doesn't exist
+      if (!bucketData && bucketError && 'code' in bucketError && bucketError.code === 'PGRST116') {
+        await supabase.storage.createBucket('profiles', {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024,
+        });
+      }
       
       const { error: uploadError } = await supabase.storage
         .from('profiles')
