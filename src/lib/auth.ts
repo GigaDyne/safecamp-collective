@@ -12,8 +12,14 @@ export const checkSupabaseConnectivity = async (): Promise<boolean> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
     
+    // Pass options object with signal instead of directly passing signal
     const { error } = await supabase.auth.getSession({
-      signal: controller.signal
+      global: {
+        headers: {
+          'X-Request-ID': uuidv4(),
+        },
+        signal: controller.signal
+      }
     });
     
     clearTimeout(timeoutId);
