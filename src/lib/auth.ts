@@ -2,10 +2,7 @@
 import { supabase } from "@/lib/supabase";
 import { User } from "@/lib/supabase";
 
-// Local storage key for anonymous auth
-const ANONYMOUS_AUTH_KEY = "anonymous_auth";
-
-// Function to sign in anonymously - defined here since it was being imported from supabase.ts previously
+// Function to sign in anonymously
 export const signInAnonymously = async () => {
   // Generate a random email and password for anonymous auth
   const randomEmail = `anonymous-${Math.random().toString(36).substring(2)}@nomad.camp`;
@@ -36,41 +33,6 @@ export const ensureAuthenticated = async (): Promise<User | undefined> => {
     };
   }
   
-  // Try to sign in with stored anonymous credentials
-  const anonEmail = localStorage.getItem('anonymous_email');
-  const anonPassword = localStorage.getItem('anonymous_password');
-  
-  if (anonEmail && anonPassword) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: anonEmail,
-      password: anonPassword,
-    });
-    
-    if (!error && data.user) {
-      // Convert Supabase User to our User type
-      return {
-        id: data.user.id,
-        email: data.user.email || '',
-        createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
-      };
-    }
-  }
-  
-  // Create new anonymous user
-  try {
-    const { data: signInData, error: signInError } = await signInAnonymously();
-    
-    if (signInError) {
-      throw new Error('Failed to authenticate anonymously');
-    }
-    
-    return signInData?.user ? {
-      id: signInData.user.id,
-      email: signInData.user.email || '',
-      createdAt: new Date(signInData.user.created_at || Date.now()).toLocaleDateString()
-    } : undefined;
-  } catch (error) {
-    console.error('Anonymous authentication error:', error);
-    return undefined;
-  }
+  // Return undefined - auth will be handled by AuthProvider
+  return undefined;
 };

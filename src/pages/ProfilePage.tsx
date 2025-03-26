@@ -1,181 +1,73 @@
 
 import { useState } from "react";
-import { 
-  LogOut, 
-  Settings, 
-  MessageSquare, 
-  User, 
-  FileText, 
-  Bell, 
-  HelpCircle, 
-  MapPin,
-  ChevronRight
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/providers/AuthProvider";
+import { LogOut, Mail, Shield, AlertTriangle } from "lucide-react";
 
 const ProfilePage = () => {
-  const { toast } = useToast();
-  const [darkMode, setDarkMode] = useState(false);
-  
-  const handleLogout = () => {
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully."
-    });
+  const { user, isEmailVerified, signOut } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
-  
-  const handleDarkModeToggle = (checked: boolean) => {
-    setDarkMode(checked);
-    // In a real app, we would toggle dark mode here
-    toast({
-      title: `${checked ? "Dark" : "Light"} mode enabled`,
-      description: `The app theme has been switched to ${checked ? "dark" : "light"} mode.`
-    });
-  };
-  
-  const settingsSections = [
-    {
-      title: "App Settings",
-      items: [
-        {
-          icon: Bell,
-          label: "Notifications",
-          onClick: () => {},
-          rightElement: <ChevronRight className="h-4 w-4 text-muted-foreground" />,
-        },
-        {
-          icon: Settings,
-          label: "Dark Mode",
-          onClick: () => {},
-          rightElement: (
-            <Switch 
-              checked={darkMode} 
-              onCheckedChange={handleDarkModeToggle} 
-              aria-label="Toggle dark mode"
-            />
-          ),
-        },
-      ],
-    },
-    {
-      title: "Content",
-      items: [
-        {
-          icon: MapPin,
-          label: "My Submitted Sites",
-          onClick: () => {},
-          rightElement: <ChevronRight className="h-4 w-4 text-muted-foreground" />,
-        },
-        {
-          icon: FileText,
-          label: "My Reviews",
-          onClick: () => {},
-          rightElement: <ChevronRight className="h-4 w-4 text-muted-foreground" />,
-        },
-      ],
-    },
-    {
-      title: "Support",
-      items: [
-        {
-          icon: MessageSquare,
-          label: "Feedback",
-          onClick: () => {},
-          rightElement: <ChevronRight className="h-4 w-4 text-muted-foreground" />,
-        },
-        {
-          icon: HelpCircle,
-          label: "Help Center",
-          onClick: () => {},
-          rightElement: <ChevronRight className="h-4 w-4 text-muted-foreground" />,
-        },
-      ],
-    },
-  ];
 
   return (
-    <div className="flex flex-col h-full bg-background pb-16">
-      <div className="p-6 flex flex-col items-center">
-        <Avatar className="w-20 h-20 mb-4">
-          <AvatarImage src="/placeholder.svg" alt="Profile" />
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            <User className="h-8 w-8" />
-          </AvatarFallback>
-        </Avatar>
-        
-        <h1 className="text-xl font-semibold">Guest User</h1>
-        <p className="text-sm text-muted-foreground mt-1">guest@example.com</p>
-        
-        <div className="flex gap-2 mt-4">
-          <Button 
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-          >
-            Edit Profile
-          </Button>
-          
-          <Button 
-            variant="default"
-            size="sm"
-            className="rounded-full"
-          >
-            Upgrade to Pro
-          </Button>
-        </div>
-      </div>
+    <div className="container max-w-xl mx-auto py-8 px-4">
+      <h1 className="text-2xl font-bold mb-6">My Profile</h1>
       
-      <Separator />
-      
-      <div className="flex-1 overflow-auto p-4 no-scrollbar">
-        <div className="space-y-6">
-          {settingsSections.map((section) => (
-            <div key={section.title} className="space-y-2">
-              <h2 className="text-sm font-medium text-muted-foreground px-2">
-                {section.title}
-              </h2>
-              
-              <div className="bg-card rounded-lg overflow-hidden border border-border/40">
-                {section.items.map((item, index) => (
-                  <div key={index}>
-                    {index > 0 && <Separator />}
-                    <button
-                      className="w-full flex items-center justify-between py-3.5 px-4 hover:bg-secondary/50 transition-colors"
-                      onClick={item.onClick}
-                    >
-                      <div className="flex items-center">
-                        <item.icon className="h-4 w-4 mr-3 text-primary" />
-                        <span className="text-sm">{item.label}</span>
-                      </div>
-                      {item.rightElement}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+          <CardDescription>Your account details and status</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Mail className="h-5 w-5 text-muted-foreground" />
+            <span>{user?.email}</span>
+          </div>
           
+          <div className="flex items-center space-x-2">
+            <Shield className={`h-5 w-5 ${isEmailVerified ? "text-green-500" : "text-amber-500"}`} />
+            <span>
+              {isEmailVerified 
+                ? "Email verified" 
+                : "Email not verified"}
+            </span>
+          </div>
+          
+          {!isEmailVerified && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Your email is not verified. Some features will be limited until you verify your email.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="text-sm text-muted-foreground">
+            Account created: {user?.createdAt}
+          </div>
+        </CardContent>
+        <CardFooter>
           <Button 
             variant="outline" 
-            className="w-full mt-4 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleLogout}
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+            className="w-full"
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Log Out
+            {isLoggingOut ? "Signing out..." : "Sign Out"}
+            {!isLoggingOut && <LogOut className="ml-2 h-4 w-4" />}
           </Button>
-          
-          <div className="pt-2 pb-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              SafeCamp v0.1.0
-            </p>
-          </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
