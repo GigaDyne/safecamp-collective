@@ -20,6 +20,21 @@ export type SupabaseReview = {
   images?: string[];
 };
 
+// Define the Review type that our application uses internally
+export type Review = {
+  id: string;
+  siteId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  safetyRating: number;
+  cellSignal: number;
+  noiseLevel: number;
+  comment: string;
+  date: string;
+  images?: string[];
+};
+
 // Convert from Supabase format to app format
 export const mapSupabaseReview = (review: SupabaseReview): Review => {
   return {
