@@ -1,79 +1,139 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import debounce from "lodash.debounce";
 
+interface MapboxFeature {
+  id: string;
+  place_name: string;
+  center: [number, number];
+}
+
 interface AddressAutocompleteInputProps {
-  placeholder?: string;
-  onSelect: (place: {
-    name: string;
-    lat: number;
-    lng: number;
-  }) => void;
+  placeholder: string;
   mapboxToken: string;
-  className?: string; // Ensure this is optional
+  onSelect: (location: { name: string; lat: number; lng: number }) => void;
+  className?: string;
+  initialValue?: string;
 }
 
 const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
-  placeholder = "Enter a location",
-  onSelect,
+  placeholder,
   mapboxToken,
-  className = "", // Default to empty string
+  onSelect,
+  className,
+  initialValue = ""
 }) => {
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [focused, setFocused] = useState(false);
+  const [inputValue, setInputValue] = useState(initialValue);
+  const [isOpen, setIsOpen] = useState(false);
+  const [features, setFeatures] = useState<MapboxFeature[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const fetchSuggestions = debounce(async (search: string) => {
-    if (!search || !mapboxToken) return;
+  // Initial value effect
+  useEffect(() => {
+    if (initialValue) {
+      setInputValue(initialValue);
+    }
+  }, [initialValue]);
 
-    const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-        search
-      )}.json?access_token=${mapboxToken}&autocomplete=true&limit=5`
-    );
-    const data = await res.json();
-    setSuggestions(data.features || []);
-  }, 300);
+  const fetchResults = useRef(
+    debounce(async (value: string) => {
+      if (!value || value.length < 3 || !mapboxToken) {
+        setFeatures([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+            value
+          )}.json?access_token=${mapboxToken}&limit=5&country=us,ca,mx`
+        );
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+        setFeatures(data.features || []);
+      } catch (error) {
+        console.error("Failed to fetch geocoding results:", error);
+        setFeatures([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300)
+  ).current;
 
   useEffect(() => {
-    fetchSuggestions(query);
-  }, [query]);
+    if (inputValue.length >= 3) {
+      setIsLoading(true);
+      fetchResults(inputValue);
+    } else {
+      setFeatures([]);
+    }
 
-  const handleSelect = (feature: any) => {
-    setQuery(feature.place_name);
-    setSuggestions([]);
-    onSelect({
-      name: feature.place_name,
-      lat: feature.center[1],
-      lng: feature.center[0],
-    });
+    return () => {
+      fetchResults.cancel();
+    };
+  }, [inputValue, fetchResults]);
+
+  const handleSelect = (feature: MapboxFeature) => {
+    setInputValue(feature.place_name);
+    setIsOpen(false);
+    const [lng, lat] = feature.center;
+    onSelect({ name: feature.place_name, lat, lng });
   };
 
   return (
-    <div className={`relative ${className}`}>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 100)} // delay blur to allow click
-        placeholder={placeholder}
-        className="w-full px-4 py-2 border rounded shadow-sm text-sm"
-      />
-      {focused && suggestions.length > 0 && (
-        <ul className="absolute z-10 bg-white border w-full mt-1 rounded shadow">
-          {suggestions.map((feature) => (
-            <li
+    <Popover open={isOpen && features.length > 0} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <div className={cn("relative", className)}>
+          <Input
+            ref={inputRef}
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              if (e.target.value.length >= 3) {
+                setIsOpen(true);
+              } else {
+                setIsOpen(false);
+              }
+            }}
+            className={cn("w-full", className)}
+          />
+          {isLoading && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-0 w-[var(--radix-popover-trigger-width)] max-h-[300px] overflow-y-auto"
+        align="start"
+      >
+        <div className="rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
+          {features.map((feature) => (
+            <Button
               key={feature.id}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+              variant="ghost"
+              className="w-full justify-start font-normal px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
               onClick={() => handleSelect(feature)}
             >
               {feature.place_name}
-            </li>
+            </Button>
           ))}
-        </ul>
-      )}
-    </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

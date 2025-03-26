@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +18,10 @@ interface TripPlannerFormProps {
   mapboxToken?: string;
   showCrimeData?: boolean;
   onToggleCrimeData?: (enabled: boolean) => void;
+  initialStartLocation?: string;
+  initialDestination?: string;
+  initialStartCoords?: { lat: number; lng: number };
+  initialDestCoords?: { lat: number; lng: number };
 }
 
 const TripPlannerForm = ({ 
@@ -28,14 +31,22 @@ const TripPlannerForm = ({
   setIsLoading,
   mapboxToken,
   showCrimeData = false,
-  onToggleCrimeData
+  onToggleCrimeData,
+  initialStartLocation,
+  initialDestination,
+  initialStartCoords,
+  initialDestCoords
 }: TripPlannerFormProps) => {
   const { toast } = useToast();
   const { location, getLocation } = useLocation();
-  const [startLocation, setStartLocation] = useState("");
-  const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(null);
-  const [endLocation, setEndLocation] = useState("");
-  const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(null);
+  const [startLocation, setStartLocation] = useState(initialStartLocation || "");
+  const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(
+    initialStartCoords ? [initialStartCoords.lng, initialStartCoords.lat] : null
+  );
+  const [endLocation, setEndLocation] = useState(initialDestination || "");
+  const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(
+    initialDestCoords ? [initialDestCoords.lng, initialDestCoords.lat] : null
+  );
   const [bufferDistance, setBufferDistance] = useState(20); // miles
   const [includeCampsites, setIncludeCampsites] = useState(true);
   const [includeGasStations, setIncludeGasStations] = useState(true);
@@ -157,6 +168,7 @@ const TripPlannerForm = ({
               mapboxToken={mapboxToken || ""}
               onSelect={handleStartLocationSelect}
               className="flex-1"
+              initialValue={initialStartLocation}
             />
             <Button 
               variant="outline" 
@@ -177,6 +189,7 @@ const TripPlannerForm = ({
             mapboxToken={mapboxToken || ""}
             onSelect={handleEndLocationSelect}
             className="w-full"
+            initialValue={initialDestination}
           />
         </div>
       </div>
@@ -281,7 +294,6 @@ const TripPlannerForm = ({
               />
             </div>
             
-            {/* Add crime data toggle */}
             {onToggleCrimeData && (
               <div className="flex items-center justify-between">
                 <Label htmlFor="include-crime-data" className="flex items-center gap-2">
