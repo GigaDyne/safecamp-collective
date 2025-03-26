@@ -123,64 +123,87 @@ const TripPlannerMap = ({
 
       // Add the route to the map
       if (!routeSourceAdded.current) {
-        map.current.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: routeData.geometry
-          }
-        });
+        // Add new source and layer
+        try {
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: routeData.geometry
+            }
+          });
 
-        map.current.addLayer({
-          id: 'route-line',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#8B5CF6',
-            'line-width': 6,
-            'line-opacity': 0.8
-          }
-        });
+          map.current.addLayer({
+            id: 'route-line',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#8B5CF6',
+              'line-width': 6,
+              'line-opacity': 0.8
+            }
+          });
 
-        // Add start point marker
-        const startCoords = routeData.geometry.coordinates[0];
-        new mapboxgl.Marker({ color: '#10B981' })
-          .setLngLat([startCoords[0], startCoords[1]])
-          .addTo(map.current);
+          // Add start point marker
+          const startCoords = routeData.geometry.coordinates[0];
+          new mapboxgl.Marker({ color: '#10B981' })
+            .setLngLat([startCoords[0], startCoords[1]])
+            .addTo(map.current);
 
-        // Add end point marker
-        const endCoords = routeData.geometry.coordinates[routeData.geometry.coordinates.length - 1];
-        new mapboxgl.Marker({ color: '#EF4444' })
-          .setLngLat([endCoords[0], endCoords[1]])
-          .addTo(map.current);
+          // Add end point marker
+          const endCoords = routeData.geometry.coordinates[routeData.geometry.coordinates.length - 1];
+          new mapboxgl.Marker({ color: '#EF4444' })
+            .setLngLat([endCoords[0], endCoords[1]])
+            .addTo(map.current);
 
-        routeSourceAdded.current = true;
+          routeSourceAdded.current = true;
+        } catch (error) {
+          console.error("Error adding route source/layer:", error);
+        }
       } else {
         // Update existing source
-        const source = map.current.getSource('route') as mapboxgl.GeoJSONSource;
-        source.setData({
-          type: 'Feature',
-          geometry: routeData.geometry
-        });
+        try {
+          // Make sure the map is ready and source exists before attempting to update it
+          if (map.current && map.current.getSource('route')) {
+            const source = map.current.getSource('route') as mapboxgl.GeoJSONSource;
+            source.setData({
+              type: 'Feature',
+              geometry: routeData.geometry
+            });
+          } else {
+            console.log("Map or route source not available yet");
+          }
+        } catch (error) {
+          console.error("Error updating route source:", error);
+        }
       }
 
       // Fit the map to the route
-      const bounds = new mapboxgl.LngLatBounds();
-      routeData.geometry.coordinates.forEach(coord => {
-        bounds.extend([coord[0], coord[1]]);
-      });
-      
-      map.current.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 15
-      });
+      try {
+        const bounds = new mapboxgl.LngLatBounds();
+        routeData.geometry.coordinates.forEach(coord => {
+          bounds.extend([coord[0], coord[1]]);
+        });
+        
+        map.current.fitBounds(bounds, {
+          padding: 50,
+          maxZoom: 15
+        });
+      } catch (error) {
+        console.error("Error fitting map to bounds:", error);
+      }
     };
 
-    waitForMapLoad();
+    // Wait for map to be loaded before adding sources and layers
+    if (map.current.loaded()) {
+      waitForMapLoad();
+    } else {
+      map.current.once('load', waitForMapLoad);
+    }
   }, [routeData]);
 
   // Close popup when clicking outside of a marker
