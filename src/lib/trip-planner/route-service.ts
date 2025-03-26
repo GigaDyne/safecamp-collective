@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from "uuid";
 import { TripPlanRequest, TripPlanResponse, RouteData, TripStop } from "./types";
 import { mockCampSites } from "@/data/mockData";
@@ -6,19 +7,13 @@ import { mockCampSites } from "@/data/mockData";
 const MAPBOX_DIRECTIONS_API = "https://api.mapbox.com/directions/v5/mapbox/driving";
 const MAPBOX_GEOCODING_API = "https://api.mapbox.com/geocoding/v5/mapbox.places";
 
-// Helper function to get Mapbox token from localStorage
-const getMapboxToken = (): string => {
-  return localStorage.getItem("mapbox_token") || "";
-};
-
 // Helper to check if a string is coordinates
 const isCoordinates = (location: string): boolean => {
   return /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(location);
 };
 
 // Convert address to coordinates
-const geocodeLocation = async (location: string): Promise<[number, number]> => {
-  const mapboxToken = getMapboxToken();
+const geocodeLocation = async (location: string, mapboxToken: string): Promise<[number, number]> => {
   if (!mapboxToken) {
     throw new Error("Mapbox token is missing");
   }
@@ -47,15 +42,14 @@ const geocodeLocation = async (location: string): Promise<[number, number]> => {
 };
 
 // Get directions between two locations
-const getDirections = async (start: string, end: string): Promise<RouteData> => {
-  const mapboxToken = getMapboxToken();
+const getDirections = async (start: string, end: string, mapboxToken: string): Promise<RouteData> => {
   if (!mapboxToken) {
     throw new Error("Mapbox token is missing");
   }
 
   // Get coordinates for start and end
-  const startCoords = await geocodeLocation(start);
-  const endCoords = await geocodeLocation(end);
+  const startCoords = await geocodeLocation(start, mapboxToken);
+  const endCoords = await geocodeLocation(end, mapboxToken);
 
   // Build the request URL
   const url = `${MAPBOX_DIRECTIONS_API}/${startCoords[0]},${startCoords[1]};${endCoords[0]},${endCoords[1]}?steps=true&geometries=geojson&access_token=${mapboxToken}`;
@@ -225,36 +219,43 @@ const formatETA = (seconds: number): string => {
 
 // Main function to plan a trip
 export const planTrip = async (
-  request: TripPlanRequest
+  request: TripPlanRequest & { mapboxToken?: string }
 ): Promise<TripPlanResponse> => {
+  const { mapboxToken, startLocation, endLocation, bufferDistance, includeCampsites, includeGasStations, includeWaterStations, includeDumpStations } = request;
+  
+  if (!mapboxToken) {
+    throw new Error("Mapbox token is missing");
+  }
+
   // Get directions from start to end
   const routeData = await getDirections(
-    request.startLocation,
-    request.endLocation
+    startLocation,
+    endLocation,
+    mapboxToken
   );
   
   // Find stops along the route
   const stops: TripStop[] = [];
   
   // Add campsites if requested
-  if (request.includeCampsites) {
+  if (includeCampsites) {
     const campsites = findCampsitesAlongRoute(
       routeData.geometry.coordinates,
-      request.bufferDistance
+      bufferDistance
     );
     stops.push(...campsites);
   }
   
   // Add other amenities if requested (in a real app, we'd fetch from an API)
   const amenityTypes: ('gas' | 'water' | 'dump')[] = [];
-  if (request.includeGasStations) amenityTypes.push('gas');
-  if (request.includeWaterStations) amenityTypes.push('water');
-  if (request.includeDumpStations) amenityTypes.push('dump');
+  if (includeGasStations) amenityTypes.push('gas');
+  if (includeWaterStations) amenityTypes.push('water');
+  if (includeDumpStations) amenityTypes.push('dump');
   
   if (amenityTypes.length > 0) {
     const amenities = generateMockAmenities(
       routeData.geometry.coordinates,
-      request.bufferDistance,
+      bufferDistance,
       amenityTypes
     );
     stops.push(...amenities);

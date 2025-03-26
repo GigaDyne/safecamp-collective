@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -101,7 +102,8 @@ const TripPlannerForm = ({
         includeCampsites,
         includeGasStations,
         includeWaterStations,
-        includeDumpStations
+        includeDumpStations,
+        mapboxToken // Pass the token to the planTrip function
       });
       
       setRouteData(result.routeData);
