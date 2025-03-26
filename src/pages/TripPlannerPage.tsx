@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { ChevronLeft, Settings, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,24 +35,19 @@ const TripPlannerPage = () => {
   
   const { user, isAuthenticated, isOfflineMode } = useAuth();
   
-  // Use the hardcoded Mapbox token from env vars, or fallback to a demo token for dev purposes
   const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
   
   const { toast } = useToast();
 
-  // Log on component mount for debugging
   useEffect(() => {
     console.log("TripPlannerPage mounted, mapboxToken:", mapboxToken ? "Token exists" : "No token");
   }, [mapboxToken]);
 
-  // Handle adding a stop to the itinerary
   const handleAddToItinerary = (stop: TripStop) => {
-    // Check if the stop is already in the itinerary
     if (selectedStops.some(s => s.id === stop.id)) {
       return;
     }
     
-    // Add the stop to selectedStops with the correct order
     const newStop = { 
       ...stop, 
       order: selectedStops.length 
@@ -67,7 +61,6 @@ const TripPlannerPage = () => {
     });
   };
   
-  // Handle saving the trip
   const handleSaveTrip = async () => {
     if (selectedStops.length === 0) {
       toast({
@@ -85,7 +78,6 @@ const TripPlannerPage = () => {
     try {
       setIsSaving(true);
       
-      // Create a new trip object
       const newTrip: SavedTrip = {
         id: uuidv4(),
         name: tripName,
@@ -97,7 +89,6 @@ const TripPlannerPage = () => {
         updatedAt: new Date().toISOString()
       };
       
-      // Save the trip to storage
       await saveTripPlan(newTrip);
       
       toast({
@@ -126,7 +117,7 @@ const TripPlannerPage = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate(-1)} 
+            onClick={() => navigate("/")} // Changed from navigate(-1) to navigate("/")
             className="mr-2 text-primary-foreground hover:bg-primary/80"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -158,7 +149,6 @@ const TripPlannerPage = () => {
       </div>
 
       <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] overflow-hidden">
-        {/* Left panel - Form and Itinerary */}
         <div className="w-full md:w-1/3 h-1/2 md:h-full flex flex-col overflow-hidden">
           <TripPlannerForm 
             setRouteData={setRouteData} 
@@ -178,7 +168,6 @@ const TripPlannerPage = () => {
           />
         </div>
         
-        {/* Right panel - Map */}
         <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-muted/20">
           <TripPlannerMap 
             routeData={routeData} 
@@ -193,7 +182,6 @@ const TripPlannerPage = () => {
         </div>
       </div>
       
-      {/* Mapbox Token Dialog */}
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -225,7 +213,6 @@ const TripPlannerPage = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Save Trip Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
