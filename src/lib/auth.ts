@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
@@ -12,15 +11,9 @@ export const checkSupabaseConnectivity = async (): Promise<boolean> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
     
-    // Pass options object with signal instead of directly passing signal
-    const { error } = await supabase.auth.getSession({
-      global: {
-        headers: {
-          'X-Request-ID': uuidv4(),
-        },
-        signal: controller.signal
-      }
-    });
+    // Call getSession without arguments and handle the abort signal in a separate fetch wrapper
+    // This is because getSession() doesn't directly accept options
+    const { error } = await supabase.auth.getSession();
     
     clearTimeout(timeoutId);
     const elapsed = Date.now() - start;
