@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Map, Navigation, MapPin, Shield } from "lucide-react";
+import PopularCampsites from "@/components/home/PopularCampsites";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -12,9 +13,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-      <div className="text-center max-w-md">
+      <div className="text-center max-w-3xl">
         <div className="mb-6 flex justify-center">
-          <div className="h-40 w-40 overflow-hidden rounded-full bg-transparent">
+          <div className="h-48 w-48 overflow-hidden rounded-full bg-transparent">
             <img 
               src="/lovable-uploads/def200c5-de41-49bb-b376-ac14a7bdc292.png" 
               alt="SafeCamp Logo" 
@@ -23,14 +24,14 @@ const Index = () => {
           </div>
         </div>
         
-        <h1 className="text-3xl font-bold mb-3">Welcome to SafeCamp</h1>
+        <h1 className="text-4xl font-bold mb-3">Welcome to SafeCamp</h1>
         
-        <p className="text-muted-foreground mb-8">
+        <p className="text-muted-foreground mb-8 text-lg max-w-xl mx-auto">
           Find and share safe camping spots for nomads and adventurers. 
           Browse our map to discover locations rated by the community.
         </p>
         
-        <div className="grid grid-cols-1 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="flex items-start border rounded-lg p-4 text-left">
             <MapPin className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
             <div>
@@ -62,13 +63,24 @@ const Index = () => {
           </div>
         </div>
         
-        <Button 
-          className="w-full"
-          size="lg"
-          onClick={handleExploreClick}
-        >
-          Explore the Map
-        </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div>
+            <Button 
+              className="w-full"
+              size="lg"
+              onClick={handleExploreClick}
+            >
+              Explore the Map
+            </Button>
+          </div>
+          <div className="hidden md:block">
+            <PopularCampsites />
+          </div>
+        </div>
+      </div>
+      
+      <div className="w-full mt-8 md:hidden">
+        <PopularCampsites />
       </div>
     </div>
   );

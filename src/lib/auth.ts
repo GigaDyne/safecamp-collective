@@ -36,6 +36,7 @@ export const ensureAuthenticated = async (): Promise<User> => {
     }
     
     if (sessionData?.session) {
+      console.log("Found existing session:", sessionData.session.user.id);
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
         return {
@@ -46,6 +47,7 @@ export const ensureAuthenticated = async (): Promise<User> => {
       }
     }
     
+    console.log("No session found, creating anonymous account");
     // If not authenticated, create anonymous account
     return await signInAnonymously();
   } catch (error) {
@@ -54,10 +56,12 @@ export const ensureAuthenticated = async (): Promise<User> => {
     // Fallback to a local mock user if authentication fails
     const offlineUser = localStorage.getItem('offline_user');
     if (offlineUser) {
+      console.log("Using cached offline user");
       return JSON.parse(offlineUser);
     }
     
     // Create and store a new offline user as last resort
+    console.log("Creating new offline user");
     const mockUser = {
       id: `offline-${uuidv4()}`,
       email: 'guest@safecampapp.com',
@@ -79,15 +83,22 @@ export const signInAnonymously = async (): Promise<User> => {
     }
     
     // Use direct domain name instead of anonymous-safecampapp.com which seems to be invalid
-    const randomEmail = `guest-${uuidv4()}@nomad.camp`;
+    const randomEmail = `guest-${uuidv4().substring(0, 8)}@nomad.camp`;
     const randomPassword = uuidv4();
+    
+    console.log("Attempting anonymous sign-up with email:", randomEmail);
     
     const { data, error } = await supabase.auth.signUp({
       email: randomEmail,
       password: randomPassword,
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error("Anonymous sign-up error:", error);
+      throw error;
+    }
+    
+    console.log("Anonymous sign-up successful:", data.user?.id);
     
     localStorage.setItem('anonymous_email', randomEmail);
     localStorage.setItem('anonymous_password', randomPassword);
@@ -104,7 +115,33 @@ export const signInAnonymously = async (): Promise<User> => {
   } catch (error) {
     console.error('Error signing in anonymously:', error);
     
+    // Try to sign in with existing anonymous credentials
+    const storedEmail = localStorage.getItem('anonymous_email');
+    const storedPassword = localStorage.getItem('anonymous_password');
+    
+    if (storedEmail && storedPassword) {
+      try {
+        console.log("Trying to sign in with existing anonymous credentials");
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: storedEmail,
+          password: storedPassword,
+        });
+        
+        if (!error && data.user) {
+          console.log("Signed in with existing anonymous credentials");
+          return {
+            id: data.user.id,
+            email: data.user.email || storedEmail,
+            createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
+          };
+        }
+      } catch (signInError) {
+        console.error("Error signing in with existing credentials:", signInError);
+      }
+    }
+    
     // Fallback to a local mock user if anonymous sign-in fails
+    console.log("Creating offline mock user as last resort");
     const mockUser = {
       id: `offline-${uuidv4()}`,
       email: 'guest@nomad.camp',

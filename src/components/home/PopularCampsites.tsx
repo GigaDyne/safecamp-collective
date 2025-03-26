@@ -1,20 +1,30 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useFeaturedCampsites } from "@/hooks/useFeaturedCampsites";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ImageOff } from "lucide-react";
 
 const reliableImageUrls = [
-  'https://images.unsplash.com/photo-1472396961693-142e6e269027',
-  'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9',
-  'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86',
-  'https://images.unsplash.com/photo-1469474968028-56623f02e42e'
+  'https://images.unsplash.com/photo-1472396961693-142e6e269027?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
 ];
 
 const PopularCampsites: React.FC = () => {
   const navigate = useNavigate();
   const { data: featuredCampsites = [], isLoading, error } = useFeaturedCampsites();
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+
+  const handleImageError = (index: number) => {
+    setImageErrors(prev => ({ ...prev, [index]: true }));
+  };
+
+  const getFallbackImage = (index: number) => {
+    return reliableImageUrls[index % reliableImageUrls.length];
+  };
 
   return (
     <Card className="border border-border/50">
@@ -53,17 +63,27 @@ const PopularCampsites: React.FC = () => {
           <div className="space-y-4">
             {featuredCampsites.slice(0, 3).map((campsite, index) => (
               <div key={campsite.id} className="group cursor-pointer" onClick={() => navigate(`/site/${campsite.id}`)}>
-                <div className="overflow-hidden rounded-md mb-2 h-32">
-                  <img 
-                    src={reliableImageUrls[index % reliableImageUrls.length]} 
-                    alt={campsite.name} 
-                    className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
-                    onError={(e) => {
-                      console.log('Image failed to load, using fallback');
-                      e.currentTarget.onerror = null; 
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
-                    }}
-                  />
+                <div className="overflow-hidden rounded-md mb-2 h-32 bg-muted relative">
+                  {imageErrors[index] ? (
+                    <img 
+                      src={getFallbackImage(index)}
+                      alt={campsite.name} 
+                      className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
+                      onError={() => console.log('Even fallback image failed to load')}
+                    />
+                  ) : (
+                    <img 
+                      src={campsite.image_url || getFallbackImage(index)}
+                      alt={campsite.name} 
+                      className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
+                      onError={() => handleImageError(index)}
+                    />
+                  )}
+                  {imageErrors[index] && !getFallbackImage(index) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                      <ImageOff className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
                 <h3 className="font-medium text-sm line-clamp-1">{campsite.name}</h3>
                 <p className="text-xs text-muted-foreground">{campsite.location}</p>
