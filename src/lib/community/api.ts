@@ -23,9 +23,25 @@ export async function updateUserProfile(profile: Partial<UserProfile>): Promise<
     return null;
   }
 
-  console.log('Updating profile with data:', profile);
+  console.log('🔍 UPDATING PROFILE - Starting update with data:', profile);
+  
+  // Get current auth session to verify authentication
+  const { data: authData } = await supabase.auth.getUser();
+  console.log('🔑 Auth check - Current user:', authData?.user?.id);
+
+  if (!authData?.user) {
+    console.error('❌ Auth error - User not authenticated');
+    throw new Error('User not authenticated');
+  }
+
+  if (authData.user.id !== profile.id) {
+    console.error(`❌ Auth mismatch - Logged in user (${authData.user.id}) doesn't match profile ID (${profile.id})`);
+    throw new Error('User ID mismatch');
+  }
 
   try {
+    console.log('📡 Sending update request to Supabase...');
+    
     const { data, error } = await supabase
       .from('user_profiles')
       .update(profile)
@@ -34,15 +50,15 @@ export async function updateUserProfile(profile: Partial<UserProfile>): Promise<
       .single() as any;
     
     if (error) {
-      console.error('Error updating user profile:', error);
-      throw error; // Throw error to be caught by caller
+      console.error('❌ Supabase error updating user profile:', error);
+      throw error;
     }
     
-    console.log('Profile update successful, received data:', data);
+    console.log('✅ Profile update successful, received data:', data);
     return data;
   } catch (error) {
-    console.error('Exception updating user profile:', error);
-    throw error; // Rethrow for the component to handle
+    console.error('❌ Exception updating user profile:', error);
+    throw error;
   }
 }
 

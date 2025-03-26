@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ const ProfilePage = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
   const [isCreator, setIsCreator] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
@@ -172,18 +174,36 @@ const ProfilePage = () => {
   };
   
   const saveProfile = async () => {
-    if (!user?.id || !userProfile) return;
+    if (!user?.id || !userProfile) {
+      toast({
+        title: "Error",
+        description: "User not authenticated or profile not loaded.",
+        variant: "destructive",
+      });
+      return;
+    }
     
+    console.log("Save button clicked - Starting profile save process");
     setIsSaving(true);
+    setSaveError(null);
+    
     try {
-      console.log('Starting profile save...');
+      toast({
+        title: "Saving profile...",
+        description: "Please wait while we update your profile.",
+      });
       
       let newAvatarUrl = avatarUrl;
       if (avatarFile) {
         newAvatarUrl = await uploadAvatar();
         if (!newAvatarUrl) {
           setIsSaving(false);
-          return; // Upload failed
+          toast({
+            title: "Error",
+            description: "Failed to upload avatar. Profile update canceled.",
+            variant: "destructive",
+          });
+          return;
         }
       }
       
@@ -212,11 +232,13 @@ const ProfilePage = () => {
       } else {
         throw new Error("Failed to update profile: No data returned");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error);
+      const errorMessage = error?.message || "Failed to update profile. Please try again.";
+      setSaveError(errorMessage);
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -473,6 +495,13 @@ const ProfilePage = () => {
                       rows={4}
                     />
                   </div>
+                  
+                  {saveError && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{saveError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -542,6 +571,7 @@ const ProfilePage = () => {
                       }
                       setDisplayName(userProfile?.display_name || "");
                       setBio(userProfile?.bio || "");
+                      setSaveError(null);
                     }}
                     className="flex-1"
                     disabled={isSaving}
