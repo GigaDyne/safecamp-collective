@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,6 @@ export default function PremiumCampsiteCard({
     }
 
     try {
-      // Fix: Call createCheckoutSession with the correct parameters according to its definition in src/lib/community/payment.ts
       const url = await createCheckoutSession(
         "price_premium_campsite", // This would come from your Stripe setup
         "premium_campsite",

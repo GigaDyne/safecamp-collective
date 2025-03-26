@@ -9,7 +9,7 @@ export async function createCheckoutSession(
   type: PaymentType, 
   itemId?: string,
   creatorId?: string
-) {
+): Promise<string | null> {
   try {
     const { data, error } = await supabase.functions.invoke('create-checkout-session', {
       body: {
@@ -41,7 +41,7 @@ export async function createCheckoutSession(
   }
 }
 
-export async function checkSubscription(creatorId: string) {
+export async function checkSubscription(creatorId: string): Promise<boolean> {
   try {
     const { data, error } = await supabase.functions.invoke('check-subscription', {
       body: {

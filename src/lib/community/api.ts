@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { UserProfile, SubscriptionPlan, UserSubscription, HelpRequest, PremiumCampsite, Donation, Message, Conversation, ProfileComment } from "./types";
 
@@ -64,6 +63,36 @@ export async function createSubscriptionPlan(plan: Omit<SubscriptionPlan, 'id' |
   return data;
 }
 
+export async function updateSubscriptionPlan(planId: string, updates: Partial<Omit<SubscriptionPlan, 'id' | 'created_at' | 'updated_at'>>): Promise<SubscriptionPlan | null> {
+  const { data, error } = await supabase
+    .from('subscription_plans')
+    .update(updates)
+    .eq('id', planId)
+    .select('*')
+    .single() as any;
+  
+  if (error) {
+    console.error('Error updating subscription plan:', error);
+    return null;
+  }
+  
+  return data;
+}
+
+export async function deleteSubscriptionPlan(planId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('subscription_plans')
+    .delete()
+    .eq('id', planId);
+  
+  if (error) {
+    console.error('Error deleting subscription plan:', error);
+    return false;
+  }
+  
+  return true;
+}
+
 // User Subscriptions Functions
 export async function getUserSubscriptions(userId: string): Promise<UserSubscription[]> {
   const { data, error } = await supabase
@@ -97,6 +126,25 @@ export async function getSubscribersForCreator(creatorId: string): Promise<UserS
   }
   
   return data || [];
+}
+
+export async function checkUserSubscribedToCreator(userId: string, creatorId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('user_subscriptions')
+    .select('id')
+    .eq('subscriber_id', userId)
+    .eq('creator_id', creatorId)
+    .eq('status', 'active')
+    .single() as any;
+  
+  if (error) {
+    if (error.code !== 'PGRST116') { // Not found error
+      console.error('Error checking subscription:', error);
+    }
+    return false;
+  }
+  
+  return !!data;
 }
 
 // Help Request Functions
