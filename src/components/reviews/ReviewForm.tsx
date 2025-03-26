@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
-import { Star, Upload, X } from "lucide-react";
+import { Star, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +36,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
   const navigate = useNavigate();
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const { addReview, isAddingReview } = useCampSiteReviews(siteId);
   
   // Initialize form
@@ -100,12 +101,41 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
   // Upload image to Supabase Storage
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${siteId}/${uuidv4()}.${fileExt}`;
+      // Validate file type
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !['jpg', 'jpeg', 'png'].includes(fileExt)) {
+        toast({
+          title: "Invalid File Type",
+          description: "Only JPEG and PNG images are allowed.",
+          variant: "destructive",
+        });
+        return null;
+      }
       
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Images must be less than 5MB.",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      const fileId = uuidv4();
+      const filePath = `${siteId}/${fileId}.${fileExt}`;
+      
+      // Upload with progress tracking
       const { data, error } = await supabase.storage
         .from('review-images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          onUploadProgress: (progress) => {
+            const percent = Math.round((progress.loaded / progress.total) * 100);
+            setUploadProgress(prev => ({...prev, [fileId]: percent}));
+          }
+        });
       
       if (error) throw error;
       
@@ -125,6 +155,16 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    
+    // Limit to 3 images total
+    if (images.length + files.length > 3) {
+      toast({
+        title: "Too Many Images",
+        description: "You can upload a maximum of 3 images per review.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setUploading(true);
     
@@ -146,6 +186,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
       });
     } finally {
       setUploading(false);
+      setUploadProgress({});
     }
   };
 
@@ -221,7 +262,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
             
             {/* Image Upload */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">Add photos (optional)</p>
+              <div className="flex justify-between items-center">
+                <p className="text-sm font-medium">Add photos (optional)</p>
+                <p className="text-xs text-muted-foreground">Max 3 photos, JPEG/PNG (5MB max)</p>
+              </div>
               
               <div className="grid grid-cols-4 gap-2">
                 {images.map((img, index) => (
@@ -242,26 +286,28 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
                   </div>
                 ))}
                 
-                <label className={`flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-md aspect-square cursor-pointer hover:bg-muted/50 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={handleImageUpload}
-                    disabled={uploading}
-                  />
-                  {uploading ? (
-                    <div className="animate-pulse text-center">
-                      <span className="text-xs text-muted-foreground">Uploading...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Add Photos</span>
-                    </>
-                  )}
-                </label>
+                {images.length < 3 && (
+                  <label className={`flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-md aspect-square cursor-pointer hover:bg-muted/50 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      multiple
+                      className="sr-only"
+                      onChange={handleImageUpload}
+                      disabled={uploading || images.length >= 3}
+                    />
+                    {uploading ? (
+                      <div className="animate-pulse text-center">
+                        <span className="text-xs text-muted-foreground">Uploading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageIcon className="h-6 w-6 mb-1 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Add Photos</span>
+                      </>
+                    )}
+                  </label>
+                )}
               </div>
             </div>
             
@@ -269,7 +315,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ siteId, siteName, onSuccess }) 
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isAddingReview}
+              disabled={isAddingReview || uploading}
             >
               {isAddingReview ? "Submitting..." : "Submit Review"}
             </Button>

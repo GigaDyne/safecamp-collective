@@ -1,8 +1,14 @@
 
-import React from "react";
-import { Calendar, Star } from "lucide-react";
+import React, { useState } from "react";
+import { Calendar, Star, Image as ImageIcon } from "lucide-react";
 import { Review } from "@/hooks/useCampSites";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface ReviewsListProps {
   reviews: Review[];
@@ -15,6 +21,8 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
   averageSafety,
   onAddReview 
 }) => {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
   // Function to determine safety class based on rating
   const getSafetyClass = (rating: number) => {
     if (rating >= 4) return "bg-green-500 text-white";
@@ -41,6 +49,11 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
       transition: { type: "spring", stiffness: 300, damping: 24 }
     }
   };
+  
+  // Open image in full screen
+  const openImageViewer = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+  };
 
   return (
     <motion.div
@@ -49,6 +62,27 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
       animate="visible"
       className="space-y-4"
     >
+      {/* Image Viewer Dialog */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-[90vw] h-[80vh] p-0 bg-transparent border-none">
+          <div className="relative h-full w-full flex items-center justify-center bg-black/90 rounded-lg overflow-hidden">
+            {selectedImage && (
+              <img 
+                src={selectedImage} 
+                alt="Review" 
+                className="max-h-full max-w-full object-contain"
+              />
+            )}
+            <DialogClose className="absolute top-2 right-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/50 text-white">
+                <span className="sr-only">Close</span>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       {/* Reviews Summary */}
       <motion.div variants={itemVariants} className="bg-secondary/50 rounded-lg p-4">
         <div className="flex justify-between items-center">
@@ -135,16 +169,17 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
             {review.images && review.images.length > 0 && (
               <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
                 {review.images.map((image, idx) => (
-                  <div 
+                  <button 
                     key={idx} 
-                    className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0"
+                    className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0 cursor-pointer transform hover:scale-105 transition-transform"
+                    onClick={() => openImageViewer(image)}
                   >
                     <img 
                       src={image} 
-                      alt={`User upload ${idx}`} 
+                      alt={`Review photo ${idx+1}`} 
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

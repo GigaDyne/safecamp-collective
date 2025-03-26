@@ -35,6 +35,32 @@ export type Review = {
   images?: string[];
 };
 
+// Flag types
+export type FlagReason = 
+  | 'unsafe'
+  | 'closed'
+  | 'fake'
+  | 'inaccurate'
+  | 'other';
+
+export type SupabaseFlag = {
+  id: string;
+  site_id: string;
+  user_id: string;
+  reason: FlagReason;
+  details?: string;
+  created_at: string;
+};
+
+export type Flag = {
+  id: string;
+  siteId: string;
+  userId: string;
+  reason: FlagReason;
+  details?: string;
+  createdAt: string;
+};
+
 // Convert from Supabase format to app format
 export const mapSupabaseReview = (review: SupabaseReview): Review => {
   return {
@@ -64,5 +90,27 @@ export const formatReviewForSupabase = (review: Omit<Review, 'id' | 'date'>): Om
     noise_level: review.noiseLevel,
     comment: review.comment,
     images: review.images,
+  };
+};
+
+// Map flag from Supabase format
+export const mapSupabaseFlag = (flag: SupabaseFlag): Flag => {
+  return {
+    id: flag.id,
+    siteId: flag.site_id,
+    userId: flag.user_id,
+    reason: flag.reason,
+    details: flag.details,
+    createdAt: new Date(flag.created_at).toLocaleDateString(),
+  };
+};
+
+// Format flag for inserting to Supabase
+export const formatFlagForSupabase = (flag: Omit<Flag, 'id' | 'createdAt'>): Omit<SupabaseFlag, 'id' | 'created_at'> => {
+  return {
+    site_id: flag.siteId,
+    user_id: flag.userId,
+    reason: flag.reason,
+    details: flag.details,
   };
 };

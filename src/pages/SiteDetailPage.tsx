@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
@@ -22,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useCampSiteReviews } from "@/hooks/useCampSites";
 import ReviewsList from "@/components/reviews/ReviewsList";
+import FlagSiteDialog from "@/components/flags/FlagSiteDialog";
 
 const SiteDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,19 +30,15 @@ const SiteDetailPage = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [isLoading, setIsLoading] = useState(true);
   
-  // In a real app, we'd fetch this from an API
   const site = mockCampSites.find(site => site.id === id);
   
-  // Get reviews for this campsite
   const { reviews } = useCampSiteReviews(id || "");
   
-  // Calculate average safety rating from user reviews
   const averageSafetyRating = reviews.length > 0
     ? reviews.reduce((sum, review) => sum + review.safetyRating, 0) / reviews.length
     : site?.safetyRating || 0;
   
   useEffect(() => {
-    // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 800);
@@ -61,19 +57,16 @@ const SiteDetailPage = () => {
     );
   }
   
-  // Determine site safety class
   const getSafetyClass = (rating: number) => {
     if (rating >= 4) return "bg-safe text-white";
     if (rating >= 2.5) return "bg-caution text-white";
     return "bg-danger text-white";
   };
 
-  // Handle add review click
   const handleAddReview = () => {
     navigate(`/add-review/${id}`);
   };
   
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -95,7 +88,6 @@ const SiteDetailPage = () => {
   
   return (
     <div className="flex flex-col h-full bg-background animate-fade-in">
-      {/* Header/Image Gallery */}
       <div className="relative w-full h-64">
         <div 
           className="absolute inset-0 bg-cover bg-center"
@@ -106,7 +98,6 @@ const SiteDetailPage = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
         </div>
         
-        {/* Top action bar */}
         <div className="absolute top-0 left-0 right-0 flex justify-between p-4 z-10">
           <Button
             variant="ghost"
@@ -143,7 +134,6 @@ const SiteDetailPage = () => {
           </div>
         </div>
         
-        {/* Image gallery indicator */}
         <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
           {site.images.map((_, index) => (
             <div 
@@ -157,7 +147,6 @@ const SiteDetailPage = () => {
         </div>
       </div>
       
-      {/* Content Tabs */}
       <Tabs 
         defaultValue="details" 
         className="flex-1 flex flex-col"
@@ -201,7 +190,6 @@ const SiteDetailPage = () => {
               animate="visible"
               className="space-y-6"
             >
-              {/* Title section */}
               <motion.div variants={itemVariants} className="space-y-1.5">
                 <h1 className="text-2xl font-semibold leading-tight">{site.name}</h1>
                 <div className="flex items-center text-muted-foreground text-sm">
@@ -210,7 +198,6 @@ const SiteDetailPage = () => {
                 </div>
               </motion.div>
               
-              {/* Land Type */}
               <motion.div variants={itemVariants} className="flex gap-2">
                 <span className="safety-tag bg-nature-light bg-opacity-10 text-nature-light">
                   {site.landType}
@@ -220,7 +207,6 @@ const SiteDetailPage = () => {
                 </span>
               </motion.div>
               
-              {/* Description */}
               <motion.div variants={itemVariants} className="space-y-2">
                 <h2 className="text-base font-medium">About this site</h2>
                 <p className="text-sm text-muted-foreground">
@@ -228,12 +214,10 @@ const SiteDetailPage = () => {
                 </p>
               </motion.div>
               
-              {/* Ratings */}
               <motion.div variants={itemVariants} className="space-y-3">
                 <h2 className="text-base font-medium">Site Information</h2>
                 
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Safety Rating */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <div className="flex items-center">
@@ -248,7 +232,6 @@ const SiteDetailPage = () => {
                     <Progress value={averageSafetyRating * 20} className="h-1.5" />
                   </div>
                   
-                  {/* Cell Signal */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <div className="flex items-center">
@@ -263,7 +246,6 @@ const SiteDetailPage = () => {
                     <Progress value={site.cellSignal * 20} className="h-1.5" />
                   </div>
                   
-                  {/* Accessibility */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <div className="flex items-center">
@@ -278,7 +260,6 @@ const SiteDetailPage = () => {
                     <Progress value={site.accessibility * 20} className="h-1.5" />
                   </div>
                   
-                  {/* Quietness */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <div className="flex items-center">
@@ -295,7 +276,6 @@ const SiteDetailPage = () => {
                 </div>
               </motion.div>
               
-              {/* Features */}
               <motion.div variants={itemVariants} className="space-y-3">
                 <h2 className="text-base font-medium">Features & Amenities</h2>
                 <div className="grid grid-cols-2 gap-y-2 text-sm">
@@ -307,6 +287,12 @@ const SiteDetailPage = () => {
                   ))}
                 </div>
               </motion.div>
+              
+              {site && (
+                <motion.div variants={itemVariants} className="flex justify-center">
+                  <FlagSiteDialog siteId={site.id} siteName={site.name} />
+                </motion.div>
+              )}
             </motion.div>
           )}
         </TabsContent>
@@ -333,7 +319,6 @@ const SiteDetailPage = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Bottom action button */}
       <div className="fixed bottom-20 left-0 right-0 px-4 pb-2">
         <Button 
           className="w-full h-12 rounded-full shadow-lg"
