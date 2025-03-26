@@ -102,8 +102,8 @@ const TripPlannerMap = ({
       <ContextMenuTrigger className={`relative h-full w-full ${className}`}>
         <div 
           ref={mapContainer} 
-          className="absolute inset-0" 
-          style={{ height: '100%', width: '100%' }} 
+          className="absolute inset-0 h-[500px] md:h-full w-full" 
+          style={{ minHeight: '500px' }} 
           data-testid="map-container"
         />
         

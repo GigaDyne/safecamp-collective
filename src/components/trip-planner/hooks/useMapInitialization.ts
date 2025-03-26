@@ -13,10 +13,14 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const routeSourceAdded = useRef(false);
+  const mapInitializationAttempted = useRef(false);
 
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    // Only initialize if it hasn't been attempted yet
+    if (!mapContainer.current || map.current || mapInitializationAttempted.current) return;
+    
+    // Mark that we've attempted initialization
+    mapInitializationAttempted.current = true;
     
     if (!mapboxToken) {
       setError("Mapbox token is missing. Please set it using the settings button in the top right corner.");
@@ -24,17 +28,24 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
     }
 
     try {
+      // Clear any existing errors when attempting to initialize
+      setError(null);
+      
       mapboxgl.accessToken = mapboxToken;
       
       console.log("Initializing Mapbox map with token:", mapboxToken ? "Token exists" : "No token");
       
+      // Create new map instance
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
         center: [-97.9222, 39.3820], // Center of US
-        zoom: 3
+        zoom: 3,
+        attributionControl: true,
+        preserveDrawingBuffer: true
       });
 
+      // Add navigation control
       map.current.addControl(
         new mapboxgl.NavigationControl({
           showCompass: true,
@@ -43,6 +54,7 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
         "top-right"
       );
       
+      // Wait for map to load
       map.current.on('load', () => {
         console.log("Map loaded successfully");
         setMapInitialized(true);
@@ -55,23 +67,25 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
       });
     } catch (error) {
       console.error("Error initializing map:", error);
-      setError("Failed to initialize map. Please check your Mapbox token.");
+      setError("Failed to initialize map. Please check your Mapbox token or network connection.");
     }
 
+    // Cleanup function
     return () => {
       if (map.current) {
         console.log("Cleaning up map");
         map.current.remove();
         map.current = null;
+        setMapInitialized(false);
+        mapInitializationAttempted.current = false;
       }
     };
-  }, [mapboxToken]);
+  }, [mapboxToken]); // Only re-run when token changes
 
   return {
     mapContainer,
     map,
     mapInitialized,
     error,
-    routeSourceAdded
   };
 };

@@ -67,9 +67,18 @@ const TripPlannerPage = () => {
           </Button>
           <h1 className="text-xl font-semibold">Trip Planner</h1>
         </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowTokenDialog(true)}
+          className="text-primary-foreground hover:bg-primary/80"
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full overflow-hidden">
+      <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] overflow-hidden">
         {/* Left panel - Form and Itinerary */}
         <div className="w-full md:w-1/3 h-1/2 md:h-full flex flex-col overflow-hidden">
           <TripPlannerForm 
@@ -87,7 +96,7 @@ const TripPlannerPage = () => {
           />
         </div>
         
-        {/* Right panel - Map - Ensure it has a specific height */}
+        {/* Right panel - Map */}
         <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-muted/20">
           <TripPlannerMap 
             routeData={routeData} 
@@ -97,10 +106,42 @@ const TripPlannerPage = () => {
             mapboxToken={mapboxToken}
             selectedStops={selectedStops}
             onAddToItinerary={handleAddToItinerary}
-            className="h-full w-full" // Add className for explicit sizing
+            className="h-full w-full"
           />
         </div>
       </div>
+      
+      {/* Mapbox Token Dialog */}
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mapbox API Token</DialogTitle>
+            <DialogDescription>
+              Enter your Mapbox API token to use the map features.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Input
+                id="mapbox-token"
+                placeholder="Enter Mapbox token"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                localStorage.setItem("mapbox_token", tokenInput);
+                window.location.reload();
+              }}
+            >
+              Save Token
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -101,7 +101,7 @@
 
 /* Make sure the map container takes full height */
 .relative.h-full.w-full {
-  min-height: 300px;
+  min-height: 500px; 
 }
 
 /* Trip planner specific styles */
@@ -116,4 +116,23 @@
 
 .selected-stop {
   z-index: 2;
+}
+
+/* Fix for map container visibility */
+[data-testid="map-container"] {
+  min-height: 500px !important;
+  visibility: visible !important;
+  position: relative !important;
+}
+
+/* Ensure parent containers don't hide the map */
+.h-[calc(100vh-56px)] {
+  min-height: 500px;
+}
+
+/* Map canvas style fixes */
+.mapboxgl-canvas-container, 
+.mapboxgl-canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
