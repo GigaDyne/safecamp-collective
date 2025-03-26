@@ -21,10 +21,9 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
   const navigate = useNavigate();
   const { toast } = useToast();
   const mapInitializedRef = useRef(false);
-  const previousCampSitesRef = useRef<string>("");
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   
-  // Use useMemo to create a stable stringified version of campSites
+  // Create a stable stringified version of campSites for comparison
   const campSitesString = useMemo(() => {
     if (!campSites) return "";
     
@@ -55,7 +54,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         center: [-111.8910, 40.7608], // Default center
         zoom: 5,
         attributionControl: false,
-        preserveDrawingBuffer: true // Add this to prevent redraws
+        preserveDrawingBuffer: true // Prevents redraws
       });
 
       map.current.addControl(
@@ -107,34 +106,24 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
           onMapReady(map.current);
         }
 
-        toast({
-          title: "Map loaded successfully!",
-          description: "You can now explore safe camping spots.",
-        });
-      });
-
-      // Get user's location and center map
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            if (map.current) {
-              map.current.flyTo({
-                center: [position.coords.longitude, position.coords.latitude],
-                zoom: 10,
-                essential: true,
-              });
+        // Fetch user location after map is loaded
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              if (map.current) {
+                map.current.flyTo({
+                  center: [position.coords.longitude, position.coords.latitude],
+                  zoom: 10,
+                  essential: true,
+                });
+              }
+            },
+            () => {
+              console.log("Unable to get user location");
             }
-          },
-          () => {
-            console.log("Unable to get user location");
-            toast({
-              title: "Location access denied",
-              description: "Using default map location instead.",
-              variant: "destructive",
-            });
-          }
-        );
-      }
+          );
+        }
+      });
     } catch (error) {
       console.error("Error initializing map:", error);
       toast({
@@ -144,33 +133,32 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       });
     }
 
+    // Cleanup function - only run when component unmounts
     return () => {
       if (map.current) {
         console.log("Cleaning up map");
         map.current.remove();
         map.current = null;
-        mapInitializedRef.current = false;
-        setIsMapLoaded(false);
       }
     };
-  }, [mapboxToken, toast, onMapReady]);
+  }, [mapboxToken]); // Only re-run when mapboxToken changes
 
   // Handle markers separately with deep comparison of camp sites
   useEffect(() => {
-    if (!map.current || isLoading || !mapboxToken || !campSites || !isMapLoaded) {
+    if (!map.current || isLoading || !isMapLoaded || !campSites) {
       return;
     }
     
+    // Store the current string representation in a ref to avoid re-renders
+    const currentCampSitesString = campSitesString;
+    
     // Skip if campSites haven't changed
-    if (previousCampSitesRef.current === campSitesString) {
+    if (markersRef.current.length > 0 && currentCampSitesString === markersRef.current[0]?.getElement().dataset.sitesHash) {
       return;
     }
     
     console.log("Updating markers - campSites have changed");
     
-    // Update the ref with current campSites
-    previousCampSitesRef.current = campSitesString;
-
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
@@ -197,6 +185,9 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
           
           const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
           
+          // Store the hash in the element for comparison
+          markerElement.dataset.sitesHash = currentCampSitesString;
+          
           const marker = new mapboxgl.Marker({
             element: markerElement,
           })
@@ -209,7 +200,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         }
       });
     }
-  }, [campSitesString, isLoading, navigate, mapboxToken, isMapLoaded]);
+  }, [campSitesString, isLoading, navigate, isMapLoaded]); // Removed mapboxToken from dependencies
 
   return (
     <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in" />

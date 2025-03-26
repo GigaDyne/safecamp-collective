@@ -19,7 +19,16 @@ import SiteDetailPage from "./pages/SiteDetailPage";
 import AddSitePage from "./pages/AddSitePage";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Create a persistent queryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevent refetching when window regains focus
+      retry: false, // Don't retry failed queries automatically
+      staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -27,7 +36,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           <Routes>
             {/* Landing page */}
             <Route path="/" element={<Index />} />

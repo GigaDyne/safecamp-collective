@@ -8,7 +8,7 @@ const Index = () => {
 
   // Handle navigation to map view
   const handleExploreClick = () => {
-    navigate("/map"); // Changed this to navigate to the /map route
+    navigate("/map", { replace: false }); // Use replace: false to avoid redirect loop
   };
 
   return (

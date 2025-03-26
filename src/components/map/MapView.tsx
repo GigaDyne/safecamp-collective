@@ -1,34 +1,36 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useState, useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
-import { Search, Filter, Plus, X } from "lucide-react";
+import { Filter, Plus } from "lucide-react";
 import { mockCampSites } from "@/data/mockData";
 import { useCampSites, CampSite } from "@/hooks/useCampSites";
 import { useToast } from "@/hooks/use-toast";
 import MapControls from "./MapControls";
-import MapFilterButton from "./MapFilterButton";
 import SearchBar from "./SearchBar";
 import MapTokenInput from "./MapTokenInput";
 import MapInitializer from "./MapInitializer";
-import AddSiteButton from "./AddSiteButton";
 import AddSiteForm from "./AddSiteForm";
 import MapFilterDrawer, { FilterCriteria } from "./MapFilterDrawer";
 import { 
   Dialog,
   DialogContent,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-// This will store the token once provided by the user
-let mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
+// This will store the token once provided by the user - moved inside component to prevent refresh loops
+const localStorageTokenKey = "mapbox_token";
 
-// In-memory storage for user-submitted campsites (would be replaced by Supabase/Firebase)
-const userSubmittedCampSites: CampSite[] = [];
+// In-memory storage for user-submitted campsites
+let userSubmittedCampSites: CampSite[] = [];
 
 const MapView = () => {
   const map = useRef<mapboxgl.Map | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const { campSites: apiCampSites, isLoading } = useCampSites();
+  const [mapboxToken, setMapboxToken] = useState<string>(() => {
+    // Initialize from localStorage only once, on component mount
+    return localStorage.getItem(localStorageTokenKey) || "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
+  });
   const [tokenEntered, setTokenEntered] = useState(false);
   const [showAddSiteDialog, setShowAddSiteDialog] = useState(false);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -44,26 +46,25 @@ const MapView = () => {
     maxDistance: 50
   });
 
-  // Handle token submission
-  const handleTokenSubmit = (token: string) => {
-    mapboxToken = token;
-    localStorage.setItem("mapbox_token", token);
+  // Handle token submission - memoized to prevent rerenders
+  const handleTokenSubmit = useCallback((token: string) => {
+    setMapboxToken(token);
+    localStorage.setItem(localStorageTokenKey, token);
     setTokenEntered(true);
-  };
+  }, []);
 
-  // Store map reference when the map is ready
-  const handleMapReady = (mapInstance: mapboxgl.Map) => {
+  // Store map reference when the map is ready - memoized to prevent rerenders
+  const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     map.current = mapInstance;
-  };
+  }, []);
 
   // Check if token exists in localStorage on component mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("mapbox_token") || mapboxToken;
-    if (savedToken) {
-      mapboxToken = savedToken;
+    // Only set token entered if we have a token
+    if (mapboxToken) {
       setTokenEntered(true);
     }
-  }, []);
+  }, [mapboxToken]);
 
   // Combine API and user-submitted campsites
   useEffect(() => {
@@ -72,7 +73,7 @@ const MapView = () => {
     } else {
       setAllCampSites([...mockCampSites, ...userSubmittedCampSites]);
     }
-  }, [apiCampSites, userSubmittedCampSites]);
+  }, [apiCampSites]);
 
   // Apply filters to campsites
   useEffect(() => {
@@ -86,8 +87,8 @@ const MapView = () => {
     setFilteredCampSites(filtered);
   }, [allCampSites, filterCriteria]);
 
-  // Handle campsite submission
-  const handleAddSite = (siteData: any) => {
+  // Handle campsite submission - memoized to prevent rerenders
+  const handleAddSite = useCallback((siteData: any) => {
     // Convert form data to CampSite format
     const newCampSite: CampSite = {
       id: siteData.id || String(Date.now()),
@@ -100,7 +101,7 @@ const MapView = () => {
       landType: "unknown",
       safetyRating: siteData.safetyRating,
       cellSignal: siteData.cellSignal,
-      accessibility: siteData.accessibility || 3, // Make sure accessibility is always provided
+      accessibility: siteData.accessibility || 3, 
       quietness: siteData.noiseLevel,
       features: [
         ...(siteData.isRemote ? ["Remote"] : []),
@@ -112,12 +113,11 @@ const MapView = () => {
       reviewCount: 1,
     };
 
-    // In a real app, this would be sent to Supabase/Firebase
-    // For now, we'll just add it to our in-memory array
-    userSubmittedCampSites.push(newCampSite);
+    // Update our in-memory array without triggering rerenders
+    userSubmittedCampSites = [...userSubmittedCampSites, newCampSite];
     
     // Update allCampSites to include the new site
-    setAllCampSites([...allCampSites, newCampSite]);
+    setAllCampSites(prevSites => [...prevSites, newCampSite]);
     
     // Close the dialog
     setShowAddSiteDialog(false);
@@ -136,10 +136,10 @@ const MapView = () => {
         essential: true,
       });
     }
-  };
+  }, [toast]);
 
-  // Handle filter application
-  const handleApplyFilters = (filters: FilterCriteria) => {
+  // Handle filter application - memoized to prevent rerenders
+  const handleApplyFilters = useCallback((filters: FilterCriteria) => {
     setFilterCriteria(filters);
     
     // Show toast with applied filters
@@ -147,7 +147,7 @@ const MapView = () => {
       title: "Filters Applied",
       description: `Showing campsites with safety ${filters.safetyRating}+, signal ${filters.cellSignal}+, and quietness ${filters.quietness}+`,
     });
-  };
+  }, [toast]);
 
   return (
     <div className="map-container bg-muted/20 relative h-full">
