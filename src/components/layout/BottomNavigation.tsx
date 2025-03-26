@@ -1,6 +1,7 @@
 
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 type NavItem = {
   id: string;
@@ -19,6 +20,22 @@ const BottomNavigation = ({
   activeTab, 
   setActiveTab 
 }: BottomNavigationProps) => {
+  const navigate = useNavigate();
+
+  const handleTabClick = (itemId: string) => {
+    setActiveTab(itemId);
+    
+    // Map the tab IDs to their respective routes
+    const routes: Record<string, string> = {
+      map: "/map",
+      nearby: "/nearby",
+      favorites: "/favorites",
+      profile: "/profile"
+    };
+    
+    navigate(routes[itemId] || "/");
+  };
+
   return (
     <div className="glass-card border-t border-border/30 h-16 backdrop-blur-lg sticky bottom-0 left-0 right-0 z-50">
       <div className="flex items-center justify-around h-full px-2">
@@ -36,7 +53,7 @@ const BottomNavigation = ({
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => handleTabClick(item.id)}
             >
               <div className="relative">
                 <Icon className="h-5 w-5 mb-1" />

@@ -13,6 +13,7 @@ import TripPlannerPage from "@/pages/TripPlannerPage";
 import TripNavigationPage from "@/pages/TripNavigationPage";
 import { Toaster } from "@/components/ui/toaster";
 import IndexPage from "@/pages/IndexPage";
+import MapPage from "@/pages/MapPage";
 
 // Create ScrollToTop component
 const ScrollToTop = () => {
@@ -39,6 +40,7 @@ function App() {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<IndexPage />} />
+          <Route path="map" element={<MapPage />} />
           <Route path="nearby" element={<NearbyPage />} />
           <Route path="favorites" element={<FavoritesPage />} />
           <Route path="profile" element={<ProfilePage />} />
