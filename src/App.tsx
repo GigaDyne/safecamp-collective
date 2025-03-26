@@ -38,15 +38,29 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route path="map" element={<MapPage />} />
             <Route path="site/:id" element={<SiteDetailPage />} />
-            <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="profile" element={<ProtectedRoute />}>
+              <Route index element={<ProfilePage />} />
+            </Route>
             <Route path="search" element={<NearbyPage />} />
-            <Route path="my-campsites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
-            <Route path="add-site" element={<ProtectedRoute><AddSitePage /></ProtectedRoute>} />
-            <Route path="review/:id" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
-            <Route path="planner" element={<ProtectedRoute><TripPlannerPage /></ProtectedRoute>} />
-            <Route path="navigation/:id" element={<ProtectedRoute><TripNavigationPage /></ProtectedRoute>} />
+            <Route path="my-campsites" element={<ProtectedRoute />}>
+              <Route index element={<FavoritesPage />} />
+            </Route>
+            <Route path="add-site" element={<ProtectedRoute />}>
+              <Route index element={<AddSitePage />} />
+            </Route>
+            <Route path="review/:id" element={<ProtectedRoute />}>
+              <Route index element={<ReviewPage />} />
+            </Route>
+            <Route path="planner" element={<ProtectedRoute />}>
+              <Route index element={<TripPlannerPage />} />
+            </Route>
+            <Route path="navigation/:id" element={<ProtectedRoute />}>
+              <Route index element={<TripNavigationPage />} />
+            </Route>
             <Route path="creator/:id" element={<CreatorProfilePage />} />
-            <Route path="messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+            <Route path="messages" element={<ProtectedRoute />}>
+              <Route index element={<MessagesPage />} />
+            </Route>
             <Route path="community-help" element={<CommunityHelpPage />} />
           </Route>
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
