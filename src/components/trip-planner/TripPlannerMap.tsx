@@ -19,8 +19,6 @@ import { useMapMarkers } from './hooks/useMapMarkers';
 import { useMapPopup } from './hooks/useMapPopup';
 import { useCrimeData } from './hooks/useCrimeData';
 import { useCrimeLayer } from './hooks/useCrimeLayer';
-import CrimeDataToggle from './map-components/CrimeDataToggle';
-import CrimeDataTooltip from './map-components/CrimeDataTooltip';
 import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
 import {
   Dialog,
@@ -139,15 +137,8 @@ const TripPlannerMap = ({
           data-testid="map-container"
         />
         
-        {/* Crime data toggle button */}
-        <CrimeDataToggle 
-          enabled={showCrimeData}
-          onToggle={setShowCrimeData}
-          className="top-4 left-4"
-        />
-        
         {isCrimeDataLoading && showCrimeData && (
-          <div className="absolute top-4 left-16 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border">
+          <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border">
             Loading crime data...
           </div>
         )}

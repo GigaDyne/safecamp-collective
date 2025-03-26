@@ -32,6 +32,7 @@ const TripPlannerPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [tripName, setTripName] = useState("My Trip");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showCrimeData, setShowCrimeData] = useState(false);
   
   const { user, isAuthenticated, isOfflineMode } = useAuth();
   
@@ -165,6 +166,8 @@ const TripPlannerPage = () => {
             isLoading={isLoading}
             setIsLoading={setIsLoading}
             mapboxToken={mapboxToken}
+            showCrimeData={showCrimeData}
+            onToggleCrimeData={setShowCrimeData}
           />
           <TripItinerary 
             tripStops={tripStops} 

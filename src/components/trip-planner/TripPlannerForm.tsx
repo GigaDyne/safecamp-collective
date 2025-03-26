@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,8 @@ interface TripPlannerFormProps {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   mapboxToken?: string;
+  showCrimeData?: boolean;
+  onToggleCrimeData?: (enabled: boolean) => void;
 }
 
 const TripPlannerForm = ({ 
@@ -23,7 +26,9 @@ const TripPlannerForm = ({
   setTripStops,
   isLoading,
   setIsLoading,
-  mapboxToken
+  mapboxToken,
+  showCrimeData = false,
+  onToggleCrimeData
 }: TripPlannerFormProps) => {
   const { toast } = useToast();
   const { location, getLocation } = useLocation();
@@ -275,6 +280,21 @@ const TripPlannerForm = ({
                 onCheckedChange={setIncludeRepairShops}
               />
             </div>
+            
+            {/* Add crime data toggle */}
+            {onToggleCrimeData && (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="include-crime-data" className="flex items-center gap-2">
+                  <span>Crime Data</span>
+                  <span className="text-xs text-muted-foreground">(beta)</span>
+                </Label>
+                <Switch 
+                  id="include-crime-data" 
+                  checked={showCrimeData}
+                  onCheckedChange={onToggleCrimeData}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
