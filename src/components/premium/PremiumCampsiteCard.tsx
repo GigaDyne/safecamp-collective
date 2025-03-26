@@ -41,16 +41,16 @@ export default function PremiumCampsiteCard({
     }
 
     try {
-      // Fix: Pass all required parameters to createCheckoutSession
-      const response = await createCheckoutSession({
-        price_id: "price_premium_campsite", // This would come from your Stripe setup
-        type: "premium_campsite",
-        item_id: premiumCampsite.id,
-        creator_id: premiumCampsite.user_id
-      });
+      // Fix: Call createCheckoutSession with the correct parameters according to its definition in src/lib/community/payment.ts
+      const url = await createCheckoutSession(
+        "price_premium_campsite", // This would come from your Stripe setup
+        "premium_campsite",
+        premiumCampsite.id,
+        premiumCampsite.user_id
+      );
 
-      if (response?.url) {
-        window.location.href = response.url;
+      if (url) {
+        window.location.href = url;
       } else {
         throw new Error("No checkout URL returned");
       }
