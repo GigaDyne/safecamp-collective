@@ -66,7 +66,6 @@ const getDirections = async (start: string, end: string, mapboxToken: string): P
   // Ensure the route data is properly structured for our application
   return {
     geometry: {
-      type: 'LineString',
       coordinates: data.routes[0].geometry.coordinates
     },
     distance: data.routes[0].distance,
