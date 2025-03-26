@@ -13,7 +13,7 @@ interface MapLegendProps {
 
 const MapLegend = ({ showCrimeData = false }: MapLegendProps) => {
   return (
-    <div className="absolute bottom-4 right-4 bg-background/90 rounded-md shadow-md border border-border p-2 text-xs">
+    <div className="absolute bottom-4 right-4 bg-background/90 rounded-md shadow-md border border-border p-2 text-xs min-w-[200px]">
       <div className="flex items-center justify-between mb-1">
         <span className="font-semibold">Map Legend</span>
         <HoverCard>
@@ -65,18 +65,16 @@ const MapLegend = ({ showCrimeData = false }: MapLegendProps) => {
       </div>
       
       {showCrimeData && (
-        <>
-          <div className="border-t border-border/50 my-1 pt-1">
-            <p className="font-semibold text-[10px]">Crime Data</p>
-            <div className="flex items-center mt-1">
-              <div className="h-2 flex-1 bg-gradient-to-r from-red-500 via-amber-500 to-green-500 rounded-sm"></div>
-            </div>
-            <div className="flex justify-between text-[9px] mt-0.5">
-              <span>High Crime</span>
-              <span>Low Crime</span>
-            </div>
+        <div className="border-t border-border/50 mt-2 pt-2">
+          <p className="font-semibold text-[10px] mb-1">Crime Data</p>
+          <div className="flex items-center">
+            <div className="h-2 flex-1 bg-gradient-to-r from-red-500 via-amber-500 to-green-500 rounded-sm"></div>
           </div>
-        </>
+          <div className="flex justify-between text-[9px] mt-0.5">
+            <span>High Crime</span>
+            <span>Low Crime</span>
+          </div>
+        </div>
       )}
     </div>
   );
