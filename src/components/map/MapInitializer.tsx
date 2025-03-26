@@ -20,12 +20,14 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const mapInitializedRef = useRef(false);
 
   // Initialize map
   useEffect(() => {
-    if (!mapboxToken || map.current || !mapContainer.current) return;
+    if (!mapboxToken || map.current || !mapContainer.current || mapInitializedRef.current) return;
 
     try {
+      mapInitializedRef.current = true;
       mapboxgl.accessToken = mapboxToken;
       
       map.current = new mapboxgl.Map({
@@ -124,6 +126,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       if (map.current) {
         map.current.remove();
         map.current = null;
+        mapInitializedRef.current = false;
       }
     };
   }, [mapboxToken, toast, onMapReady]);

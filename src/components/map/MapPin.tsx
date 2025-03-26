@@ -25,8 +25,8 @@ export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEve
   pin.className = 'w-10 h-10 flex items-center justify-center transform-gpu transition-all duration-300 hover:scale-110 cursor-pointer';
   
   if (onClick) {
-    // Convert React's MouseEvent to DOM MouseEvent
-    pin.addEventListener('click', onClick as EventListener);
+    // Need to use a native DOM event listener here
+    pin.addEventListener('click', onClick);
   }
   
   // Determine pin color based on safety rating
