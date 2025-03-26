@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
@@ -11,8 +12,7 @@ export const checkSupabaseConnectivity = async (): Promise<boolean> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
     
-    // Call getSession without arguments and handle the abort signal in a separate fetch wrapper
-    // This is because getSession() doesn't directly accept options
+    // Call getSession without arguments
     const { error } = await supabase.auth.getSession();
     
     clearTimeout(timeoutId);

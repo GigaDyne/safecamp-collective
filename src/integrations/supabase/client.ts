@@ -9,10 +9,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: 'safecamp_supabase_auth',
+    storage: localStorage
   },
   global: {
-    // Add a timeout to network requests to fail faster when network is down
     fetch: (...args) => {
       const [url, options] = args;
       const controller = new AbortController();

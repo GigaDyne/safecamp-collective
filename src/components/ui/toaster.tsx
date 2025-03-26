@@ -13,19 +13,33 @@ import { useEffect } from "react"
 export function Toaster() {
   const { toasts, dismiss } = useToast()
 
-  // Auto-dismiss non-error toasts after 3 seconds
+  // Auto-dismiss non-error toasts after 3 seconds, network errors after 6 seconds
   useEffect(() => {
     toasts.forEach((toast) => {
-      // Skip auto-dismiss for error toasts (variant: destructive)
-      if (toast.variant === "destructive") return;
+      // Skip auto-dismiss for destructive variant (error) toasts
+      if (toast.variant === "destructive") {
+        // For network errors, we still want to auto-dismiss after 6 seconds
+        const isNetworkError = toast.description && 
+          (typeof toast.description === 'string') && 
+          toast.description.toLowerCase().includes('connect');
+        
+        if (isNetworkError) {
+          const timer = setTimeout(() => {
+            dismiss(toast.id)
+          }, 6000);
+          return () => clearTimeout(timer);
+        }
+        
+        return;
+      }
       
       const timer = setTimeout(() => {
         dismiss(toast.id)
-      }, 3000)
+      }, 3000);
 
-      return () => clearTimeout(timer)
-    })
-  }, [toasts, dismiss])
+      return () => clearTimeout(timer);
+    });
+  }, [toasts, dismiss]);
 
   return (
     <ToastProvider>
