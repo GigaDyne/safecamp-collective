@@ -32,6 +32,11 @@ const TripPlannerPage = () => {
   
   const { toast } = useToast();
 
+  // Log on component mount for debugging
+  useEffect(() => {
+    console.log("TripPlannerPage mounted, mapboxToken:", mapboxToken ? "Token exists" : "No token");
+  }, [mapboxToken]);
+
   // Handle adding a stop to the itinerary
   const handleAddToItinerary = (stop: TripStop) => {
     // Check if the stop is already in the itinerary
@@ -47,7 +52,6 @@ const TripPlannerPage = () => {
     });
   };
 
-  // Remove token dialog logic since we're using a hardcoded token
   return (
     <div className="relative h-screen flex flex-col">
       {/* Header */}
@@ -84,7 +88,16 @@ const TripPlannerPage = () => {
         </div>
         
         {/* Right panel - Map */}
-        <div className="w-full md:w-2/3 h-1/2 md:h-full">
+        <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-muted/20">
+          {/* Add a debug message if the mapboxToken is missing */}
+          {!mapboxToken && (
+            <div className="absolute inset-0 flex items-center justify-center z-50 bg-background/80 p-4">
+              <div className="bg-destructive/10 p-6 rounded-lg max-w-md">
+                <h3 className="font-semibold mb-2">Map Token Missing</h3>
+                <p className="text-sm">The Mapbox token is missing. Please refresh the page or check the console for more details.</p>
+              </div>
+            </div>
+          )}
           <TripPlannerMap 
             routeData={routeData} 
             tripStops={tripStops} 

@@ -93,7 +93,9 @@ const TripPlannerMap = ({
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const { toast } = useToast();
+  const [mapInitialized, setMapInitialized] = useState(false);
 
+  // Initialize map when component mounts
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
     if (!mapboxToken) {
@@ -118,6 +120,11 @@ const TripPlannerMap = ({
         }),
         "top-right"
       );
+      
+      map.current.on('load', () => {
+        console.log("Map loaded successfully");
+        setMapInitialized(true);
+      });
     } catch (error) {
       console.error("Error initializing map:", error);
       setError("Failed to initialize map. Please check your Mapbox token.");
@@ -125,23 +132,37 @@ const TripPlannerMap = ({
 
     return () => {
       if (map.current) {
+        console.log("Cleaning up map");
         map.current.remove();
         map.current = null;
       }
     };
   }, [mapboxToken]);
 
+  // Effect for route drawing
   useEffect(() => {
-    if (!map.current || !routeData) return;
+    if (!map.current || !routeData || !mapInitialized) return;
+    console.log("Attempting to draw route");
 
-    const waitForMapLoad = () => {
-      if (!map.current?.loaded()) {
-        setTimeout(waitForMapLoad, 100);
+    try {
+      // Check if the map is loaded before proceeding
+      if (!map.current.loaded()) {
+        console.log("Map not loaded yet, waiting...");
+        map.current.once('load', () => drawRoute());
         return;
       }
-
+      
+      drawRoute();
+    } catch (error) {
+      console.error("Error in route drawing effect:", error);
+    }
+    
+    function drawRoute() {
+      if (!map.current || !routeData) return;
+      
       try {
         if (!routeSourceAdded.current) {
+          console.log("Adding route source for the first time");
           // Adding route for the first time
           map.current.addSource('route', {
             type: 'geojson',
@@ -178,7 +199,8 @@ const TripPlannerMap = ({
 
           routeSourceAdded.current = true;
         } else {
-          // Updating existing route
+          console.log("Updating existing route");
+          // Updating existing route - check source exists before updating
           const source = map.current.getSource('route');
           if (source && 'setData' in source) {
             source.setData({
@@ -186,30 +208,62 @@ const TripPlannerMap = ({
               geometry: routeData.geometry
             });
           } else {
-            console.log("Route source not available or doesn't have setData method");
+            console.log("Route source not available or doesn't have setData method. Recreating source.");
+            
+            // If the source doesn't exist, create it again
+            if (map.current.getLayer('route-line')) {
+              map.current.removeLayer('route-line');
+            }
+            
+            if (map.current.getSource('route')) {
+              map.current.removeSource('route');
+            }
+            
+            map.current.addSource('route', {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                geometry: routeData.geometry
+              }
+            });
+
+            map.current.addLayer({
+              id: 'route-line',
+              type: 'line',
+              source: 'route',
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': '#8B5CF6',
+                'line-width': 6,
+                'line-opacity': 0.8
+              }
+            });
+            
+            routeSourceAdded.current = true;
           }
         }
       } catch (error) {
         console.error("Error updating route source:", error);
       }
 
-      const bounds = new mapboxgl.LngLatBounds();
-      routeData.geometry.coordinates.forEach(coord => {
-        bounds.extend([coord[0], coord[1]]);
-      });
-      
-      map.current.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 15
-      });
-    };
-
-    if (map.current.loaded()) {
-      waitForMapLoad();
-    } else {
-      map.current.once('load', waitForMapLoad);
+      try {
+        const bounds = new mapboxgl.LngLatBounds();
+        routeData.geometry.coordinates.forEach(coord => {
+          bounds.extend([coord[0], coord[1]]);
+        });
+        
+        map.current.fitBounds(bounds, {
+          padding: 50,
+          maxZoom: 15
+        });
+      } catch (error) {
+        console.error("Error setting map bounds:", error);
+      }
     }
-  }, [routeData]);
+  }, [routeData, mapInitialized]);
 
   // Handle map click outside markers
   useEffect(() => {
@@ -450,8 +504,8 @@ const TripPlannerMap = ({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger className="relative h-full">
-        <div ref={mapContainer} className="absolute inset-0" />
+      <ContextMenuTrigger className="relative h-full w-full">
+        <div ref={mapContainer} className="absolute inset-0" style={{ height: '100%', width: '100%' }} />
         
         {isLoading && (
           <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
@@ -467,6 +521,12 @@ const TripPlannerMap = ({
             <div className="bg-card p-6 rounded-lg shadow-lg">
               <p className="text-sm font-medium text-center">Please set your Mapbox token using the settings button in the top right corner.</p>
             </div>
+          </div>
+        )}
+        
+        {!isLoading && !error && tripStops.length === 0 && routeData && (
+          <div className="absolute bottom-4 left-4 right-4 bg-card p-4 rounded-md shadow-md text-center">
+            <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
           </div>
         )}
         
