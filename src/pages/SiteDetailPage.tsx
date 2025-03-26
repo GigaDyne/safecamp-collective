@@ -17,9 +17,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockCampSites, mockReviews } from "@/data/mockData";
+import { mockCampSites } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useCampSiteReviews } from "@/hooks/useCampSites";
+import ReviewsList from "@/components/reviews/ReviewsList";
 
 const SiteDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +32,14 @@ const SiteDetailPage = () => {
   
   // In a real app, we'd fetch this from an API
   const site = mockCampSites.find(site => site.id === id);
-  const reviews = mockReviews.filter(review => review.siteId === id);
+  
+  // Get reviews for this campsite
+  const { reviews } = useCampSiteReviews(id || "");
+  
+  // Calculate average safety rating from user reviews
+  const averageSafetyRating = reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.safetyRating, 0) / reviews.length
+    : site?.safetyRating || 0;
   
   useEffect(() => {
     // Simulate loading
@@ -57,6 +66,11 @@ const SiteDetailPage = () => {
     if (rating >= 4) return "bg-safe text-white";
     if (rating >= 2.5) return "bg-caution text-white";
     return "bg-danger text-white";
+  };
+
+  // Handle add review click
+  const handleAddReview = () => {
+    navigate(`/add-review/${id}`);
   };
   
   // Animation variants
@@ -153,7 +167,14 @@ const SiteDetailPage = () => {
         <div className="px-4 pt-2">
           <TabsList className="grid grid-cols-2 h-10">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="reviews" className="relative">
+              Reviews
+              {reviews.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                  {reviews.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
         </div>
         
@@ -194,8 +215,8 @@ const SiteDetailPage = () => {
                 <span className="safety-tag bg-nature-light bg-opacity-10 text-nature-light">
                   {site.landType}
                 </span>
-                <span className={`safety-tag ${getSafetyClass(site.safetyRating)}`}>
-                  Safety: {site.safetyRating.toFixed(1)}
+                <span className={`safety-tag ${getSafetyClass(averageSafetyRating)}`}>
+                  Safety: {averageSafetyRating.toFixed(1)}
                 </span>
               </motion.div>
               
@@ -220,11 +241,11 @@ const SiteDetailPage = () => {
                         <span className="font-medium">Safety</span>
                       </div>
                       <div className="flex items-center">
-                        <span>{site.safetyRating.toFixed(1)}</span>
+                        <span>{averageSafetyRating.toFixed(1)}</span>
                         <Star className="h-3 w-3 ml-0.5 text-muted-foreground" fill="currentColor" />
                       </div>
                     </div>
-                    <Progress value={site.safetyRating * 20} className="h-1.5" />
+                    <Progress value={averageSafetyRating * 20} className="h-1.5" />
                   </div>
                   
                   {/* Cell Signal */}
@@ -303,93 +324,11 @@ const SiteDetailPage = () => {
               <div className="h-20 bg-muted animate-pulse rounded-md" />
             </div>
           ) : (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="space-y-4"
-            >
-              {/* Reviews Summary */}
-              <motion.div variants={itemVariants} className="bg-secondary/50 rounded-lg p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-xl font-bold">{site.safetyRating.toFixed(1)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Based on {reviews.length} reviews
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    variant="default" 
-                    className="h-9"
-                    onClick={() => navigate(`/add-review/${id}`)}
-                  >
-                    Add Review
-                  </Button>
-                </div>
-              </motion.div>
-              
-              {/* Review List */}
-              <div className="space-y-5">
-                {reviews.map((review, index) => (
-                  <motion.div
-                    key={review.id}
-                    variants={itemVariants}
-                    className="bg-card/50 border border-border/50 rounded-lg p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center overflow-hidden">
-                          {review.userAvatar ? (
-                            <img 
-                              src={review.userAvatar} 
-                              alt={review.userName} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-lg font-medium">
-                              {review.userName.charAt(0)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div>
-                          <p className="font-medium leading-none mb-1">{review.userName}</p>
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            <span>{review.date}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className={`flex items-center safety-tag ${getSafetyClass(review.safetyRating)}`}>
-                        <span>{review.safetyRating.toFixed(1)}</span>
-                        <Star className="h-3 w-3 ml-0.5" fill="currentColor" />
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm mt-3">{review.comment}</p>
-                    
-                    {review.images && review.images.length > 0 && (
-                      <div className="flex gap-2 mt-3">
-                        {review.images.map((image, idx) => (
-                          <div 
-                            key={idx} 
-                            className="w-16 h-16 rounded-md overflow-hidden bg-muted"
-                          >
-                            <img 
-                              src={image} 
-                              alt={`User upload ${idx}`} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+            <ReviewsList 
+              reviews={reviews} 
+              averageSafety={averageSafetyRating}
+              onAddReview={handleAddReview}
+            />
           )}
         </TabsContent>
       </Tabs>

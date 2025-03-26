@@ -22,11 +22,41 @@ export type CampSite = {
   reviewCount: number;
 };
 
+export type Review = {
+  id: string;
+  siteId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  safetyRating: number;
+  cellSignal: number;
+  noiseLevel: number;
+  comment: string;
+  date: string;
+  images?: string[];
+};
+
+// Local storage keys
+const REVIEWS_STORAGE_KEY = "campsite-reviews";
+
 // In a real app, this would fetch from an API
 const fetchCampSites = async (): Promise<CampSite[]> => {
   // Simulate API call with a delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   return mockCampSites;
+};
+
+// Helper function to get stored reviews
+export const getStoredReviews = (): Review[] => {
+  const storedReviews = localStorage.getItem(REVIEWS_STORAGE_KEY);
+  return storedReviews ? JSON.parse(storedReviews) : [];
+};
+
+// Helper function to save reviews
+export const saveReview = (review: Review): void => {
+  const currentReviews = getStoredReviews();
+  const updatedReviews = [...currentReviews, review];
+  localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(updatedReviews));
 };
 
 export function useCampSites() {
@@ -39,4 +69,18 @@ export function useCampSites() {
   });
 
   return { campSites, isLoading, error };
+}
+
+// Custom hook to get reviews for a specific site
+export function useCampSiteReviews(siteId: string) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  
+  useEffect(() => {
+    // Get reviews from localStorage
+    const allReviews = getStoredReviews();
+    const siteReviews = allReviews.filter(review => review.siteId === siteId);
+    setReviews(siteReviews);
+  }, [siteId]);
+
+  return { reviews };
 }
