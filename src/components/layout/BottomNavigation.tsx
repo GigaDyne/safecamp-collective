@@ -73,7 +73,7 @@ export default function BottomNavigation() {
             )}
           >
             <Tent className="h-6 w-6" />
-            <span className="text-xs mt-1">My Sites</span>
+            <span className="text-xs mt-1">Campsites</span>
           </Link>
           
           <Link

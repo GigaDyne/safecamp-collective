@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/providers/AuthProvider";
-import { UserProfile } from "@/lib/community/types";
-import { getUserProfile } from "@/lib/community/api";
-import { ArrowLeft, User, MessageSquare, DollarSign, SparklesIcon } from "lucide-react";
+import { UserProfile, ProfileComment } from "@/lib/community/types";
+import { getUserProfile, getProfileComments } from "@/lib/community/api";
+import { ArrowLeft, User, MessageSquare, DollarSign, SparklesIcon, MessageCircle } from "lucide-react";
 import CreatorSubscriptions from "@/components/creator/CreatorSubscriptions";
+import ProfileComments from "@/components/profile/ProfileComments";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +21,7 @@ export default function CreatorProfilePage() {
   const { toast } = useToast();
   
   const [creatorProfile, setCreatorProfile] = useState<UserProfile | null>(null);
+  const [comments, setComments] = useState<ProfileComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("subscriptions");
   const isOwner = user && creatorId === user.id;
@@ -33,6 +34,10 @@ export default function CreatorProfilePage() {
         try {
           const profile = await getUserProfile(creatorId);
           setCreatorProfile(profile);
+          
+          // Fetch profile comments
+          const profileComments = await getProfileComments(creatorId);
+          setComments(profileComments);
         } catch (error) {
           console.error("Error loading creator profile:", error);
         } finally {
@@ -111,6 +116,20 @@ export default function CreatorProfilePage() {
     }
   };
 
+  const handleCommentAdded = (comment: ProfileComment) => {
+    setComments([comment, ...comments]);
+  };
+  
+  const handleCommentUpdated = (updatedComment: ProfileComment) => {
+    setComments(comments.map(comment => 
+      comment.id === updatedComment.id ? updatedComment : comment
+    ));
+  };
+  
+  const handleCommentDeleted = (commentId: string) => {
+    setComments(comments.filter(comment => comment.id !== commentId));
+  };
+
   if (isLoading) {
     return (
       <div className="container max-w-4xl mx-auto py-8 px-4 text-center">
@@ -146,7 +165,7 @@ export default function CreatorProfilePage() {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
+    <div className="container max-w-4xl mx-auto py-8 px-4 pb-20">
       <div className="flex items-center space-x-4 mb-6">
         <Button 
           variant="outline" 
@@ -217,6 +236,10 @@ export default function CreatorProfilePage() {
                 <SparklesIcon className="h-4 w-4 mr-1" />
                 Premium Content
               </TabsTrigger>
+              <TabsTrigger value="comments" className="flex items-center">
+                <MessageCircle className="h-4 w-4 mr-1" />
+                Comments
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="subscriptions">
@@ -238,6 +261,26 @@ export default function CreatorProfilePage() {
                   <p className="text-muted-foreground text-center py-6">
                     Premium content will be displayed here
                   </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="comments">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Comments</CardTitle>
+                  <CardDescription>
+                    Comments and interactions from the community
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ProfileComments 
+                    profileId={creatorId!}
+                    comments={comments}
+                    onCommentAdded={handleCommentAdded}
+                    onCommentUpdated={handleCommentUpdated}
+                    onCommentDeleted={handleCommentDeleted}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

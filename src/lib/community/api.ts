@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { UserProfile, SubscriptionPlan, UserSubscription, HelpRequest, PremiumCampsite, Donation, Message, Conversation, ProfileComment } from "./types";
 
@@ -324,7 +325,10 @@ export async function addProfileComment(comment: { profile_id: string, commenter
   const { data, error } = await supabase
     .from('profile_comments')
     .insert(comment)
-    .select('*')
+    .select(`
+      *,
+      commenter:commenter_id(id, display_name, avatar_url)
+    `)
     .single() as any;
   
   if (error) {
@@ -333,4 +337,37 @@ export async function addProfileComment(comment: { profile_id: string, commenter
   }
   
   return data;
+}
+
+export async function updateProfileComment(commentId: string, updates: { content: string }): Promise<ProfileComment | null> {
+  const { data, error } = await supabase
+    .from('profile_comments')
+    .update(updates)
+    .eq('id', commentId)
+    .select(`
+      *,
+      commenter:commenter_id(id, display_name, avatar_url)
+    `)
+    .single() as any;
+  
+  if (error) {
+    console.error('Error updating profile comment:', error);
+    return null;
+  }
+  
+  return data;
+}
+
+export async function deleteProfileComment(commentId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('profile_comments')
+    .delete()
+    .eq('id', commentId);
+  
+  if (error) {
+    console.error('Error deleting profile comment:', error);
+    return false;
+  }
+  
+  return true;
 }
