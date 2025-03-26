@@ -6,6 +6,11 @@ import { Map, Navigation, MapPin, Shield } from "lucide-react";
 const Index = () => {
   const navigate = useNavigate();
 
+  // Handle navigation to map view
+  const handleExploreClick = () => {
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="text-center max-w-md">
@@ -57,7 +62,7 @@ const Index = () => {
         <Button 
           className="w-full"
           size="lg"
-          onClick={() => navigate("/")}
+          onClick={handleExploreClick}
         >
           Explore the Map
         </Button>

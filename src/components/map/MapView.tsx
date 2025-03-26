@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import { Search, Filter, Plus, X } from "lucide-react";
@@ -91,7 +90,7 @@ const MapView = () => {
   const handleAddSite = (siteData: any) => {
     // Convert form data to CampSite format
     const newCampSite: CampSite = {
-      id: siteData.id,
+      id: siteData.id || String(Date.now()),
       name: siteData.name || `Campsite at ${siteData.latitude.toFixed(4)}, ${siteData.longitude.toFixed(4)}`,
       description: siteData.description || "",
       location: `${siteData.latitude.toFixed(4)}, ${siteData.longitude.toFixed(4)}`,

@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,8 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
   const navigate = useNavigate();
   const { toast } = useToast();
   const mapInitializedRef = useRef(false);
-  const previousCampSitesRef = useRef<CampSite[] | undefined>(undefined);
+  const previousCampSitesRef = useRef<string>("");
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   // Initialize map only once
   useEffect(() => {
@@ -49,6 +50,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       // Add basic interactions
       map.current.on("load", () => {
         if (!map.current) return;
+        setIsMapLoaded(true);
         
         // Add public lands layer (would be more complex in production)
         map.current.addSource("public-lands", {
@@ -128,24 +130,25 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
         map.current.remove();
         map.current = null;
         mapInitializedRef.current = false;
+        setIsMapLoaded(false);
       }
     };
   }, [mapboxToken, toast, onMapReady]);
 
   // Handle markers separately with deep comparison of camp sites
   useEffect(() => {
-    if (!map.current || isLoading || !mapboxToken || !campSites) return;
+    if (!map.current || isLoading || !mapboxToken || !campSites || !isMapLoaded) return;
+    
+    // Stringify the campSites for comparison
+    const campSitesString = JSON.stringify(campSites);
     
     // Skip if campSites haven't changed
-    if (
-      previousCampSitesRef.current &&
-      JSON.stringify(previousCampSitesRef.current) === JSON.stringify(campSites)
-    ) {
+    if (previousCampSitesRef.current === campSitesString) {
       return;
     }
     
     // Update the ref with current campSites
-    previousCampSitesRef.current = campSites;
+    previousCampSitesRef.current = campSitesString;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
@@ -163,24 +166,29 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       
       // Add new markers
       campSites.forEach(site => {
-        const handleMarkerClick = (e: MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          navigate(`/site/${site.id}`);
-        };
-        
-        const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
-        
-        const marker = new mapboxgl.Marker({
-          element: markerElement,
-        })
-          .setLngLat([site.longitude, site.latitude])
-          .addTo(map.current!);
+        try {
+          // Create a DOM click handler that works with native MouseEvent
+          const handleMarkerClick = (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigate(`/site/${site.id}`);
+          };
           
-        markersRef.current.push(marker);
+          const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
+          
+          const marker = new mapboxgl.Marker({
+            element: markerElement,
+          })
+            .setLngLat([site.longitude, site.latitude])
+            .addTo(map.current!);
+            
+          markersRef.current.push(marker);
+        } catch (error) {
+          console.error("Error adding marker:", error);
+        }
       });
     }
-  }, [campSites, isLoading, navigate, mapboxToken]);
+  }, [campSites, isLoading, navigate, mapboxToken, isMapLoaded]);
 
   return (
     <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in" />
