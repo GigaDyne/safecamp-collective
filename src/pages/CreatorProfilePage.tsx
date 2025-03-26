@@ -11,16 +11,20 @@ import { UserProfile } from "@/lib/community/types";
 import { getUserProfile } from "@/lib/community/api";
 import { ArrowLeft, User, MessageSquare, DollarSign, SparklesIcon } from "lucide-react";
 import CreatorSubscriptions from "@/components/creator/CreatorSubscriptions";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CreatorProfilePage() {
-  const { creatorId } = useParams<{ creatorId: string }>();
+  const { id: creatorId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [creatorProfile, setCreatorProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("subscriptions");
   const isOwner = user && creatorId === user.id;
+  const [isStartingConversation, setIsStartingConversation] = useState(false);
 
   useEffect(() => {
     if (creatorId) {
@@ -42,6 +46,69 @@ export default function CreatorProfilePage() {
 
   const handleBackClick = () => {
     navigate(-1);
+  };
+
+  const startConversation = async () => {
+    if (!creatorProfile || !user) {
+      // If not logged in, redirect to login
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please login to message creators",
+          variant: "destructive"
+        });
+        navigate("/auth/login");
+        return;
+      }
+      return;
+    }
+
+    setIsStartingConversation(true);
+    try {
+      // Check if a conversation already exists
+      const { data: existingConversation, error: checkError } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`user1_id.eq.${user.id}.and.user2_id.eq.${creatorProfile.id},user1_id.eq.${creatorProfile.id}.and.user2_id.eq.${user.id}`)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingConversation) {
+        // Navigate to existing conversation
+        navigate('/messages');
+        return;
+      }
+
+      // Create a new conversation
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          user1_id: user.id,
+          user2_id: creatorProfile.id
+        })
+        .select();
+
+      if (createError) throw createError;
+
+      // Navigate to messages page
+      navigate('/messages');
+      toast({
+        title: "Conversation started",
+        description: `You can now message ${creatorProfile.display_name || 'this creator'}`,
+      });
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast({
+        title: "Failed to start conversation",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsStartingConversation(false);
+    }
   };
 
   if (isLoading) {
@@ -120,12 +187,19 @@ export default function CreatorProfilePage() {
                   {creatorProfile.bio}
                 </p>
               )}
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col gap-2">
                 {!isOwner && (
-                  <Button className="w-full" variant="outline">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Message
-                  </Button>
+                  <>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={startConversation}
+                      disabled={isStartingConversation}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      {isStartingConversation ? "Starting chat..." : "Message"}
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>

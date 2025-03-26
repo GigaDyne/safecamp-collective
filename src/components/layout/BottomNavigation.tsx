@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { clsx } from "clsx";
-import { Map, Tent, Search, User, HelpCircle } from "lucide-react";
+import { Map, Tent, Search, User, HelpCircle, MessageSquare } from "lucide-react";
 
 export default function BottomNavigation() {
   const location = useLocation();
@@ -48,6 +48,19 @@ export default function BottomNavigation() {
           >
             <HelpCircle className="h-6 w-6" />
             <span className="text-xs mt-1">Help</span>
+          </Link>
+          
+          <Link
+            to="/messages"
+            className={clsx(
+              "flex flex-col items-center p-2 rounded-lg",
+              location.pathname === "/messages"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <MessageSquare className="h-6 w-6" />
+            <span className="text-xs mt-1">Messages</span>
           </Link>
           
           <Link
