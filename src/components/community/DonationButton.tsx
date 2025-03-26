@@ -36,7 +36,7 @@ export default function DonationButton({
         description: "Please login to donate.",
         variant: "destructive",
       });
-      navigate("/auth/login");
+      navigate("/login");
       return;
     }
 

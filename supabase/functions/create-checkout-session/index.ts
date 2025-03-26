@@ -27,7 +27,9 @@ serve(async (req) => {
       item_id, 
       creator_id, 
       stripe_customer_id,
-      user_email
+      user_email,
+      donation_amount,
+      message
     } = await req.json();
     
     // Get the session or user object
@@ -78,41 +80,51 @@ serve(async (req) => {
     }
 
     const metadata: Record<string, string> = { 
-      user_id: user.id 
+      user_id: user.id,
+      type: type
     };
     
     // Add metadata based on transaction type
     if (type === 'subscription' && creator_id) {
       metadata.creator_id = creator_id;
-      metadata.type = 'subscription';
       if (item_id) metadata.plan_id = item_id;
     } else if (type === 'premium_campsite' && item_id) {
       metadata.campsite_id = item_id;
-      metadata.type = 'premium_campsite';
-    } else if (type === 'donation' && item_id) {
-      metadata.help_request_id = item_id;
-      metadata.recipient_id = creator_id || '';
-      metadata.type = 'donation';
+    } else if (type === 'donation') {
+      if (item_id) metadata.help_request_id = item_id;
+      if (creator_id) metadata.recipient_id = creator_id;
+      if (message) metadata.message = message;
     }
 
+    // Calculate application fee percentage (10%)
+    const platformFeePercent = 10;
+    
     // Handle donation differently - we need to create a price on the fly
     let lineItems;
+    let applicationFeeAmount;
+    
     if (type === 'donation') {
-      // Extract amount from price_id format: price_donation_20
-      const amountStr = price_id.split('_').pop() || '0';
-      const amount = parseInt(amountStr, 10);
+      // Use the provided donation amount or extract from price_id format: price_donation_20
+      let amount = donation_amount;
+      if (!amount) {
+        const amountStr = price_id.split('_').pop() || '0';
+        amount = parseInt(amountStr, 10);
+      }
       
       if (isNaN(amount) || amount <= 0) {
         throw new Error('Invalid donation amount');
       }
 
+      // Calculate platform fee (10%)
+      applicationFeeAmount = Math.round(amount * platformFeePercent / 100) * 100;
+      
       // Create the line item for the donation
       lineItems = [{
         price_data: {
           currency: 'usd',
           product_data: {
             name: 'Donation',
-            description: item_id ? 'Donation for help request' : 'General donation',
+            description: item_id ? 'Donation for help request' : 'Support donation',
           },
           unit_amount: amount * 100, // Stripe uses cents
         },
@@ -128,8 +140,22 @@ serve(async (req) => {
 
     console.log(`Creating ${type} checkout session for user ${user.id}...`);
     
-    // Create checkout session based on type
-    const session = await stripe.checkout.sessions.create({
+    // Get the recipient's Stripe account if available for Connect payments
+    let stripeAccountId = null;
+    if (creator_id) {
+      const { data: creatorProfile } = await supabaseClient
+        .from('user_profiles')
+        .select('stripe_account_id')
+        .eq('id', creator_id)
+        .single();
+      
+      if (creatorProfile?.stripe_account_id) {
+        stripeAccountId = creatorProfile.stripe_account_id;
+      }
+    }
+    
+    // Create checkout session with Connect parameters if applicable
+    const sessionParams: any = {
       customer: customer_id,
       customer_email: customer_id ? undefined : email,
       line_items: lineItems,
@@ -137,7 +163,19 @@ serve(async (req) => {
       success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/payment-cancel`,
       metadata: metadata
-    });
+    };
+    
+    // Add application fee if we have a connected account
+    if (stripeAccountId && applicationFeeAmount) {
+      sessionParams.payment_intent_data = {
+        application_fee_amount: applicationFeeAmount,
+        transfer_data: {
+          destination: stripeAccountId,
+        },
+      };
+    }
+    
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log('Payment session created:', session.id);
     

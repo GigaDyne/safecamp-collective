@@ -9,7 +9,9 @@ export async function createCheckoutSession(
   priceId: string, 
   type: PaymentType, 
   itemId?: string,
-  creatorId?: string
+  creatorId?: string,
+  donationAmount?: number,
+  message?: string
 ): Promise<string | null> {
   try {
     const { data: user } = await supabase.auth.getUser();
@@ -36,7 +38,9 @@ export async function createCheckoutSession(
         item_id: itemId,
         creator_id: creatorId,
         stripe_customer_id: stripeCustomerId,
-        user_email: user.user.email
+        user_email: user.user.email,
+        donation_amount: donationAmount,
+        message
       },
     });
 
@@ -106,7 +110,9 @@ export async function processDonation(
       priceId,
       'donation',
       helpRequestId,
-      recipientId
+      recipientId,
+      amount,
+      message
     );
     
     return url;
