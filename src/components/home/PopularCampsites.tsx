@@ -27,7 +27,7 @@ const PopularCampsites: React.FC = () => {
             <div className="overflow-hidden rounded-md mb-2">
               {campsite.image_url ? (
                 <img 
-                  src={campsite.image_url || '/placeholder.svg'} 
+                  src={campsite.image_url} 
                   alt={campsite.name} 
                   className="w-full h-48 object-cover rounded-md transition-transform hover:scale-105"
                   onError={(e) => {

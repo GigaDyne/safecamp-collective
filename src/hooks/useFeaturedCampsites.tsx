@@ -10,40 +10,99 @@ interface FeaturedCampsite {
   image_url: string;
 }
 
-// Sample external image URLs to use as fallbacks when database images are not available
+// Real campsite data with public image URLs
+const realCampsites = [
+  {
+    id: "1",
+    name: "Lone Rock Beach Campground",
+    description: "Beautiful camping area on the shores of Lake Powell",
+    location: "Utah",
+    image_url: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Lone_Rock_Beach_Campground.jpg"
+  },
+  {
+    id: "2",
+    name: "Jenny Lake Campground",
+    description: "Scenic campground in Grand Teton National Park",
+    location: "Wyoming",
+    image_url: "https://www.nps.gov/common/uploads/structured_data/3C7F514F-1DD8-B71B-0BFF69F7BD38DD8C.jpg"
+  },
+  {
+    id: "3",
+    name: "Kirk Creek Campground",
+    description: "Breathtaking ocean views on the Big Sur coastline",
+    location: "California",
+    image_url: "https://www.fs.usda.gov/Internet/FSE_MEDIA/fseprd1037485.jpg"
+  },
+  {
+    id: "4",
+    name: "Kalaloch Campground",
+    description: "Coastal camping in Olympic National Park",
+    location: "Washington",
+    image_url: "https://www.nps.gov/common/uploads/structured_data/3C7F5432-1DD8-B71B-0B00E2AD5F9CB8DD.jpg"
+  },
+  {
+    id: "5",
+    name: "White River Campground",
+    description: "Alpine camping near Mount Rainier",
+    location: "Washington",
+    image_url: "https://www.nps.gov/mora/planyourvisit/images/White-River-Loop.jpg"
+  },
+  {
+    id: "6",
+    name: "Assateague Island Campground",
+    description: "Beach camping with wild horses nearby",
+    location: "Maryland",
+    image_url: "https://www.nps.gov/common/uploads/structured_data/3C7E3F35-1DD8-B71B-0B201D216E3CB842.jpg"
+  }
+];
+
+// Fallback images if needed
 const fallbackImages = [
-  'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-  'https://images.unsplash.com/photo-1504851149312-7a075b496cc7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-  'https://images.unsplash.com/photo-1532339142463-fd0a8979791a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-  'https://images.unsplash.com/photo-1496545672447-f699b503d270?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80',
-  'https://images.unsplash.com/photo-1596097155664-4f5cbd7dbb12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
+  'https://www.nps.gov/common/uploads/structured_data/3C7F2E4F-1DD8-B71B-0B18D1ACF2A24DC2.jpg', // Watchman Campground
+  'https://upload.wikimedia.org/wikipedia/commons/5/58/Wai%CA%BBanapanapa_State_Park_beach.jpg', // Waiʻānapanapa State Park
+  'https://www.nps.gov/common/uploads/structured_data/3C7F4566-1DD8-B71B-0B593D6E8E0D9C3E.jpg', // Shenandoah
+  'https://www.fs.usda.gov/Internet/FSE_MEDIA/stelprdb5400717.jpg', // Lava Lake
+  'https://www.nps.gov/common/uploads/structured_data/3C7F30D2-1DD8-B71B-0B1F1A1D648E4F7D.jpg', // Big Bend
+  'https://www.nps.gov/common/uploads/structured_data/3C7F3164-1DD8-B71B-0B24888FC3CE836E.jpg'  // Glacier Bay
 ];
 
 export function useFeaturedCampsites() {
   return useQuery<FeaturedCampsite[]>({
     queryKey: ['featuredCampsites'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('featured_campsites')
-        .select('*')
-        .order('created_at');
-      
-      if (error) {
-        console.error('Error fetching featured campsites:', error);
-        return [];
+      try {
+        // First try to get data from Supabase
+        const { data, error } = await supabase
+          .from('featured_campsites')
+          .select('*')
+          .order('created_at');
+        
+        if (error) {
+          console.error('Error fetching featured campsites:', error);
+          return realCampsites; // Fall back to real campsite data
+        }
+        
+        // If we have data from the database, use it with appropriate fallbacks
+        if (data && data.length > 0) {
+          const processedData = data.map((campsite, index) => ({
+            ...campsite,
+            // Try database image first, then fall back to our curated images
+            image_url: campsite.image_url || 
+                      campsite.image || 
+                      realCampsites[index % realCampsites.length]?.image_url ||
+                      fallbackImages[index % fallbackImages.length] || 
+                      '/placeholder.svg'
+          }));
+          
+          return processedData;
+        }
+        
+        // If no database data, use our real campsite data
+        return realCampsites;
+      } catch (error) {
+        console.error('Error in useFeaturedCampsites:', error);
+        return realCampsites; // Fall back to real campsite data on any error
       }
-      
-      // Ensure we have valid image URLs for all campsites
-      const processedData = data?.map((campsite, index) => ({
-        ...campsite,
-        // Try to use the database image_url field, fallback to external images if not available
-        image_url: campsite.image_url || 
-                 campsite.image || 
-                 fallbackImages[index % fallbackImages.length] || 
-                 '/placeholder.svg'
-      })) || [];
-      
-      return processedData;
     },
     staleTime: 1000 * 60 * 60, // 1 hour
   });
