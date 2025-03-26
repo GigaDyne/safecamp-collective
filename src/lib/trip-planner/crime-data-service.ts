@@ -40,7 +40,113 @@ export interface CountyCrimeData {
   safety_score: number; // 0-100, higher is safer
 }
 
-// Generate more mock data points for better visualization
+// Helper to get state code from latitude/longitude
+const getStateFromLatLng = (lat: number, lng: number): string => {
+  // This is a simplified approach - in a production app you would use
+  // reverse geocoding to get the actual state
+  // For simplicity, we're using a bounding box approach for a few states
+  if (lng < -124.5 && lng > -125.5 && lat > 32 && lat < 42) return 'CA';
+  if (lng < -105 && lng > -109 && lat > 31 && lat < 37) return 'AZ';
+  if (lng < -95 && lng > -106 && lat > 25 && lat < 37) return 'TX';
+  if (lng < -80 && lng > -84 && lat > 24 && lat < 31) return 'FL';
+  if (lng < -73 && lng > -80 && lat > 40 && lat < 45) return 'NY';
+  
+  // Default to California if we can't determine
+  return 'CA';
+};
+
+// Function to convert FIPS codes to coordinates (simplified approach)
+const fipsToCoordinates = (fipsState: string, fipsCounty: string): { lat: number, lng: number } => {
+  // In a real implementation, this would use a lookup table or geocoding service
+  // to convert FIPS codes to actual coordinates
+  // For this demo we'll generate pseudorandom but consistent coordinates
+  const seed = parseInt(fipsState + fipsCounty);
+  
+  // Generate latitude between 25 and 49 (continental US)
+  const lat = 25 + (seed % 100) / 4;
+  
+  // Generate longitude between -65 and -125 (continental US)
+  const lng = -125 + (seed % 200) / 3.3;
+  
+  return { lat, lng };
+};
+
+// Calculate safety score based on crime statistics (simplified for demo)
+const calculateSafetyScore = (stats: CrimeStatistic): number => {
+  if (!stats) return 50; // Default score
+  
+  // Population-normalized national averages (simplified)
+  const nationalAvgViolent = 380; // per 100,000
+  const nationalAvgProperty = 2200; // per 100,000
+  
+  // Simple formula weighing violent crimes more heavily
+  // Lower crime rates = higher safety score
+  let score = 100;
+  
+  // Adjust for violent crime (60% weight)
+  if (stats.violent_crime > 0) {
+    const violentRatio = stats.violent_crime / nationalAvgViolent;
+    score -= Math.min(60, violentRatio * 60);
+  }
+  
+  // Adjust for property crime (40% weight)
+  if (stats.property_crime > 0) {
+    const propertyRatio = stats.property_crime / nationalAvgProperty;
+    score -= Math.min(40, propertyRatio * 40);
+  }
+  
+  // Ensure score is between 0-100
+  return Math.max(0, Math.min(100, Math.round(score)));
+};
+
+// Process FBI API response data
+const processFbiApiData = (apiData: any, params: CrimeDataParams): CountyCrimeData[] => {
+  if (!apiData || !apiData.data) return [];
+  
+  try {
+    // Transform API data to our format
+    return apiData.data.map((item: any) => {
+      // Extract the crime statistics
+      const crimeStats: CrimeStatistic = {
+        county: item.county_name,
+        state: item.state_name || item.state_abbr,
+        violent_crime: item.violent_crime || 0,
+        property_crime: item.property_crime || 0,
+        homicide: item.homicide || 0,
+        rape: item.rape || 0,
+        robbery: item.robbery || 0,
+        aggravated_assault: item.aggravated_assault || 0,
+        burglary: item.burglary || 0,
+        larceny: item.larceny || 0,
+        motor_vehicle_theft: item.motor_vehicle_theft || 0,
+        arson: item.arson || 0,
+        year: item.data_year || new Date().getFullYear() - 1
+      };
+      
+      // Get coordinates from FIPS codes
+      const coords = fipsToCoordinates(item.state_id, item.county_id);
+      
+      // Calculate safety score
+      const safetyScore = calculateSafetyScore(crimeStats);
+      
+      return {
+        county_name: item.county_name,
+        state_abbr: item.state_abbr,
+        fips_state_code: item.state_id,
+        fips_county_code: item.county_id,
+        lat: coords.lat,
+        lng: coords.lng,
+        crime_stats: [crimeStats],
+        safety_score: safetyScore
+      };
+    });
+  } catch (err) {
+    console.error("Error processing FBI API data:", err);
+    return [];
+  }
+};
+
+// Mock data for development or fallback if API is unavailable
 const generateMockCrimeData = (centerLat: number, centerLng: number, count: number = 10): CountyCrimeData[] => {
   const result: CountyCrimeData[] = [];
   
@@ -245,27 +351,52 @@ export const fetchCrimeData = debounce(async (params: CrimeDataParams): Promise<
   try {
     console.log("Fetching crime data for region around:", params.lat, params.lng);
     
-    // For real implementation, uncomment this code and use the actual API
-    // const response = await fetch(
-    //   `${FBI_API_BASE_URL}/api/summarized/counties/${getStateFromLatLng(params.lat, params.lng)}/all?api_key=${API_KEY}`
-    // );
-    // if (!response.ok) throw new Error(`FBI API error: ${response.status}`);
-    // const data = await response.json();
-    // return processCrimeData(data, params);
-
-    // Using mock data for development - first check our static mock data
-    const regionKey = getRegionKey(params.lat, params.lng);
+    // Get the state code for the given coordinates
+    const stateCode = getStateFromLatLng(params.lat, params.lng);
     
-    // Simulate API response delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Use static mock data if available for this region, otherwise generate dynamic mock data
-    const mockData = MOCK_CRIME_DATA[regionKey] || generateMockCrimeData(params.lat, params.lng, 5);
-    console.log(`Generated ${mockData.length} mock crime data points`);
-    
-    return mockData;
+    // Try to fetch from the real FBI API
+    try {
+      console.log(`Fetching data from FBI API for state: ${stateCode}`);
+      
+      // Use summarized data endpoints for counties in the state
+      const apiUrl = `${FBI_API_BASE_URL}/api/summarized/state/${stateCode}/violent-crime?api_key=${API_KEY}`;
+      
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        throw new Error(`FBI API responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Received FBI API data with ${data.data?.length || 0} records`);
+      
+      // Process the data into our format
+      const processedData = processFbiApiData(data, params);
+      
+      if (processedData.length > 0) {
+        console.log(`Processed ${processedData.length} counties with crime data`);
+        return processedData;
+      }
+      
+      // If we got no data, fall back to mock data
+      throw new Error("No data received from FBI API");
+    } catch (apiError) {
+      console.error("Error fetching from FBI API, falling back to mock data:", apiError);
+      
+      // Fallback to mock data in case of API errors or no data
+      const regionKey = getRegionKey(params.lat, params.lng);
+      
+      // Simulate API response delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Use static mock data if available for this region, otherwise generate dynamic mock data
+      const mockData = MOCK_CRIME_DATA[regionKey] || generateMockCrimeData(params.lat, params.lng, 5);
+      console.log(`Generated ${mockData.length} mock crime data points (API fallback)`);
+      
+      return mockData;
+    }
   } catch (error) {
-    console.error("Error fetching crime data:", error);
+    console.error("Error in fetchCrimeData:", error);
     return []; // Return empty array instead of rejecting
   }
 }, 1000); // Throttle to only make a request once per second

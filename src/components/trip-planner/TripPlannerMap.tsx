@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface TripPlannerMapProps {
   routeData: RouteData | null;
@@ -112,7 +113,7 @@ const TripPlannerMap = ({
   }, []);
 
   // Handle crime data
-  const { crimeData, isLoading: isCrimeDataLoading } = useCrimeData({
+  const { crimeData, isLoading: isCrimeDataLoading, isMockData } = useCrimeData({
     map,
     enabled: showCrimeData
   });
@@ -169,8 +170,18 @@ const TripPlannerMap = ({
         )}
         
         {showCrimeData && crimeData.length > 0 && (
-          <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
-            Showing crime data for {crimeData.length} areas
+          <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20 flex items-center space-x-2">
+            <span>Showing crime data for {crimeData.length} areas</span>
+            {isMockData && (
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600 text-xs">
+                MOCK DATA
+              </Badge>
+            )}
+            {!isMockData && (
+              <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                REAL DATA
+              </Badge>
+            )}
           </div>
         )}
         
@@ -227,6 +238,16 @@ const TripPlannerMap = ({
             <DialogTitle>Crime Statistics</DialogTitle>
             <DialogDescription>
               {selectedCrimeData?.county_name}, {selectedCrimeData?.state_abbr}
+              {isMockData && (
+                <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-600 text-xs">
+                  MOCK DATA
+                </Badge>
+              )}
+              {!isMockData && (
+                <Badge variant="outline" className="ml-2 text-green-600 border-green-600 text-xs">
+                  REAL DATA
+                </Badge>
+              )}
             </DialogDescription>
           </DialogHeader>
           

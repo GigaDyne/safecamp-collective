@@ -12,6 +12,7 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
   const [crimeData, setCrimeData] = useState<CountyCrimeData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMockData, setIsMockData] = useState<boolean>(false);
 
   // Fetch crime data when the map moves
   useEffect(() => {
@@ -39,6 +40,14 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
           .then(data => {
             console.log("Received crime data:", data.length, "counties");
             setCrimeData(data);
+            
+            // Set isMockData based on a simple heuristic - real data from FBI would have 
+            // county names that aren't just "County 1", "County 2", etc.
+            const hasMockCountyNames = data.some(county => 
+              county.county_name.match(/County \d+/) !== null
+            );
+            
+            setIsMockData(hasMockCountyNames);
             setError(null);
           })
           .catch(err => {
@@ -95,6 +104,7 @@ export const useCrimeData = ({ map, enabled }: UseCrimeDataProps) => {
   return {
     crimeData,
     isLoading,
-    error
+    error,
+    isMockData
   };
 };
