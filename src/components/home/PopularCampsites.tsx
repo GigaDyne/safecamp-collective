@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useFeaturedCampsites } from "@/hooks/useFeaturedCampsites";
@@ -29,7 +28,14 @@ const PopularCampsites: React.FC = () => {
   return (
     <Card className="border border-border/50">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl">Popular Campsites</CardTitle>
+        <CardTitle className="text-xl flex items-center">
+          <img 
+            src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
+            alt="SafeCamp Logo" 
+            className="h-5 w-5 mr-2"
+          />
+          Popular Campsites
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

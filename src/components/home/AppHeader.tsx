@@ -14,21 +14,11 @@ const AppHeader: React.FC = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center">
           <Link to="/" className="flex items-center">
-            <svg 
-              className="h-8 w-8 text-blue-500" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path 
-                d="M3 21V3L12 12L21 3V21" 
-                fill="currentColor" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-              />
-            </svg>
+            <img 
+              src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
+              alt="SafeCamp Logo" 
+              className="h-10 w-10"
+            />
             <span className="ml-2 text-xl font-bold">SafeCamp</span>
           </Link>
         </div>

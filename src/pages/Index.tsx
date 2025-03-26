@@ -15,9 +15,11 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="text-center max-w-md">
         <div className="mb-6 flex justify-center">
-          <div className="bg-primary/10 p-4 rounded-full">
-            <Map className="h-12 w-12 text-primary" />
-          </div>
+          <img 
+            src="/lovable-uploads/974b1500-32b1-47af-869e-1c14f36159dd.png" 
+            alt="SafeCamp Logo" 
+            className="h-24 w-24" 
+          />
         </div>
         
         <h1 className="text-3xl font-bold mb-3">Welcome to SafeCamp</h1>
