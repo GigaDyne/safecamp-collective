@@ -6,8 +6,10 @@ import { v4 as uuidv4 } from "uuid";
 // Check connectivity to Supabase
 export const checkSupabaseConnectivity = async (): Promise<boolean> => {
   try {
+    // Instead of querying a specific table that might not exist,
+    // we'll use a simple authentication check which doesn't require specific table access
     const start = Date.now();
-    const { error } = await supabase.from('health_check').select('*', { count: 'exact', head: true });
+    const { error } = await supabase.auth.getSession();
     const elapsed = Date.now() - start;
     
     console.log(`Supabase connectivity check: ${error ? 'failed' : 'succeeded'} in ${elapsed}ms`);
