@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import "mapbox-gl/dist/mapbox-gl.css";
+import "mapbox-gl/dist/mapbox-gl.css';
 import { Plus } from 'lucide-react';
 import { TripStop, RouteData } from '@/lib/trip-planner/types';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +40,7 @@ const TripPlannerMap = ({
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const { toast } = useToast();
-  const [showDebug, setShowDebug] = useState(true);
+  const [showDebug, setShowDebug] = useState(false);
   
   const {
     mapContainer,
@@ -51,7 +50,6 @@ const TripPlannerMap = ({
     routeSourceAdded
   } = useMapInitialization({ mapboxToken, routeData });
 
-  // Effect for route drawing
   useEffect(() => {
     if (!map.current || !routeData || !mapInitialized) return;
     console.log("Attempting to draw route");
@@ -176,7 +174,6 @@ const TripPlannerMap = ({
     }
   }, [routeData, mapInitialized]);
 
-  // Handle map click outside markers
   useEffect(() => {
     if (!map.current) return;
     
@@ -208,7 +205,6 @@ const TripPlannerMap = ({
     };
   }, []);
 
-  // Update markers when trip stops change
   useEffect(() => {
     if (!map.current || !map.current.loaded()) return;
     
@@ -228,7 +224,6 @@ const TripPlannerMap = ({
       
       const markerElement = marker.getElement();
       
-      // Add click handler for marker
       markerElement.addEventListener('click', (e) => {
         e.stopPropagation();
         if (popupRef.current) {
@@ -344,7 +339,6 @@ const TripPlannerMap = ({
             onAddToItinerary(stop);
             popupRef.current?.remove();
             
-            // Show toast notification
             toast({
               title: "Stop added",
               description: `Added ${stop.name} to your itinerary`,
@@ -381,7 +375,6 @@ const TripPlannerMap = ({
         });
       });
       
-      // Add right-click (context menu) functionality
       markerElement.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         setSelectedStop(stop);
@@ -391,16 +384,15 @@ const TripPlannerMap = ({
     });
   }, [tripStops, selectedStops, onAddToItinerary, toast]);
 
-  // Toggle debug info with triple click on map
   useEffect(() => {
-    const handleTripleClick = () => {
+    const handleDoubleClick = () => {
       setShowDebug(prev => !prev);
     };
     
-    document.addEventListener('dblclick', handleTripleClick);
+    document.addEventListener('dblclick', handleDoubleClick);
     
     return () => {
-      document.removeEventListener('dblclick', handleTripleClick);
+      document.removeEventListener('dblclick', handleDoubleClick);
     };
   }, []);
 
