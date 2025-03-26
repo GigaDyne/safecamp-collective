@@ -24,7 +24,14 @@ export function useFeaturedCampsites() {
         return [];
       }
       
-      return data || [];
+      // Ensure we have valid image URLs for all campsites
+      const processedData = data?.map(campsite => ({
+        ...campsite,
+        // If the database field is using 'image' but our component expects 'image_url'
+        image_url: campsite.image_url || campsite.image || '/placeholder.svg'
+      })) || [];
+      
+      return processedData;
     },
     staleTime: 1000 * 60 * 60, // 1 hour
   });
