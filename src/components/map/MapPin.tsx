@@ -25,7 +25,7 @@ export const createMapPinElement = (safetyRating: number, onClick?: (e: MouseEve
   pin.className = 'w-10 h-10 flex items-center justify-center transform-gpu transition-all duration-300 hover:scale-110 cursor-pointer';
   
   if (onClick) {
-    // Need to use a native DOM event listener here
+    // Use native DOM events here - already correct MouseEvent type
     pin.addEventListener('click', onClick);
   }
   

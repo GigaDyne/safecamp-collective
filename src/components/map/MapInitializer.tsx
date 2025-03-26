@@ -21,8 +21,9 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
   const navigate = useNavigate();
   const { toast } = useToast();
   const mapInitializedRef = useRef(false);
+  const previousCampSitesRef = useRef<CampSite[] | undefined>(undefined);
 
-  // Initialize map
+  // Initialize map only once
   useEffect(() => {
     if (!mapboxToken || map.current || !mapContainer.current || mapInitializedRef.current) return;
 
@@ -33,7 +34,7 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-111.8910, 40.7608], // Default center (can be replaced with user's location)
+        center: [-111.8910, 40.7608], // Default center
         zoom: 5,
         attributionControl: false,
       });
@@ -131,34 +132,54 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
     };
   }, [mapboxToken, toast, onMapReady]);
 
-  // Add markers for camp sites
+  // Handle markers separately with deep comparison of camp sites
   useEffect(() => {
     if (!map.current || isLoading || !mapboxToken || !campSites) return;
+    
+    // Skip if campSites haven't changed
+    if (
+      previousCampSitesRef.current &&
+      JSON.stringify(previousCampSitesRef.current) === JSON.stringify(campSites)
+    ) {
+      return;
+    }
+    
+    // Update the ref with current campSites
+    previousCampSitesRef.current = campSites;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    // Add new markers
-    campSites.forEach(site => {
-      if (!map.current) return;
+    // Add new markers only if the map is fully loaded
+    if (map.current.loaded()) {
+      addMarkers();
+    } else {
+      map.current.once('load', addMarkers);
+    }
+
+    function addMarkers() {
+      if (!map.current || !campSites) return;
       
-      const handleMarkerClick = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        navigate(`/site/${site.id}`);
-      };
-      
-      const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
-      
-      const marker = new mapboxgl.Marker({
-        element: markerElement,
-      })
-        .setLngLat([site.longitude, site.latitude])
-        .addTo(map.current);
+      // Add new markers
+      campSites.forEach(site => {
+        const handleMarkerClick = (e: MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          navigate(`/site/${site.id}`);
+        };
         
-      markersRef.current.push(marker);
-    });
+        const markerElement = createMapPinElement(site.safetyRating, handleMarkerClick);
+        
+        const marker = new mapboxgl.Marker({
+          element: markerElement,
+        })
+          .setLngLat([site.longitude, site.latitude])
+          .addTo(map.current!);
+          
+        markersRef.current.push(marker);
+      });
+    }
   }, [campSites, isLoading, navigate, mapboxToken]);
 
   return (
