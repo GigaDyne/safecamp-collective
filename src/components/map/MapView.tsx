@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import MapControls from "./MapControls";
 import SearchBar from "./SearchBar";
 import MapTokenInput from "./MapTokenInput";
-import MapInitializer from "./MapInitializer";
+import MapInitializerWithPremium from "./MapInitializerWithPremium";
 import AddSiteForm from "./AddSiteForm";
 import MapFilterDrawer, { FilterCriteria } from "./MapFilterDrawer";
 import { 
@@ -158,7 +158,7 @@ const MapView = () => {
       ) : null}
       
       {/* Map Container */}
-      <MapInitializer 
+      <MapInitializerWithPremium 
         mapboxToken={mapboxToken}
         campSites={filteredCampSites.length > 0 ? filteredCampSites : apiCampSites || []}
         isLoading={isLoading}
