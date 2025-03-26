@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { HelpRequest, UserProfile } from "@/lib/community/types";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { processDonation } from "@/lib/community/payment";
-import { getUserProfile } from "@/lib/community/api";
+import { updateHelpRequest, getUserProfile } from "@/lib/community/api";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { AlertCircle, DollarSign, MapPin } from "lucide-react";
+import { AlertCircle, MapPin, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import DonationButton from "./DonationButton";
 
 interface HelpRequestCardProps {
   helpRequest: HelpRequest;
@@ -48,44 +48,30 @@ export default function HelpRequestCard({ helpRequest, userProfile, onUpdate }: 
     ? Math.min(100, (helpRequest.amount_received / helpRequest.amount_requested) * 100) 
     : 0;
 
-  const handleDonate = async (amount: number) => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please login to donate.",
-        variant: "destructive",
-      });
-      navigate("/login");
-      return;
-    }
-
-    if (user.id === helpRequest.user_id) {
-      toast({
-        title: "Cannot donate to yourself",
-        description: "You cannot donate to your own help request.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleToggleStatus = async () => {
+    if (!user || user.id !== helpRequest.user_id) return;
+    
     setLoading(true);
     try {
-      const url = await processDonation(
-        amount,
-        helpRequest.user_id,
-        helpRequest.id
-      );
-
-      if (url) {
-        window.location.href = url;
-      } else {
-        throw new Error("No checkout URL returned");
+      const updated = await updateHelpRequest(helpRequest.id, {
+        is_active: !helpRequest.is_active
+      });
+      
+      if (updated) {
+        toast({
+          title: `Request ${updated.is_active ? 'reopened' : 'marked as resolved'}`,
+          description: `Your help request has been ${updated.is_active ? 'reopened' : 'marked as resolved'}.`,
+        });
+        
+        if (onUpdate) {
+          onUpdate();
+        }
       }
     } catch (error) {
-      console.error("Error processing donation:", error);
+      console.error("Error updating help request:", error);
       toast({
-        title: "Donation error",
-        description: "There was an error processing your donation. Please try again.",
+        title: "Update failed",
+        description: "There was an error updating your help request. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -145,22 +131,42 @@ export default function HelpRequestCard({ helpRequest, userProfile, onUpdate }: 
               <AlertCircle className="h-4 w-4 mr-1 text-amber-600" />
               <span className="text-sm font-medium">Need assistance</span>
             </div>
+            
+            {user?.id === helpRequest.user_id && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleToggleStatus}
+                disabled={loading}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                {helpRequest.is_active ? "Mark as Resolved" : "Reopen Request"}
+              </Button>
+            )}
           </div>
           
           {helpRequest.is_active && user?.id !== helpRequest.user_id && (
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button size="sm" variant="outline" onClick={() => handleDonate(5)} disabled={loading}>
-                <DollarSign className="h-4 w-4 mr-1" />
-                Donate $5
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleDonate(10)} disabled={loading}>
-                <DollarSign className="h-4 w-4 mr-1" />
-                Donate $10
-              </Button>
-              <Button size="sm" onClick={() => handleDonate(20)} disabled={loading}>
-                <DollarSign className="h-4 w-4 mr-1" />
-                Donate $20
-              </Button>
+              <DonationButton 
+                amount={5} 
+                recipientId={helpRequest.user_id} 
+                helpRequestId={helpRequest.id} 
+                variant="outline" 
+                size="sm" 
+              />
+              <DonationButton 
+                amount={10} 
+                recipientId={helpRequest.user_id} 
+                helpRequestId={helpRequest.id} 
+                variant="outline" 
+                size="sm" 
+              />
+              <DonationButton 
+                amount={20} 
+                recipientId={helpRequest.user_id} 
+                helpRequestId={helpRequest.id} 
+                size="sm" 
+              />
             </div>
           )}
         </div>

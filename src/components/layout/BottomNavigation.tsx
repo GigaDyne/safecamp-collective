@@ -1,7 +1,8 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { clsx } from "clsx";
-import { Map, Tent, Search, Heart, User, HelpCircle } from "lucide-react";
+import { Map, Tent, Search, User, HelpCircle } from "lucide-react";
 
 export default function BottomNavigation() {
   const location = useLocation();

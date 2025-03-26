@@ -1,95 +1,61 @@
-import { useEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import MainLayout from "@/components/layout/MainLayout";
-import NearbyPage from "@/pages/NearbyPage";
-import FavoritesPage from "@/pages/FavoritesPage";
-import ProfilePage from "@/pages/ProfilePage";
-import SiteDetailPage from "@/pages/SiteDetailPage";
-import AddSitePage from "@/pages/AddSitePage";
-import ReviewPage from "@/pages/ReviewPage";
-import NotFound from "@/pages/NotFound";
-import TripPlannerPage from "@/pages/TripPlannerPage";
-import TripNavigationPage from "@/pages/TripNavigationPage";
-import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
-import PaymentCancelPage from "@/pages/PaymentCancelPage";
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import IndexPage from "@/pages/IndexPage";
-import MapPage from "@/pages/MapPage";
-import MessagesPage from "@/pages/MessagesPage";
+import { AuthProvider } from "@/providers/AuthProvider";
 import LoginPage from "@/pages/AuthPages/LoginPage";
 import SignUpPage from "@/pages/AuthPages/SignUpPage";
 import VerifyEmailPage from "@/pages/AuthPages/VerifyEmailPage";
-import { AuthProvider } from "@/providers/AuthProvider";
+import NotFound from "@/pages/NotFound";
+import ProfilePage from "@/pages/ProfilePage";
+import TripPlannerPage from "@/pages/TripPlannerPage";
+import TripNavigationPage from "@/pages/TripNavigationPage";
+import MapPage from "@/pages/MapPage";
+import IndexPage from "@/pages/IndexPage";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import CommunityHelpPage from "./pages/CommunityHelpPage";
-
-const queryClient = new QueryClient();
-
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
-  
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-  
-  return null;
-};
+import SiteDetailPage from "@/pages/SiteDetailPage";
+import NearbyPage from "@/pages/NearbyPage";
+import FavoritesPage from "@/pages/FavoritesPage";
+import MainLayout from "@/components/layout/MainLayout";
+import AddSitePage from "@/pages/AddSitePage";
+import ReviewPage from "@/pages/ReviewPage";
+import CreatorProfilePage from "@/pages/CreatorProfilePage";
+import MessagesPage from "@/pages/MessagesPage";
+import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import PaymentCancelPage from "@/pages/PaymentCancelPage";
+import CommunityHelpPage from "@/pages/CommunityHelpPage";
 
 function App() {
-  const location = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ScrollToTop />
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route element={<ProtectedRoute requireAuth={false} />}>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
+          <Route index element={<IndexPage />} />
+          <Route path="/auth">
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<SignUpPage />} />
+            <Route path="verify" element={<VerifyEmailPage />} />
           </Route>
-          
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          
+          <Route path="/" element={<MainLayout />}>
+            <Route path="map" element={<MapPage />} />
+            <Route path="site/:id" element={<SiteDetailPage />} />
+            <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="search" element={<NearbyPage />} />
+            <Route path="my-campsites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} />
+            <Route path="add-site" element={<ProtectedRoute><AddSitePage /></ProtectedRoute>} />
+            <Route path="review/:id" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
+            <Route path="planner" element={<ProtectedRoute><TripPlannerPage /></ProtectedRoute>} />
+            <Route path="navigation/:id" element={<ProtectedRoute><TripNavigationPage /></ProtectedRoute>} />
+            <Route path="creator/:id" element={<CreatorProfilePage />} />
+            <Route path="messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+            <Route path="community-help" element={<CommunityHelpPage />} />
+          </Route>
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-cancel" element={<PaymentCancelPage />} />
-          
-          <Route path="/" element={<IndexPage />} />
-          
-          <Route path="/messages" element={<MessagesPage />} />
-          
-          <Route element={<ProtectedRoute requireVerification={false} />}>
-            <Route path="/profile" element={<ProfilePage />} />
-          </Route>
-          
-          <Route element={<ProtectedRoute requireAuth={true} requireVerification={true} />}>
-            <Route element={<MainLayout />}>
-              <Route path="map" element={<MapPage />} />
-              <Route path="nearby" element={<NearbyPage />} />
-              <Route path="favorites" element={<FavoritesPage />} />
-              <Route path="site/:id" element={<SiteDetailPage />} />
-              <Route path="add-site" element={<AddSitePage />} />
-              <Route path="review/:id" element={<ReviewPage />} />
-              <Route path="trip-planner" element={<TripPlannerPage />} />
-              <Route path="trip-navigation/:tripId" element={<TripNavigationPage />} />
-            </Route>
-          </Route>
-          
-          <Route path="/community-help" element={
-            <MainLayout>
-              <CommunityHelpPage />
-            </MainLayout>
-          } />
-          
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+      </Router>
+      <Toaster />
+    </AuthProvider>
   );
 }
 
