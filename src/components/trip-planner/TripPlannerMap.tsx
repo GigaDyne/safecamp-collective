@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -6,6 +7,13 @@ import { TripStop, RouteData } from "@/lib/trip-planner/types";
 import { createMapPinElement } from "@/components/map/MapPin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { useToast } from "@/hooks/use-toast";
 
 const createStopMarker = (type: string, safetyRating = 3, isSelected = false) => {
   const el = document.createElement('div');
@@ -84,6 +92,7 @@ const TripPlannerMap = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -131,55 +140,57 @@ const TripPlannerMap = ({
         return;
       }
 
-      if (!routeSourceAdded.current) {
-        map.current.addSource('route', {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: routeData.geometry
-          }
-        });
+      try {
+        if (!routeSourceAdded.current) {
+          // Adding route for the first time
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: routeData.geometry
+            }
+          });
 
-        map.current.addLayer({
-          id: 'route-line',
-          type: 'line',
-          source: 'route',
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#8B5CF6',
-            'line-width': 6,
-            'line-opacity': 0.8
-          }
-        });
+          map.current.addLayer({
+            id: 'route-line',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#8B5CF6',
+              'line-width': 6,
+              'line-opacity': 0.8
+            }
+          });
 
-        const startCoords = routeData.geometry.coordinates[0];
-        new mapboxgl.Marker({ color: '#10B981' })
-          .setLngLat([startCoords[0], startCoords[1]])
-          .addTo(map.current);
+          const startCoords = routeData.geometry.coordinates[0];
+          new mapboxgl.Marker({ color: '#10B981' })
+            .setLngLat([startCoords[0], startCoords[1]])
+            .addTo(map.current);
 
-        const endCoords = routeData.geometry.coordinates[routeData.geometry.coordinates.length - 1];
-        new mapboxgl.Marker({ color: '#EF4444' })
-          .setLngLat([endCoords[0], endCoords[1]])
-          .addTo(map.current);
+          const endCoords = routeData.geometry.coordinates[routeData.geometry.coordinates.length - 1];
+          new mapboxgl.Marker({ color: '#EF4444' })
+            .setLngLat([endCoords[0], endCoords[1]])
+            .addTo(map.current);
 
-        routeSourceAdded.current = true;
-      } else {
-        try {
-          if (map.current && map.current.getSource('route')) {
-            const source = map.current.getSource('route') as mapboxgl.GeoJSONSource;
+          routeSourceAdded.current = true;
+        } else {
+          // Updating existing route
+          const source = map.current.getSource('route');
+          if (source && 'setData' in source) {
             source.setData({
               type: 'Feature',
               geometry: routeData.geometry
             });
           } else {
-            console.log("Map or route source not available yet");
+            console.log("Route source not available or doesn't have setData method");
           }
-        } catch (error) {
-          console.error("Error updating route source:", error);
         }
+      } catch (error) {
+        console.error("Error updating route source:", error);
       }
 
       const bounds = new mapboxgl.LngLatBounds();
@@ -200,6 +211,7 @@ const TripPlannerMap = ({
     }
   }, [routeData]);
 
+  // Handle map click outside markers
   useEffect(() => {
     if (!map.current) return;
     
@@ -231,6 +243,7 @@ const TripPlannerMap = ({
     };
   }, []);
 
+  // Update markers when trip stops change
   useEffect(() => {
     if (!map.current || !map.current.loaded()) return;
     
@@ -249,7 +262,10 @@ const TripPlannerMap = ({
         .addTo(map.current!);
       
       const markerElement = marker.getElement();
-      markerElement.addEventListener('click', () => {
+      
+      // Add click handler for marker
+      markerElement.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (popupRef.current) {
           popupRef.current.remove();
         }
@@ -362,6 +378,12 @@ const TripPlannerMap = ({
             e.stopPropagation();
             onAddToItinerary(stop);
             popupRef.current?.remove();
+            
+            // Show toast notification
+            toast({
+              title: "Stop added",
+              description: `Added ${stop.name} to your itinerary`,
+            });
           });
           
           addButtonContainer.appendChild(addButton);
@@ -394,9 +416,15 @@ const TripPlannerMap = ({
         });
       });
       
+      // Add right-click (context menu) functionality
+      markerElement.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        setSelectedStop(stop);
+      });
+      
       markersRef.current.push(marker);
     });
-  }, [tripStops, selectedStops, onAddToItinerary]);
+  }, [tripStops, selectedStops, onAddToItinerary, toast]);
 
   if (error) {
     return (
@@ -408,75 +436,103 @@ const TripPlannerMap = ({
     );
   }
 
+  // Function to add stop to itinerary
+  const handleAddToItinerary = (stop: TripStop) => {
+    if (!selectedStops.some(s => s.id === stop.id)) {
+      onAddToItinerary(stop);
+      
+      toast({
+        title: "Stop added",
+        description: `Added ${stop.name} to your itinerary`,
+      });
+    }
+  };
+
   return (
-    <div className="relative h-full">
-      <div ref={mapContainer} className="absolute inset-0" />
-      
-      {isLoading && (
-        <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-          <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
-            <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
-            <p className="text-sm font-medium">Planning your trip...</p>
+    <ContextMenu>
+      <ContextMenuTrigger className="relative h-full">
+        <div ref={mapContainer} className="absolute inset-0" />
+        
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+            <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
+              <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
+              <p className="text-sm font-medium">Planning your trip...</p>
+            </div>
+          </div>
+        )}
+        
+        {!mapboxToken && (
+          <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+            <div className="bg-card p-6 rounded-lg shadow-lg">
+              <p className="text-sm font-medium text-center">Please set your Mapbox token using the settings button in the top right corner.</p>
+            </div>
+          </div>
+        )}
+        
+        <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 p-3 rounded-md shadow-md max-h-[50vh] overflow-y-auto">
+          <h4 className="text-xs font-medium mb-2">Stop Types</h4>
+          <div className="space-y-2 grid grid-cols-2 gap-x-4">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                <MapPin className="h-3 w-3 text-white" />
+              </div>
+              <span className="text-xs">Campsites</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 22a2 2 0 0 0 2-2v-8.5a2 2 0 0 0-2-2"/><path d="M14 22a2 2 0 0 0 2-2v-8.5a2 2 0 0 0-2-2"/><rect width="8" height="5" x="7" y="5" rx="1"/><path d="M7 5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2"/><path d="M8 13v-2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1Z"/></svg>
+              </div>
+              <span className="text-xs">Gas Stations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a8 8 0 0 1-8-8c0-4.314 7-12 8-12s8 7.686 8 12a8 8 0 0 1-8 8Z"/></svg>
+              </div>
+              <span className="text-xs">Water Stations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
+                <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+              </div>
+              <span className="text-xs">Dump Stations</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                <ShoppingCart className="h-3 w-3 text-white" />
+              </div>
+              <span className="text-xs">Walmarts</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                <Flame className="h-3 w-3 text-white" />
+              </div>
+              <span className="text-xs">Propane</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-zinc-700 rounded-full flex items-center justify-center">
+                <Wrench className="h-3 w-3 text-white" />
+              </div>
+              <span className="text-xs">Repair Shops</span>
+            </div>
           </div>
         </div>
+      </ContextMenuTrigger>
+      
+      {/* Context menu that appears on right-click */}
+      {selectedStop && (
+        <ContextMenuContent className="w-48">
+          <ContextMenuItem 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => handleAddToItinerary(selectedStop)}
+            disabled={selectedStops.some(s => s.id === selectedStop.id)}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add to Itinerary</span>
+          </ContextMenuItem>
+        </ContextMenuContent>
       )}
-      
-      {!mapboxToken && (
-        <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-          <div className="bg-card p-6 rounded-lg shadow-lg">
-            <p className="text-sm font-medium text-center">Please set your Mapbox token using the settings button in the top right corner.</p>
-          </div>
-        </div>
-      )}
-      
-      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 p-3 rounded-md shadow-md max-h-[50vh] overflow-y-auto">
-        <h4 className="text-xs font-medium mb-2">Stop Types</h4>
-        <div className="space-y-2 grid grid-cols-2 gap-x-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-              <MapPin className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-xs">Campsites</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-              <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 22a2 2 0 0 0 2-2v-8.5a2 2 0 0 0-2-2"/><path d="M14 22a2 2 0 0 0 2-2v-8.5a2 2 0 0 0-2-2"/><rect width="8" height="5" x="7" y="5" rx="1"/><path d="M7 5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2"/><path d="M8 13v-2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1Z"/></svg>
-            </div>
-            <span className="text-xs">Gas Stations</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-              <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a8 8 0 0 1-8-8c0-4.314 7-12 8-12s8 7.686 8 12a8 8 0 0 1-8 8Z"/></svg>
-            </div>
-            <span className="text-xs">Water Stations</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center">
-              <svg className="h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-            </div>
-            <span className="text-xs">Dump Stations</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-              <ShoppingCart className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-xs">Walmarts</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
-              <Flame className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-xs">Propane</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-zinc-700 rounded-full flex items-center justify-center">
-              <Wrench className="h-3 w-3 text-white" />
-            </div>
-            <span className="text-xs">Repair Shops</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    </ContextMenu>
   );
 };
 
