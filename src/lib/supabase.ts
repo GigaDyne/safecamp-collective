@@ -28,7 +28,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-
 // Database Types
 export type SupabaseUser = {
   id: string;
