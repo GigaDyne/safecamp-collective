@@ -1,11 +1,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
-import { Filter, Plus } from "lucide-react";
+import { Filter, Plus, Route } from "lucide-react";
 import { useCampSites, useAddCampSite } from "@/hooks/useCampSites";
 import { CampSite } from "@/lib/supabase";
 import { ensureAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import MapControls from "./MapControls";
 import SearchBar from "./SearchBar";
 import MapTokenInput from "./MapTokenInput";
@@ -26,6 +27,7 @@ const MapView = () => {
   const [searchVisible, setSearchVisible] = useState(false);
   const { campSites: apiCampSites, isLoading } = useCampSites();
   const { addCampSite } = useAddCampSite();
+  const navigate = useNavigate();
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
     // Initialize from localStorage only once, on component mount
     return localStorage.getItem(localStorageTokenKey) || "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
@@ -194,6 +196,21 @@ const MapView = () => {
             </DialogContent>
           </Dialog>
         </>
+      )}
+      
+      {/* Trip Planner Button */}
+      {tokenEntered && (
+        <div className="absolute bottom-24 right-20 z-10">
+          <Button 
+            variant="default"
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-lg animate-fade-in bg-amber-500 hover:bg-amber-600"
+            onClick={() => navigate('/trip-planner')}
+            title="Trip Planner"
+          >
+            <Route className="h-6 w-6" />
+          </Button>
+        </div>
       )}
       
       {/* Map Filter Button and Drawer */}

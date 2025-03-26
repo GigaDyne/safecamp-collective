@@ -18,6 +18,7 @@ import ProfilePage from "./pages/ProfilePage";
 import SiteDetailPage from "./pages/SiteDetailPage";
 import AddSitePage from "./pages/AddSitePage";
 import ReviewPage from "./pages/ReviewPage";
+import TripPlannerPage from "./pages/TripPlannerPage";
 import NotFound from "./pages/NotFound";
 
 // Create a persistent queryClient instance
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/site/:id" element={<SiteDetailPage />} />
             <Route path="/add-site" element={<AddSitePage />} />
             <Route path="/add-review/:id" element={<ReviewPage />} />
+            <Route path="/trip-planner" element={<TripPlannerPage />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
