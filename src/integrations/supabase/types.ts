@@ -63,6 +63,71 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: []
+      }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string
+          donor_id: string
+          help_request_id: string | null
+          id: string
+          message: string | null
+          recipient_id: string
+          stripe_payment_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          donor_id: string
+          help_request_id?: string | null
+          id?: string
+          message?: string | null
+          recipient_id: string
+          stripe_payment_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          donor_id?: string
+          help_request_id?: string | null
+          id?: string
+          message?: string | null
+          recipient_id?: string
+          stripe_payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "donations_help_request_id_fkey"
+            columns: ["help_request_id"]
+            isOneToOne: false
+            referencedRelation: "help_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flags: {
         Row: {
           created_at: string | null
@@ -97,6 +162,140 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      help_requests: {
+        Row: {
+          amount_received: number | null
+          amount_requested: number | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          location: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_received?: number | null
+          amount_requested?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_received?: number | null
+          amount_requested?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      premium_campsites: {
+        Row: {
+          campsite_id: string
+          created_at: string
+          description: string
+          id: string
+          price: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campsite_id: string
+          created_at?: string
+          description: string
+          id?: string
+          price: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campsite_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          price?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premium_campsites_campsite_id_fkey"
+            columns: ["campsite_id"]
+            isOneToOne: true
+            referencedRelation: "campsites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_comments: {
+        Row: {
+          commenter_id: string
+          content: string
+          created_at: string
+          id: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          commenter_id: string
+          content: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          commenter_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -148,6 +347,39 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string
+          id: string
+          name: string
+          price: number
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description: string
+          id?: string
+          name: string
+          price: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string
+          id?: string
+          name?: string
+          price?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trips: {
         Row: {
           created_at: string | null
@@ -186,6 +418,89 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_creator: boolean | null
+          stripe_account_id: string | null
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          is_creator?: boolean | null
+          stripe_account_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_creator?: boolean | null
+          stripe_account_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          creator_id: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_id: string
+          status: string
+          stripe_subscription_id: string
+          subscriber_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          plan_id: string
+          status: string
+          stripe_subscription_id: string
+          subscriber_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string
+          status?: string
+          stripe_subscription_id?: string
+          subscriber_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

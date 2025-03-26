@@ -12,6 +12,8 @@ import ReviewPage from "@/pages/ReviewPage";
 import NotFound from "@/pages/NotFound";
 import TripPlannerPage from "@/pages/TripPlannerPage";
 import TripNavigationPage from "@/pages/TripNavigationPage";
+import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import PaymentCancelPage from "@/pages/PaymentCancelPage";
 import { Toaster } from "@/components/ui/toaster";
 import IndexPage from "@/pages/IndexPage";
 import MapPage from "@/pages/MapPage";
@@ -56,6 +58,10 @@ function App() {
           
           {/* Verification route - accessible to anyone */}
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          
+          {/* Payment success/cancel routes */}
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/payment-cancel" element={<PaymentCancelPage />} />
           
           {/* Protected routes that require authentication but not email verification */}
           <Route element={<ProtectedRoute requireVerification={false} />}>
