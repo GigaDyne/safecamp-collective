@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, FlagReason, formatFlagForSupabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { FlagReason, formatFlagForSupabase } from "@/lib/supabase";
 
 interface FlagSiteDialogProps {
   siteId: string;
@@ -61,7 +62,9 @@ const FlagSiteDialog: React.FC<FlagSiteDialogProps> = ({ siteId, siteName }) => 
       const supabaseFlag = formatFlagForSupabase(flag);
 
       // Insert into Supabase
-      const { error } = await supabase.from("flags").insert(supabaseFlag);
+      const { error } = await supabase
+        .from("flags")
+        .insert(supabaseFlag as any);
 
       if (error) throw error;
 

@@ -14,7 +14,7 @@ export const fetchCampSites = async (): Promise<CampSite[]> => {
     // Fetch campsites from Supabase
     const { data, error } = await supabase
       .from('campsites')
-      .select('*');
+      .select('*') as any;
     
     if (error) {
       console.error('Error fetching campsites:', error);
@@ -41,7 +41,7 @@ export const seedCampsitesIfEmpty = async (): Promise<void> => {
     // Check if campsites table exists and is empty
     const { count, error } = await supabase
       .from('campsites')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true }) as any;
     
     if (error) {
       console.error('Error checking campsites:', error);
@@ -55,7 +55,7 @@ export const seedCampsitesIfEmpty = async (): Promise<void> => {
       // Insert mock data
       const { error: insertError } = await supabase
         .from('campsites')
-        .insert(formattedCampsites);
+        .insert(formattedCampsites as any);
       
       if (insertError) {
         console.error('Error seeding campsites:', insertError);
@@ -80,9 +80,9 @@ export const saveCampSite = async (campsite: Omit<CampSite, 'id'>): Promise<Camp
     // Insert into Supabase
     const { data, error } = await supabase
       .from('campsites')
-      .insert(supabaseCampsite)
+      .insert(supabaseCampsite as any)
       .select()
-      .single();
+      .single() as any;
     
     if (error) throw error;
     

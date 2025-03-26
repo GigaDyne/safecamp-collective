@@ -282,7 +282,7 @@ export const initializeSupabase = async () => {
     // Fixed type error by using a typesafe approach to check if the table exists
     const { error } = await supabase
       .from('campsites')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true }) as any;
     
     if (error && error.message.includes('does not exist')) {
       console.log('Tables do not exist, initializing Supabase schema...');

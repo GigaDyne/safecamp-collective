@@ -24,9 +24,9 @@ export const saveReview = async (review: Omit<Review, 'id' | 'date'>): Promise<R
     // Insert into Supabase
     const { data, error } = await supabase
       .from('reviews')
-      .insert(supabaseReview)
+      .insert(supabaseReview as any)
       .select()
-      .single();
+      .single() as any;
     
     if (error) throw error;
     
@@ -61,15 +61,15 @@ export const updateCampsiteReviewCount = async (siteId: string): Promise<void> =
     const { count, error: countError } = await supabase
       .from('reviews')
       .select('*', { count: 'exact' })
-      .eq('site_id', siteId);
+      .eq('site_id', siteId) as any;
     
     if (countError) throw countError;
     
     // Update the campsite with new review count
     const { error: updateError } = await supabase
       .from('campsites')
-      .update({ review_count: count || 1 })
-      .eq('id', siteId);
+      .update({ review_count: count || 1 } as any)
+      .eq('id', siteId) as any;
     
     if (updateError) throw updateError;
   } catch (error) {
@@ -88,7 +88,7 @@ export const fetchSiteReviews = async (siteId: string): Promise<Review[]> => {
       .from('reviews')
       .select('*')
       .eq('site_id', siteId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as any;
     
     if (error) throw error;
     

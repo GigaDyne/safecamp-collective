@@ -9,7 +9,184 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      campsites: {
+        Row: {
+          accessibility: number
+          cell_signal: number
+          created_at: string | null
+          description: string | null
+          features: string[] | null
+          id: string
+          images: string[] | null
+          land_type: string
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+          quietness: number
+          review_count: number | null
+          safety_rating: number
+        }
+        Insert: {
+          accessibility: number
+          cell_signal: number
+          created_at?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          land_type: string
+          latitude: number
+          location: string
+          longitude: number
+          name: string
+          quietness: number
+          review_count?: number | null
+          safety_rating: number
+        }
+        Update: {
+          accessibility?: number
+          cell_signal?: number
+          created_at?: string | null
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          images?: string[] | null
+          land_type?: string
+          latitude?: number
+          location?: string
+          longitude?: number
+          name?: string
+          quietness?: number
+          review_count?: number | null
+          safety_rating?: number
+        }
+        Relationships: []
+      }
+      flags: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          id: string
+          reason: string
+          site_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          reason: string
+          site_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          reason?: string
+          site_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flags_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "campsites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          cell_signal: number
+          comment: string | null
+          created_at: string | null
+          id: string
+          images: string[] | null
+          noise_level: number
+          safety_rating: number
+          site_id: string | null
+          user_avatar: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          cell_signal: number
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          images?: string[] | null
+          noise_level: number
+          safety_rating: number
+          site_id?: string | null
+          user_avatar?: string | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          cell_signal?: number
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          images?: string[] | null
+          noise_level?: number
+          safety_rating?: number
+          site_id?: string | null
+          user_avatar?: string | null
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "campsites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          created_at: string | null
+          end_location: string
+          id: string
+          is_guest: boolean | null
+          name: string
+          owner_id: string
+          route_data: Json | null
+          start_location: string
+          stops: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_location: string
+          id?: string
+          is_guest?: boolean | null
+          name: string
+          owner_id: string
+          route_data?: Json | null
+          start_location: string
+          stops?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_location?: string
+          id?: string
+          is_guest?: boolean | null
+          name?: string
+          owner_id?: string
+          route_data?: Json | null
+          start_location?: string
+          stops?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

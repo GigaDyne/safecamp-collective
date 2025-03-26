@@ -36,13 +36,13 @@ export const loadTripPlans = async (): Promise<SavedTrip[]> => {
       const { data, error } = await supabase
         .from('trips')
         .select('*')
-        .or(`owner_id.eq.${userId || guestSessionId}`);
+        .or(`owner_id.eq.${userId || guestSessionId}`) as any;
       
       if (error) throw error;
       
       if (data && data.length > 0) {
         // Map from Supabase format to our SavedTrip format
-        trips = data.map(trip => ({
+        trips = data.map((trip: any) => ({
           id: trip.id,
           name: trip.name,
           startLocation: trip.start_location,
@@ -123,7 +123,7 @@ export const saveTripPlan = async (trip: SavedTrip): Promise<void> => {
           route_data: trip.routeData,
           created_at: trip.createdAt || new Date().toISOString(),
           updated_at: new Date().toISOString()
-        });
+        } as any);
       
       if (error) throw error;
     } catch (error) {
@@ -153,7 +153,7 @@ export const deleteTripPlan = async (tripId: string): Promise<void> => {
       const { error } = await supabase
         .from('trips')
         .delete()
-        .eq('id', tripId);
+        .eq('id', tripId) as any;
       
       if (error) throw error;
     } catch (error) {
@@ -215,8 +215,8 @@ export const associateGuestTripsWithUser = async (userId: string): Promise<void>
         owner_id: userId,
         is_guest: false,
         updated_at: new Date().toISOString()
-      })
-      .eq('owner_id', guestSessionId);
+      } as any)
+      .eq('owner_id', guestSessionId) as any;
     
     if (error) throw error;
     
