@@ -1,18 +1,29 @@
+
 import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import { MainLayout } from "@/layouts/MainLayout";
-import { Index } from "@/pages";
-import { NearbyPage } from "@/pages/NearbyPage";
-import { FavoritesPage } from "@/pages/FavoritesPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { SiteDetailPage } from "@/pages/SiteDetailPage";
-import { AddSitePage } from "@/pages/AddSitePage";
-import { ReviewPage } from "@/pages/ReviewPage";
-import { NotFound } from "@/pages/NotFound";
-import { ScrollToTop } from "@/components/ScrollToTop";
-import { Toaster } from "@/components/ui/toaster";
+import MainLayout from "@/components/layout/MainLayout";
+import NearbyPage from "@/pages/NearbyPage";
+import FavoritesPage from "@/pages/FavoritesPage";
+import ProfilePage from "@/pages/ProfilePage";
+import SiteDetailPage from "@/pages/SiteDetailPage";
+import AddSitePage from "@/pages/AddSitePage";
+import ReviewPage from "@/pages/ReviewPage";
+import NotFound from "@/pages/NotFound";
 import TripPlannerPage from "@/pages/TripPlannerPage";
 import TripNavigationPage from "@/pages/TripNavigationPage";
+import { Toaster } from "@/components/ui/toaster";
+import IndexPage from "@/pages/IndexPage";
+
+// Create ScrollToTop component
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+};
 
 function App() {
   // Persist scroll position on route change
@@ -27,7 +38,7 @@ function App() {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<MainLayout />}>
-          <Route index element={<Index />} />
+          <Route index element={<IndexPage />} />
           <Route path="nearby" element={<NearbyPage />} />
           <Route path="favorites" element={<FavoritesPage />} />
           <Route path="profile" element={<ProfilePage />} />
