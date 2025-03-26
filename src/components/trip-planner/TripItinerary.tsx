@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -27,6 +26,7 @@ import {
   loadTripPlans, 
   generateShareableLink 
 } from "@/lib/trip-planner/trip-storage";
+import { v4 as uuidv4 } from "uuid";
 
 interface TripItineraryProps {
   tripStops: TripStop[];
@@ -128,7 +128,7 @@ const TripItinerary = ({
     
     try {
       const newTrip: SavedTrip = {
-        id: Date.now().toString(),
+        id: uuidv4(),
         name: tripName,
         stops: selectedStops,
         createdAt: new Date().toISOString(),
@@ -148,6 +148,7 @@ const TripItinerary = ({
       
       setTripName("");
     } catch (error) {
+      console.error("Error saving trip:", error);
       toast({
         title: "Error",
         description: "Failed to save trip",
@@ -160,7 +161,6 @@ const TripItinerary = ({
 
   const handleStartTrip = () => {
     if (!savedTripId) {
-      // Save the trip first if not saved
       if (selectedStops.length === 0) {
         toast({
           title: "No stops to navigate",
@@ -179,19 +179,15 @@ const TripItinerary = ({
         return;
       }
       
-      // Save and then navigate
       handleSaveTrip();
-      // The navigation will happen in the useEffect below when savedTripId is set
     } else {
-      // Navigate to the navigation page with the saved trip ID
-      navigate(`/trip-navigation/${savedTripId}`);
+      navigate(`/navigation/${savedTripId}`);
     }
   };
   
-  // Navigate to trip navigation after saving
   useEffect(() => {
     if (savedTripId) {
-      navigate(`/trip-navigation/${savedTripId}`);
+      navigate(`/navigation/${savedTripId}`);
     }
   }, [savedTripId, navigate]);
 
