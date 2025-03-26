@@ -42,11 +42,12 @@ export interface User {
 
 export type FlagReason = "unsafe" | "closed" | "fake" | "inaccurate" | "other";
 
+// Get Supabase credentials from environment variables, or use constants from client.ts as fallback
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://owsgbzivtjnvtbylsmep.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93c2dieml2dGpudnRieWxzbWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5OTc2MzIsImV4cCI6MjA1ODU3MzYzMn0.ruSSPjdi1NliO9Sz45uejEDHU-ZNVyvNv85ZzderyWo";
+
 // Initialize the Supabase client
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || "",
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ""
-);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Create a bucket for profile images if not exists
 (async () => {
