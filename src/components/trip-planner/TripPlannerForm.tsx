@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { planTrip } from "@/lib/trip-planner/route-service";
 import { RouteData, TripStop } from "@/lib/trip-planner/types";
 import { Switch } from "@/components/ui/switch";
-import LocationAutocomplete from "./LocationAutocomplete";
+import AddressAutocompleteInput from "./AddressAutocompleteInput";
 
 interface TripPlannerFormProps {
   setRouteData: (data: RouteData | null) => void;
@@ -28,9 +28,9 @@ const TripPlannerForm = ({
   const { toast } = useToast();
   const { location, getLocation } = useLocation();
   const [startLocation, setStartLocation] = useState("");
-  const [startCoordinates, setStartCoordinates] = useState("");
+  const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(null);
   const [endLocation, setEndLocation] = useState("");
-  const [endCoordinates, setEndCoordinates] = useState("");
+  const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(null);
   const [bufferDistance, setBufferDistance] = useState(20); // miles
   const [includeCampsites, setIncludeCampsites] = useState(true);
   const [includeGasStations, setIncludeGasStations] = useState(true);
@@ -93,9 +93,9 @@ const TripPlannerForm = ({
     setIsLoading(true);
     
     try {
-      const start = startCoordinates || startLocation;
-      const end = endCoordinates || endLocation;
-      
+      const start = startCoordinates?.join(",") || startLocation;
+      const end = endCoordinates?.join(",") || endLocation;
+
       const result = await planTrip({
         startLocation: start,
         endLocation: end,
@@ -135,27 +135,29 @@ const TripPlannerForm = ({
       
       <div className="space-y-3">
         <div className="space-y-2">
-          <Label htmlFor="start">Starting Point</Label>
-          <LocationAutocomplete
-            placeholder="Address, city, or coordinates"
-            value={startLocation}
-            onChange={setStartLocation}
-            onLocationSelect={handleStartLocationSelect}
-            icon={<MapPin className="h-4 w-4" />}
-            onIconClick={handleUseCurrentLocation}
-            mapboxToken={mapboxToken}
-          />
+        <Label htmlFor="start">Starting Point</Label>
+  <AddressAutocompleteInput
+    placeholder="Starting Point"
+    mapboxToken={mapboxToken!}
+    onSelect={(location: { name: string; lat: number; lng: number }) => {
+      setEndLocation(location.name);
+      setEndCoordinates([location.lng, location.lat]);
+    }}
+    
+  />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="end">Destination</Label>
-          <LocationAutocomplete
-            placeholder="Address, city, or coordinates"
-            value={endLocation}
-            onChange={setEndLocation}
-            onLocationSelect={handleEndLocationSelect}
-            mapboxToken={mapboxToken}
-          />
+          <AddressAutocompleteInput
+    placeholder="Destination"
+    mapboxToken={mapboxToken!}
+    onSelect={(location: { name: string; lat: number; lng: number }) => {
+      setEndLocation(location.name);
+      setEndCoordinates([location.lng, location.lat]);
+    }}
+    
+  />
         </div>
       </div>
       
