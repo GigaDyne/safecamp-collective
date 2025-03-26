@@ -1,5 +1,9 @@
+
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Import from the client file
+
+// Export the supabase client so other files can import it from this module
+export { supabase };
 
 // Database Types
 export type SupabaseUser = {
@@ -275,11 +279,12 @@ export const getCurrentUser = async () => {
 
 export const initializeSupabase = async () => {
   try {
-    const { error: checkError } = await supabase
+    // Fixed type error by using a typesafe approach to check if the table exists
+    const { error } = await supabase
       .from('campsites')
-      .select('count', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true });
     
-    if (checkError && checkError.message.includes('does not exist')) {
+    if (error && error.message.includes('does not exist')) {
       console.log('Tables do not exist, initializing Supabase schema...');
       // We would create tables here but that requires admin privileges
     }

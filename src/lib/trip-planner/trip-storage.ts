@@ -1,6 +1,6 @@
+
 import { SavedTrip } from "./types";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/providers/AuthProvider";
 import { v4 as uuidv4 } from "uuid";
 
 // Local storage key for saved trips

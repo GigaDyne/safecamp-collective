@@ -1,5 +1,6 @@
 
-import { supabase, CampSite, formatCampsiteForSupabase, mapSupabaseCampsite } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { CampSite, formatCampsiteForSupabase, mapSupabaseCampsite } from "@/lib/supabase";
 import { mockCampSites } from "@/data/mockData";
 import { ensureAuthenticated } from "@/lib/auth";
 import { v4 as uuidv4 } from "uuid";
