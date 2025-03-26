@@ -32,7 +32,7 @@ const PopularCampsites: React.FC = () => {
                   className="w-full h-48 object-cover rounded-md transition-transform hover:scale-105"
                   onError={(e) => {
                     e.currentTarget.onerror = null; 
-                    e.currentTarget.src = '/placeholder.svg';
+                    e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Lone_Rock_Beach_Campground.jpg';
                   }}
                 />
               ) : (

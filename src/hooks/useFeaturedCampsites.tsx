@@ -84,20 +84,21 @@ export function useFeaturedCampsites() {
         
         // If we have data from the database, use it with appropriate fallbacks
         if (data && data.length > 0) {
+          console.log('Supabase featured campsites data:', data);
+          
           const processedData = data.map((campsite, index) => ({
             ...campsite,
             // Try database image first, then fall back to our curated images
             image_url: campsite.image_url || 
-                      campsite.image || 
                       realCampsites[index % realCampsites.length]?.image_url ||
-                      fallbackImages[index % fallbackImages.length] || 
-                      '/placeholder.svg'
+                      fallbackImages[index % fallbackImages.length]
           }));
           
           return processedData;
         }
         
         // If no database data, use our real campsite data
+        console.log('Using hardcoded campsite data');
         return realCampsites;
       } catch (error) {
         console.error('Error in useFeaturedCampsites:', error);
