@@ -1,9 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
-const supabaseUrl = 'https://supabase.safecampapp.lovable.dev';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb3dsZ2x2Z2trc2ZyY2x5cHliIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODYzMTgwMDEsImV4cCI6MjAwMTg5NDAwMX0.z6DLVe3A6nZoG7qn3afCqiAJf5qr9MaDYN8xLcXSvvs';
+const supabaseUrl = 'https://owsgbzivtjnvtbylsmep.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93c2dieml2dGpudnRieWxzbWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5OTc2MzIsImV4cCI6MjA1ODU3MzYzMn0.ruSSPjdi1NliO9Sz45uejEDHU-ZNVyvNv85ZzderyWo';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -16,9 +15,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       const [url, options] = args;
       const controller = new AbortController();
       const { signal } = controller;
-      
+
       const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
+
       return fetch(url, {
         ...options,
         signal,
@@ -28,6 +27,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
   }
 });
+
 
 // Database Types
 export type SupabaseUser = {
