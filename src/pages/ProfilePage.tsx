@@ -24,7 +24,6 @@ const ProfilePage = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   
-  // Profile states
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -35,19 +34,15 @@ const ProfilePage = () => {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Creator states
   const [isCreator, setIsCreator] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
   const [subscribers, setSubscribers] = useState<UserSubscription[]>([]);
   
-  // Subscriber states
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   
-  // Comments states
   const [comments, setComments] = useState<ProfileComment[]>([]);
   const [newComment, setNewComment] = useState("");
   
-  // Creator form states
   const [newPlanName, setNewPlanName] = useState("");
   const [newPlanDescription, setNewPlanDescription] = useState("");
   const [newPlanPrice, setNewPlanPrice] = useState("");
@@ -66,7 +61,6 @@ const ProfilePage = () => {
     navigate('/');
   };
 
-  // Format the user created date
   const formatCreatedDate = () => {
     if (!user?.created_at) {
       return "Unknown";
@@ -75,7 +69,6 @@ const ProfilePage = () => {
     return new Date(user.created_at).toLocaleDateString();
   };
   
-  // Load user profile
   useEffect(() => {
     if (user?.id) {
       const loadUserData = async () => {
@@ -89,7 +82,6 @@ const ProfilePage = () => {
             setAvatarUrl(profile.avatar_url);
             setIsCreator(profile.is_creator);
             
-            // If user is creator, load their subscription plans and subscribers
             if (profile.is_creator) {
               const plans = await getCreatorSubscriptionPlans(user.id);
               setSubscriptionPlans(plans);
@@ -98,11 +90,9 @@ const ProfilePage = () => {
               setSubscribers(subs);
             }
             
-            // Load user's subscriptions
             const userSubs = await getUserSubscriptions(user.id);
             setSubscriptions(userSubs);
             
-            // Load comments
             const profileComments = await getProfileComments(user.id);
             setComments(profileComments);
           }
@@ -122,7 +112,6 @@ const ProfilePage = () => {
     }
   }, [user?.id, toast]);
 
-  // Handle avatar file change
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -136,23 +125,19 @@ const ProfilePage = () => {
       }
       
       setAvatarFile(file);
-      // Create temp preview URL
       const objectUrl = URL.createObjectURL(file);
       setAvatarUrl(objectUrl);
     }
   };
 
-  // Handle uploading avatar to storage
   const uploadAvatar = async (): Promise<string | null> => {
     if (!avatarFile || !user?.id) return avatarUrl;
     
     setUploadingAvatar(true);
     try {
-      // Create a unique file path for the avatar
       const fileExt = avatarFile.name.split('.').pop();
       const filePath = `avatars/${user.id}/${Date.now()}.${fileExt}`;
       
-      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('profiles')
         .upload(filePath, avatarFile, {
@@ -163,7 +148,6 @@ const ProfilePage = () => {
         throw uploadError;
       }
       
-      // Get the public URL
       const { data } = supabase.storage
         .from('profiles')
         .getPublicUrl(filePath);
@@ -187,13 +171,13 @@ const ProfilePage = () => {
     setAvatarFile(null);
   };
   
-  // Handle profile update
   const saveProfile = async () => {
     if (!user?.id || !userProfile) return;
     
     setIsSaving(true);
     try {
-      // Upload avatar if there's a new file
+      console.log('Starting profile save...');
+      
       let newAvatarUrl = avatarUrl;
       if (avatarFile) {
         newAvatarUrl = await uploadAvatar();
@@ -203,13 +187,17 @@ const ProfilePage = () => {
         }
       }
       
-      const updatedProfile = await updateUserProfile({
+      const profileData = {
         id: user.id,
         display_name: displayName,
         bio: bio,
         avatar_url: newAvatarUrl,
         is_creator: isCreator
-      });
+      };
+      
+      console.log('Sending profile update with data:', profileData);
+      
+      const updatedProfile = await updateUserProfile(profileData);
       
       if (updatedProfile) {
         setUserProfile(updatedProfile);
@@ -220,8 +208,9 @@ const ProfilePage = () => {
           title: "Profile updated",
           description: "Your profile has been updated successfully.",
         });
+        console.log('Profile updated successfully:', updatedProfile);
       } else {
-        throw new Error("Failed to update profile");
+        throw new Error("Failed to update profile: No data returned");
       }
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -235,7 +224,6 @@ const ProfilePage = () => {
     }
   };
   
-  // Handle subscription plan creation
   const handleCreatePlan = async () => {
     if (!user?.id) return;
     
@@ -264,7 +252,7 @@ const ProfilePage = () => {
         name: newPlanName,
         description: newPlanDescription,
         price: price,
-        stripe_price_id: null  // This would be set after creating a price in Stripe
+        stripe_price_id: null
       });
       
       if (newPlan) {
@@ -288,7 +276,6 @@ const ProfilePage = () => {
     }
   };
   
-  // Handle subscription to a creator
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     if (!user?.id) {
       toast({
@@ -299,26 +286,12 @@ const ProfilePage = () => {
       return;
     }
     
-    // This is a placeholder for Stripe integration
     toast({
       title: "Stripe Integration",
       description: "Stripe payment processing would be triggered here.",
     });
-    
-    // In a real implementation, we would redirect to a Stripe checkout session
-    // const checkoutUrl = await createCheckoutSession(
-    //   plan.stripe_price_id!,
-    //   'subscription',
-    //   undefined,
-    //   plan.creator_id
-    // );
-    // 
-    // if (checkoutUrl) {
-    //   window.location.href = checkoutUrl;
-    // }
   };
   
-  // Handle adding a comment
   const handleAddComment = async () => {
     if (!user?.id || !userProfile?.id) return;
     
@@ -339,7 +312,6 @@ const ProfilePage = () => {
       });
       
       if (comment) {
-        // Add user info to comment for display
         const commentWithUser = {
           ...comment,
           commenter: {
@@ -366,7 +338,6 @@ const ProfilePage = () => {
     }
   };
   
-  // Toggle creator mode
   const toggleCreatorMode = async () => {
     if (!user?.id || !userProfile) return;
     
@@ -439,7 +410,6 @@ const ProfilePage = () => {
           </TabsTrigger>
         </TabsList>
         
-        {/* Profile Tab */}
         <TabsContent value="profile">
           <Card>
             <CardHeader>
@@ -566,12 +536,10 @@ const ProfilePage = () => {
                     variant="outline" 
                     onClick={() => {
                       setIsEditing(false);
-                      // Reset avatar if it was changed but not saved
                       if (avatarFile) {
                         setAvatarUrl(userProfile?.avatar_url || null);
                         setAvatarFile(null);
                       }
-                      // Reset other fields
                       setDisplayName(userProfile?.display_name || "");
                       setBio(userProfile?.bio || "");
                     }}
@@ -629,7 +597,6 @@ const ProfilePage = () => {
           </Card>
         </TabsContent>
         
-        {/* Monetization Tab */}
         <TabsContent value="monetization">
           <Card>
             <CardHeader>
@@ -768,7 +735,6 @@ const ProfilePage = () => {
           </Card>
         </TabsContent>
         
-        {/* Subscriptions Tab */}
         <TabsContent value="subscriptions">
           <Card>
             <CardHeader>
@@ -811,7 +777,6 @@ const ProfilePage = () => {
           </Card>
         </TabsContent>
         
-        {/* Comments Tab */}
         <TabsContent value="comments">
           <Card>
             <CardHeader>

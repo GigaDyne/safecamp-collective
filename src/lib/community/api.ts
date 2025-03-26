@@ -23,23 +23,26 @@ export async function updateUserProfile(profile: Partial<UserProfile>): Promise<
     return null;
   }
 
+  console.log('Updating profile with data:', profile);
+
   try {
     const { data, error } = await supabase
       .from('user_profiles')
       .update(profile)
       .eq('id', profile.id)
-      .select('*')
+      .select()
       .single() as any;
     
     if (error) {
       console.error('Error updating user profile:', error);
-      return null;
+      throw error; // Throw error to be caught by caller
     }
     
+    console.log('Profile update successful, received data:', data);
     return data;
   } catch (error) {
     console.error('Exception updating user profile:', error);
-    return null;
+    throw error; // Rethrow for the component to handle
   }
 }
 
