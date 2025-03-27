@@ -28,6 +28,12 @@ const MapVisualizer = ({
     // Now we can assign directly to map.current since we're using MutableRefObject
     map.current = mapInstance;
     
+    // Make sure map is centered on Austin, Texas
+    if (map.current) {
+      map.current.setCenter([-97.7431, 30.2672]);
+      map.current.setZoom(10);
+    }
+    
     mapInstance.on('moveend', () => {
       const zoom = mapInstance.getZoom();
       const bounds = mapInstance.getBounds();

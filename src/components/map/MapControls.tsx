@@ -37,9 +37,24 @@ const MapControls = () => {
           }
         },
         () => {
-          console.log("Unable to get user location");
+          // If geolocation fails, center on Austin
+          if (map.current) {
+            map.current.flyTo({
+              center: [-97.7431, 30.2672], // Austin, Texas
+              zoom: 10,
+              essential: true,
+            });
+          }
+          console.log("Unable to get user location, defaulting to Austin");
         }
       );
+    } else if (map.current) {
+      // If geolocation is not available, center on Austin
+      map.current.flyTo({
+        center: [-97.7431, 30.2672], // Austin, Texas
+        zoom: 10,
+        essential: true,
+      });
     }
   };
 

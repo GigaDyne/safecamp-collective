@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from "mapbox-gl";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +49,15 @@ const MapInitializerWithPremium = ({
     mapboxToken, 
     onMapReady 
   });
+
+  // Center map on Austin when loaded
+  useEffect(() => {
+    if (map.current && isMapLoaded) {
+      // Ensure map is centered on Austin
+      map.current.setCenter([-97.7431, 30.2672]);
+      map.current.setZoom(10);
+    }
+  }, [isMapLoaded]);
 
   // Handle map popup functionality
   const { 

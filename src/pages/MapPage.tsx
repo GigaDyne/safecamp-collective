@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MapView from "@/components/map/MapView";
 import { Button } from "@/components/ui/button";
 import { Shield, ShieldAlert, Map, Layers } from "lucide-react";
@@ -7,6 +7,32 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const MapPage = () => {
   const [showCrimeData, setShowCrimeData] = useState(false);
+  
+  // Force Austin center when the map component loads
+  useEffect(() => {
+    const centerMap = () => {
+      try {
+        // Find the map instance
+        const mapInstance = document.querySelector('.mapboxgl-map');
+        if (mapInstance && (window as any).mapboxgl) {
+          const map = (window as any).mapboxgl.getMapInstance(mapInstance);
+          if (map) {
+            // Center on Austin
+            map.setCenter([-97.7431, 30.2672]);
+            map.setZoom(10);
+          }
+        }
+      } catch (error) {
+        console.error("Error centering map:", error);
+      }
+    };
+    
+    // Try to center immediately and also after a delay to ensure the map is loaded
+    centerMap();
+    const timeoutId = setTimeout(centerMap, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   return (
     <div className="h-full w-full overflow-hidden relative">

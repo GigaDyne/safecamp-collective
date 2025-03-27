@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -54,8 +53,8 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-111.8910, 40.7608], // Default center
-        zoom: 5,
+        center: [-97.7431, 30.2672], // Austin, Texas coordinates
+        zoom: 10, // Focused on Austin
         attributionControl: false,
         preserveDrawingBuffer: true // Prevents redraws
       });
@@ -112,24 +111,6 @@ const MapInitializer = ({ mapboxToken, campSites, isLoading, onMapReady }: MapIn
 
         if (onMapReady && map.current) {
           onMapReady(map.current);
-        }
-
-        // Fetch user location after map is loaded
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              if (map.current) {
-                map.current.flyTo({
-                  center: [position.coords.longitude, position.coords.latitude],
-                  zoom: 10,
-                  essential: true,
-                });
-              }
-            },
-            () => {
-              console.log("Unable to get user location");
-            }
-          );
         }
       });
     } catch (error) {
