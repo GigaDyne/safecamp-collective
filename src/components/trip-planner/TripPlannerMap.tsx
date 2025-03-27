@@ -40,6 +40,15 @@ const TripPlannerMap = ({
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   
+  // Debug logging for props
+  console.log("TripPlannerMap props:", { 
+    hasRouteData: !!routeData, 
+    tripStopsCount: tripStops.length,
+    isLoading, 
+    hasMapboxToken: !!mapboxToken,
+    selectedStopsCount: selectedStops.length
+  });
+  
   // Use our custom hook for map functionality
   const {
     mapContainer,

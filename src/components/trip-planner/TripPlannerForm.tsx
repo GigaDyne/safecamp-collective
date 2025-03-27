@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +57,9 @@ const TripPlannerForm = ({
   const [includePropaneStations, setIncludePropaneStations] = useState(true);
   const [includeRepairShops, setIncludeRepairShops] = useState(true);
 
+  // For debugging - log the mapboxToken
+  console.log("MapboxToken in TripPlannerForm:", mapboxToken);
+
   const handleUseCurrentLocation = async () => {
     try {
       const coords = await getLocation();
@@ -87,6 +91,14 @@ const TripPlannerForm = ({
   };
 
   const handlePlanTrip = async () => {
+    console.log("Plan Trip clicked with params:", { 
+      startLocation, 
+      endLocation, 
+      startCoordinates, 
+      endCoordinates,
+      bufferDistance
+    });
+    
     if ((!startLocation && !startCoordinates) || (!endLocation && !endCoordinates)) {
       toast({
         title: "Missing information",
@@ -122,6 +134,8 @@ const TripPlannerForm = ({
         end = endLocation;
       }
 
+      console.log("Calling planTrip with:", { start, end, bufferDistance });
+
       const result = await planTrip({
         startLocation: start,
         endLocation: end,
@@ -135,6 +149,8 @@ const TripPlannerForm = ({
         includeRepairShops,
         mapboxToken
       });
+      
+      console.log("Trip planning result:", result);
       
       setRouteData(result.routeData);
       setTripStops(result.availableStops);
@@ -313,7 +329,7 @@ const TripPlannerForm = ({
       
       <Button 
         onClick={handlePlanTrip} 
-        className="w-full"
+        className="w-full mt-6 font-medium bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors"
         disabled={isLoading || (!startLocation && !startCoordinates) || (!endLocation && !endCoordinates) || !mapboxToken}
       >
         {isLoading ? (

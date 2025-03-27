@@ -42,7 +42,11 @@ const TripPlannerPage = () => {
   
   const { user, isAuthenticated, isOfflineMode } = useAuth();
   
+  // Use the provided Mapbox token or get it from localStorage
   const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
+  
+  // Debug logging
+  console.log("TripPlannerPage - mapboxToken:", mapboxToken);
   
   const { toast } = useToast();
 
