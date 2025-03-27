@@ -101,7 +101,8 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
     // Add new markers for each stop
     tripStops.forEach((stop, index) => {
       const isActive = index === currentStopIndex;
-      const markerElement = createStopMarker(stop, isActive, index);
+      // Fix: Pass the stop type as a string instead of the whole TripStop object
+      const markerElement = createStopMarker(stop.type || 'campsite', stop.safetyRating, isActive);
       
       const marker = new mapboxgl.Marker({
         element: markerElement
@@ -153,8 +154,9 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
       userMarker.current.remove();
     }
     
-    // Create a new marker element
-    const markerElement = createNavigationMarker();
+    // Fix: Use string type for first parameter, and provide all required parameters
+    // Using 'user-location' as type, false for not being current stop, and -1 as index
+    const markerElement = createNavigationMarker('user-location', false, -1);
     
     userMarker.current = new mapboxgl.Marker({
       element: markerElement
