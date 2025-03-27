@@ -1,8 +1,11 @@
 
 import { createContext, useContext, useState, useRef, ReactNode } from "react";
 
+// Define the Map type correctly to avoid type errors
+type GoogleMap = google.maps.Map;
+
 interface MapContextType {
-  map: React.MutableRefObject<google.maps.Map | null>;
+  map: React.MutableRefObject<GoogleMap | null>;
   tokenEntered: boolean;
   setTokenEntered: (entered: boolean) => void;
   mapboxToken: string;
@@ -55,7 +58,7 @@ interface MapProviderProps {
 }
 
 export function MapProvider({ children, value }: MapProviderProps) {
-  const mapRef = useRef<google.maps.Map | null>(null);
+  const mapRef = useRef<GoogleMap | null>(null);
   const [tokenEntered, setTokenEntered] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
     const localStorageTokenKey = "mapbox_token";

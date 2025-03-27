@@ -37,8 +37,9 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const debouncedFetchRef = useRef<any>(null);
 
-  // Initial value effect
+  // Initialize component with initial value
   useEffect(() => {
     if (initialValue) {
       setInputValue(initialValue);
@@ -46,15 +47,12 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   }, [initialValue]);
 
   // Create a memoized debounced function that won't change on every render
-  // Using useCallback ensures the debounced function isn't recreated on each render
-  const debouncedFetch = useCallback(
-    debounce(async (value: string) => {
-      // Cancel any previous requests
+  useEffect(() => {
+    debouncedFetchRef.current = debounce(async (value: string) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       
-      // Create a new abort controller for this request
       abortControllerRef.current = new AbortController();
       
       if (!value || value.length < 3 || !mapboxToken) {
@@ -98,37 +96,46 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       } finally {
         setIsLoading(false);
       }
-    }, 300),
-    [mapboxToken]
-  );
+    }, 300);
+
+    return () => {
+      if (debouncedFetchRef.current) {
+        debouncedFetchRef.current.cancel();
+      }
+    };
+  }, [mapboxToken]);
 
   // Handle input changes and trigger the fetch
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
     
+    // Cancel any previous requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     if (newValue.length >= 3) {
       setIsLoading(true);
-      // Always reset error state when trying a new search
       setError(null);
-      debouncedFetch(newValue);
+      debouncedFetchRef.current(newValue);
     } else {
       setIsOpen(false);
       setError(null);
       setFeatures([]);
+      setIsLoading(false);
     }
   };
 
-  const clearInput = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    
+  const clearInput = () => {
     // Cancel any pending requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+    }
+    
+    // Cancel debounced function call
+    if (debouncedFetchRef.current) {
+      debouncedFetchRef.current.cancel();
     }
     
     setInputValue("");
@@ -146,19 +153,31 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   const handleSelect = (feature: MapboxFeature) => {
     setInputValue(feature.place_name);
     setIsOpen(false);
+    
+    // Cancel any pending operations
+    if (debouncedFetchRef.current) {
+      debouncedFetchRef.current.cancel();
+    }
+    
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
     const [lng, lat] = feature.center;
     onSelect({ name: feature.place_name, lat, lng });
   };
 
-  // Cancel debounced function and pending requests on unmount
+  // Clean up on unmount
   useEffect(() => {
     return () => {
-      debouncedFetch.cancel();
+      if (debouncedFetchRef.current) {
+        debouncedFetchRef.current.cancel();
+      }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [debouncedFetch]);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -212,7 +231,11 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
                 variant="ghost" 
                 size="icon" 
                 className="h-4 w-4 p-0" 
-                onClick={clearInput}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  clearInput();
+                }}
                 type="button"
                 tabIndex={-1}
               >

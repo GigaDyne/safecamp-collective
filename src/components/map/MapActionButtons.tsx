@@ -1,3 +1,4 @@
+
 import { useMapContext } from "@/contexts/MapContext";
 import { useNavigate } from "react-router-dom";
 import { Filter, Plus, Route } from "lucide-react";
@@ -58,11 +59,22 @@ const MapActionButtons = ({ onApplyFilters }: MapActionButtonsProps) => {
     setShowAddSiteDialog(false);
     
     if (map.current) {
-      map.current.flyTo({
-        center: [newCampSite.longitude, newCampSite.latitude],
-        zoom: 13,
-        essential: true,
-      });
+      // Handle Google Maps implementation
+      if ('panTo' in map.current) {
+        map.current.panTo({
+          lat: newCampSite.latitude, 
+          lng: newCampSite.longitude
+        });
+      }
+      // For Mapbox implementation
+      else if ('flyTo' in map.current) {
+        // @ts-ignore - Handling potential Mapbox implementation
+        map.current.flyTo({
+          center: [newCampSite.longitude, newCampSite.latitude],
+          zoom: 13,
+          essential: true,
+        });
+      }
     }
   };
 
