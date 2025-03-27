@@ -1,6 +1,4 @@
 
-import { RefObject } from "react";
-import mapboxgl from "mapbox-gl";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Compass, Layers } from "lucide-react";
 import { 
@@ -9,12 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useMapContext } from "@/contexts/MapContext";
 
-type MapControlsProps = {
-  map: RefObject<mapboxgl.Map | null>;
-};
+const MapControls = () => {
+  const { map } = useMapContext();
 
-const MapControls = ({ map }: MapControlsProps) => {
   const handleZoomIn = () => {
     if (map.current) {
       map.current.zoomIn();
