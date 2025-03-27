@@ -25,11 +25,8 @@ const MapVisualizer = ({
   } = useMapContext();
   
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
-    // Instead of directly assigning to map.current, which is read-only
-    if (map.current !== mapInstance) {
-      // Set the reference through its containing object
-      map.current = mapInstance;
-    }
+    // Now we can assign directly to map.current since we're using MutableRefObject
+    map.current = mapInstance;
     
     mapInstance.on('moveend', () => {
       const zoom = mapInstance.getZoom();

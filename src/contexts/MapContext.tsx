@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useRef, ReactNode } from "react";
+
+import { createContext, useContext, useState, useRef, ReactNode, MutableRefObject } from "react";
 import mapboxgl from "mapbox-gl";
 
 interface MapContextType {
-  map: React.RefObject<mapboxgl.Map | null>;
+  map: MutableRefObject<mapboxgl.Map | null>;
   tokenEntered: boolean;
   setTokenEntered: (entered: boolean) => void;
   mapboxToken: string;
@@ -32,6 +33,7 @@ interface MapContextType {
 const MapContext = createContext<MapContextType | undefined>(undefined);
 
 export function MapProvider({ children }: { children: ReactNode }) {
+  // Using MutableRefObject instead of RefObject to allow assignment
   const map = useRef<mapboxgl.Map | null>(null);
   const [tokenEntered, setTokenEntered] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
