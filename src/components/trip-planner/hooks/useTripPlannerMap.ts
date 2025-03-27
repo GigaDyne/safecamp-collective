@@ -185,6 +185,7 @@ export const useTripPlannerMap = ({
     mapsLoaded,
     mapInitialized,
     error,
-    isLoading
+    isLoading,
+    map
   };
 };

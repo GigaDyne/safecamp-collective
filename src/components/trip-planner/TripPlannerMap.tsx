@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TripStop, RouteData } from '@/lib/trip-planner/types';
 import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
 import { useTripPlannerMap } from './hooks/useTripPlannerMap';
@@ -38,13 +38,15 @@ const TripPlannerMap = ({
   const [showDebug, setShowDebug] = useState(false);
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
   
   // Use our custom hook for map functionality
   const {
     mapContainer,
     mapsLoaded,
     mapInitialized,
-    error
+    error,
+    map
   } = useTripPlannerMap({
     routeData,
     tripStops,
@@ -52,6 +54,13 @@ const TripPlannerMap = ({
     selectedStops,
     onSelectedStopChange: setSelectedStop
   });
+
+  // Sync the map reference
+  React.useEffect(() => {
+    if (map.current) {
+      mapRef.current = map.current;
+    }
+  }, [map.current]);
   
   // Handle context menu selection
   const handleStopContextMenu = (stop: TripStop) => {
@@ -105,7 +114,7 @@ const TripPlannerMap = ({
           mapboxToken={mapboxToken}
           mapInitialized={mapInitialized}
           mapContainerRef={mapContainer}
-          mapRef={{ current: null }} // We don't expose the map reference directly anymore
+          mapRef={mapRef}
           error={error}
         />
       )}
