@@ -90,7 +90,7 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
     };
   }, [mapboxToken]); // Only re-run when token changes
 
-  // Allow re-initialization if needed
+  // Reset function to allow re-initialization if needed
   const resetMap = () => {
     if (map.current) {
       map.current.remove();

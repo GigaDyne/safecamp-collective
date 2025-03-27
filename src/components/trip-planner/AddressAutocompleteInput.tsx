@@ -117,10 +117,11 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
         </div>
       </PopoverTrigger>
       <PopoverContent
-        className="p-0 w-[var(--radix-popover-trigger-width)] max-h-[300px] overflow-y-auto"
+        className="p-0 w-[var(--radix-popover-trigger-width)] max-h-[300px] overflow-y-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-border shadow-lg z-50"
         align="start"
+        sideOffset={5}
       >
-        <div className="rounded-md border bg-popover text-popover-foreground shadow-md outline-none">
+        <div className="rounded-md overflow-hidden">
           {features.map((feature) => (
             <Button
               key={feature.id}

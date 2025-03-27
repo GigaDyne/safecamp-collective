@@ -153,7 +153,7 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
   }, [selectedCategories]);
 
   return (
-    <div className="bg-background/90 shadow-lg rounded-lg p-4 space-y-3 w-full max-w-xl">
+    <div className="bg-background/95 dark:bg-gray-800/95 backdrop-blur-md shadow-lg rounded-lg p-4 space-y-3 w-full max-w-xl border border-border">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Input

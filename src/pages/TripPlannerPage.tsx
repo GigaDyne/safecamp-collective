@@ -11,6 +11,7 @@ import TripPlannerHeader from "@/components/trip-planner/TripPlannerHeader";
 import TripPlannerContent from "@/components/trip-planner/TripPlannerContent";
 import MapboxTokenDialog from "@/components/trip-planner/MapboxTokenDialog";
 import SaveTripDialog from "@/components/trip-planner/SaveTripDialog";
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface LocationState {
   startLocation?: string;

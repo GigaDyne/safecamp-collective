@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { TripStop, RouteData } from '@/lib/trip-planner/types';
@@ -97,7 +98,7 @@ const TripPlannerMap = ({
     const params = new URLSearchParams(window.location.search);
     const crimeParam = params.get('showCrime');
     
-    if (crimeParam === 'true') {
+    if (crimeParam === 'true' && setShowCrimeData) {
       setShowCrimeData(true);
     }
     
@@ -105,7 +106,7 @@ const TripPlannerMap = ({
     if (crimeToggle && showCrimeData) {
       crimeToggle.checked = true;
     }
-  }, []);
+  }, [showCrimeData, setShowCrimeData]);
 
   const { crimeData, isLoading: isCrimeDataLoading, isMockData } = useCrimeData({
     map,
@@ -201,7 +202,7 @@ const TripPlannerMap = ({
       </ContextMenuTrigger>
       
       {selectedStop && (
-        <ContextMenuContent className="w-48">
+        <ContextMenuContent className="w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-lg border border-border">
           <ContextMenuItem 
             className="flex items-center gap-2 cursor-pointer"
             onClick={() => {
@@ -222,7 +223,7 @@ const TripPlannerMap = ({
       )}
 
       <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white/95 dark:bg-gray-800/95 backdrop-blur-md">
           <DialogHeader>
             <DialogTitle>Crime Statistics</DialogTitle>
             <DialogDescription>
