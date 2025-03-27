@@ -12,15 +12,15 @@ interface CrimeDataToggleProps {
 
 const CrimeDataToggle = ({ enabled, onToggle, className = '' }: CrimeDataToggleProps) => {
   return (
-    <div className={`absolute z-10 ${className}`}>
+    <div className={`absolute z-20 ${className}`}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant={enabled ? "default" : "outline"}
+              variant={enabled ? "destructive" : "secondary"}
               size="sm"
-              className={`flex items-center gap-1 shadow-md border border-gray-200 dark:border-slate-700 ${
-                enabled ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white dark:bg-slate-800'
+              className={`flex items-center gap-1 shadow-md border ${
+                enabled ? 'border-red-400 dark:border-red-700' : 'border-gray-200 dark:border-slate-700'
               }`}
               onClick={() => onToggle(!enabled)}
             >

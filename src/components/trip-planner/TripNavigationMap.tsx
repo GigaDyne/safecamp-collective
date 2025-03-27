@@ -13,6 +13,7 @@ import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 import { MapProvider } from '@/contexts/MapContext';
 import MapControls from '../map/MapControls';
 import CrimeDataToggle from './map-components/CrimeDataToggle';
+import MapLoadingState from './map-components/MapLoadingState';
 
 interface TripNavigationMapProps {
   tripStops: TripStop[];
@@ -23,6 +24,7 @@ interface TripNavigationMapProps {
 const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNavigationMapProps) => {
   const [showCrimeData, setShowCrimeData] = useState<boolean>(false);
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
+  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   
   // Initialize navigation map using Google Maps
   const { mapContainer, loading, map } = useNavigationMap({
@@ -31,6 +33,13 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
     userLocation,
     showCrimeData
   });
+
+  // Update mapLoaded state when map is ready
+  useEffect(() => {
+    if (map.current) {
+      setMapLoaded(true);
+    }
+  }, [map.current]);
 
   // Check for URL parameters
   useEffect(() => {
@@ -54,14 +63,19 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
           className="top-4 right-4"
         />
 
-        {/* Wrap MapControls with MapProvider */}
-        <MapProvider>
-          <MapControls />
-        </MapProvider>
+        {/* Properly wrap MapControls with MapProvider */}
+        {mapLoaded && (
+          <MapProvider value={{ map: map.current }}>
+            <MapControls />
+          </MapProvider>
+        )}
+
+        {/* Show loading state when map is loading */}
+        {loading && <MapLoadingState message="Loading navigation map..." />}
 
         {/* Crime data detail dialog */}
         <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
-          <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 shadow-xl">
+          <DialogContent className="sm:max-w-md bg-background shadow-xl">
             <DialogHeader>
               <DialogTitle>Crime Statistics</DialogTitle>
               <DialogDescription>

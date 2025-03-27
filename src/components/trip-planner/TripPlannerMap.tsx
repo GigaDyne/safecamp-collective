@@ -38,25 +38,16 @@ const TripPlannerMap = ({
   showCrimeData = false,
   setShowCrimeData
 }: TripPlannerMapProps) => {
-  const [showDebug, setShowDebug] = useState(true); // Set to true initially for debugging
+  const [showDebug, setShowDebug] = useState(false);
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  
-  // Debug logging for props
-  console.log("TripPlannerMap props:", { 
-    hasRouteData: !!routeData, 
-    tripStopsCount: tripStops.length,
-    isLoading, 
-    hasMapboxToken: !!mapboxToken,
-    selectedStopsCount: selectedStops.length
-  });
+  const [mapInitialized, setMapInitialized] = useState(false);
   
   // Use our custom hook for map functionality
   const {
     mapContainer,
     mapsLoaded,
-    mapInitialized,
     error,
     map
   } = useTripPlannerMap({
@@ -67,11 +58,11 @@ const TripPlannerMap = ({
     onSelectedStopChange: setSelectedStop
   });
 
-  // Sync the map reference
+  // Sync the map reference and set initialized state
   useEffect(() => {
     if (map.current) {
       mapRef.current = map.current;
-      console.log("Map reference synced successfully:", map.current);
+      setMapInitialized(true);
     }
   }, [map.current]);
   
@@ -93,17 +84,6 @@ const TripPlannerMap = ({
     };
   }, []);
 
-  // Debug log to check component rendering
-  useEffect(() => {
-    console.log("TripPlannerMap rendering:", { 
-      mapContainer: mapContainer.current, 
-      mapsLoaded,
-      mapInitialized,
-      mapRef: mapRef.current,
-      error
-    });
-  }, [mapContainer, mapsLoaded, mapInitialized, mapRef.current, error]);
-
   if (error) {
     return <MapError message={error} />;
   }
@@ -122,7 +102,7 @@ const TripPlannerMap = ({
           data-testid="map-container"
         />
         
-        {/* Add Crime Data Toggle */}
+        {/* Add Crime Data Toggle with improved visibility */}
         {setShowCrimeData && (
           <CrimeDataToggle
             enabled={showCrimeData}
@@ -131,11 +111,14 @@ const TripPlannerMap = ({
           />
         )}
         
-        {/* Add Map Controls with MapProvider */}
-        <MapProvider>
-          <MapControls />
-        </MapProvider>
+        {/* Properly wrap MapControls with MapProvider */}
+        {mapInitialized && (
+          <MapProvider value={{ map: mapRef.current }}>
+            <MapControls />
+          </MapProvider>
+        )}
         
+        {/* Improved loading state */}
         {isLoading && <MapLoadingState message="Planning your trip..." />}
         
         {!mapsLoaded && (
@@ -143,7 +126,7 @@ const TripPlannerMap = ({
         )}
         
         {!isLoading && !error && tripStops.length === 0 && routeData && (
-          <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-slate-800 p-4 rounded-md shadow-lg border border-gray-200 dark:border-slate-700 text-center">
+          <div className="absolute bottom-4 left-4 right-4 bg-background p-4 rounded-md shadow-lg border border-border text-center">
             <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
           </div>
         )}
