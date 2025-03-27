@@ -55,7 +55,8 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     }
   };
 
-  const fetchResults = useCallback(
+  // Create a memoized debounced function that won't change on every render
+  const debouncedFetch = useCallback(
     debounce(async (value: string) => {
       if (!value || value.length < 3 || !mapboxToken) {
         setFeatures([]);
@@ -77,7 +78,6 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
         }
 
         const data = await response.json();
-        console.log("Mapbox autocomplete results:", data);
         
         if (data.features && data.features.length > 0) {
           setFeatures(data.features);
@@ -99,20 +99,27 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     [mapboxToken]
   );
 
-  useEffect(() => {
-    if (inputValue.length >= 3) {
+  // Handle input changes and trigger the fetch
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    
+    if (newValue.length >= 3) {
       setIsLoading(true);
-      fetchResults(inputValue);
+      debouncedFetch(newValue);
     } else {
-      setFeatures([]);
-      setError(null);
       setIsOpen(false);
+      setError(null);
+      setFeatures([]);
     }
+  };
 
+  // Cancel debounced function on unmount
+  useEffect(() => {
     return () => {
-      fetchResults.cancel();
+      debouncedFetch.cancel();
     };
-  }, [inputValue, fetchResults]);
+  }, [debouncedFetch]);
 
   const handleSelect = (feature: MapboxFeature) => {
     setInputValue(feature.place_name);
@@ -148,16 +155,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
             ref={inputRef}
             placeholder={placeholder}
             value={inputValue}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setInputValue(newValue);
-              if (newValue.length >= 3) {
-                setIsLoading(true);
-              } else {
-                setIsOpen(false);
-                setError(null);
-              }
-            }}
+            onChange={handleInputChange}
             className={cn("w-full pr-8", className)}
             disabled={!mapboxToken}
             onFocus={() => {
@@ -178,20 +176,19 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             ) : inputValue ? (
-              <div className="flex space-x-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearInput();
-                  }}
-                >
-                  <X className="h-4 w-4 text-muted-foreground" />
-                  <span className="sr-only">Clear input</span>
-                </Button>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-4 w-4 p-0" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearInput();
+                }}
+                type="button"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+                <span className="sr-only">Clear input</span>
+              </Button>
             ) : (
               <Search className="h-4 w-4 text-muted-foreground" />
             )}
@@ -212,6 +209,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
                 variant="ghost"
                 className="w-full justify-start font-normal px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
                 onClick={() => handleSelect(feature)}
+                type="button"
               >
                 {feature.place_name}
               </Button>
