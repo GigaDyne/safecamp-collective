@@ -101,8 +101,10 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
     // Add new markers for each stop
     tripStops.forEach((stop, index) => {
       const isActive = index === currentStopIndex;
+      const markerElement = createStopMarker(stop, isActive, index);
+      
       const marker = new mapboxgl.Marker({
-        element: createStopMarker(stop, isActive, index)
+        element: markerElement
       })
         .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
         .addTo(map.current!);
@@ -151,8 +153,11 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
       userMarker.current.remove();
     }
     
+    // Create a new marker element
+    const markerElement = createNavigationMarker();
+    
     userMarker.current = new mapboxgl.Marker({
-      element: createNavigationMarker()
+      element: markerElement
     })
       .setLngLat([userLocation.lng, userLocation.lat])
       .addTo(map.current);
