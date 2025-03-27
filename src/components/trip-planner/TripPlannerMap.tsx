@@ -154,7 +154,6 @@ const TripPlannerMap = ({
       // Fit bounds to show the route
       const bounds = new google.maps.LatLngBounds();
       path.forEach(point => bounds.extend(point));
-      // Fix: Remove padding property from fitBounds options
       map.current.fitBounds(bounds);
     }
   }, [routeData, mapInitialized]);
@@ -213,7 +212,6 @@ const TripPlannerMap = ({
         });
       });
       
-      // Fix: Remove padding property from fitBounds options
       map.current.fitBounds(bounds);
     }
   }, [tripStops, mapInitialized]);
