@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -152,60 +151,87 @@ const ProfilePage = () => {
     }
   };
 
-  const uploadAvatar = async (): Promise<string | null> => {
-    if (!avatarFile || !user?.id) return avatarUrl;
+const uploadAvatar = async (): Promise<string | null> => {
+  if (!avatarFile || !user?.id) return avatarUrl;
+  
+  setUploadingAvatar(true);
+  try {
+    const fileExt = avatarFile.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
     
-    setUploadingAvatar(true);
-    try {
-      const fileExt = avatarFile.name.split('.').pop();
-      const filePath = `avatars/${user.id}/${Date.now()}.${fileExt}`;
-      
-      // Get bucket info first
-      const { data: bucketData, error: bucketError } = await supabase.storage
-        .getBucket('profiles');
-        
-      // Create bucket if it doesn't exist
-      if (!bucketData && bucketError && 'code' in bucketError && bucketError.code === 'PGRST116') {
-        await supabase.storage.createBucket('profiles', {
-          public: true,
-          fileSizeLimit: 5 * 1024 * 1024,
-        });
-      }
-      
-      const { error: uploadError } = await supabase.storage
-        .from('profiles')
-        .upload(filePath, avatarFile, {
-          upsert: true,
-        });
-      
-      if (uploadError) {
-        throw uploadError;
-      }
-      
-      const { data } = supabase.storage
-        .from('profiles')
-        .getPublicUrl(filePath);
-      
-      return data.publicUrl;
-    } catch (error) {
-      console.error("Error uploading avatar:", error);
+    // Validate file size and type
+    if (avatarFile.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Avatar image must be less than 5MB",
+        variant: "destructive",
+      });
+      setUploadingAvatar(false);
+      return null;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(avatarFile.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPEG, PNG, GIF, or WebP image",
+        variant: "destructive",
+      });
+      setUploadingAvatar(false);
+      return null;
+    }
+    
+    const { error: uploadError } = await supabase.storage
+      .from('profiles')
+      .upload(fileName, avatarFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+    
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your avatar",
+        description: uploadError.message || "There was an error uploading your avatar",
         variant: "destructive",
       });
       return null;
-    } finally {
-      setUploadingAvatar(false);
     }
-  };
+    
+    const { data: { publicUrl }, error: urlError } = supabase.storage
+      .from('profiles')
+      .getPublicUrl(fileName);
+    
+    if (urlError) {
+      console.error("Public URL error:", urlError);
+      toast({
+        title: "URL Generation Failed",
+        description: "Could not generate a public URL for your avatar",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
+    return publicUrl;
+  } catch (error) {
+    console.error("Avatar upload error:", error);
+    toast({
+      title: "Upload Error",
+      description: "An unexpected error occurred while uploading your avatar",
+      variant: "destructive",
+    });
+    return null;
+  } finally {
+    setUploadingAvatar(false);
+  }
+};
 
   const handleRemoveAvatar = () => {
     setAvatarUrl(null);
     setAvatarFile(null);
   };
   
-  const saveProfile = async () => {
+const saveProfile = async () => {
     if (!user?.id || !userProfile) {
       toast({
         title: "Error",
@@ -219,38 +245,36 @@ const ProfilePage = () => {
     setIsSaving(true);
     setSaveError(null);
     
-    try {
-      toast({
-        title: "Saving profile...",
-        description: "Please wait while we update your profile.",
-      });
+  try {
+    let newAvatarUrl = avatarUrl;
+    
+    // Only upload if a new file is selected
+    if (avatarFile) {
+      newAvatarUrl = await uploadAvatar();
       
-      let newAvatarUrl = avatarUrl;
-      if (avatarFile) {
-        newAvatarUrl = await uploadAvatar();
-        if (!newAvatarUrl) {
-          setIsSaving(false);
-          toast({
-            title: "Error",
-            description: "Failed to upload avatar. Profile update canceled.",
-            variant: "destructive",
-          });
-          return;
-        }
+      // If upload fails, stop profile save
+      if (!newAvatarUrl) {
+        toast({
+          title: "Avatar Upload Failed",
+          description: "Please try uploading your avatar again",
+          variant: "destructive",
+        });
+        return;
       }
-      
-      const profileData = {
-        id: user.id,
-        display_name: displayName,
-        bio: bio,
-        avatar_url: newAvatarUrl,
-        is_creator: isCreator
-      };
-      
-      console.log('Sending profile update with data:', profileData);
-      
-      const updatedProfile = await updateUserProfile(profileData);
-      
+    }
+    
+    const profileData = {
+      id: user.id,
+      display_name: displayName,
+      bio: bio,
+      avatar_url: newAvatarUrl,
+      is_creator: isCreator
+    };
+    
+    console.log('Sending profile update with data:', profileData);
+    
+    const updatedProfile = await updateUserProfile(profileData);
+    
       if (updatedProfile) {
         setUserProfile(updatedProfile);
         setAvatarUrl(updatedProfile.avatar_url);
@@ -264,7 +288,7 @@ const ProfilePage = () => {
       } else {
         throw new Error("Failed to update profile: No data returned");
       }
-    } catch (error: any) {
+  } catch (error: any) {
       console.error("Error updating profile:", error);
       const errorMessage = error?.message || "Failed to update profile. Please try again.";
       setSaveError(errorMessage);
@@ -273,10 +297,10 @@ const ProfilePage = () => {
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  } finally {
+    setIsSaving(false);
+  }
+};
   
   const handleCreatePlan = async () => {
     if (!user?.id) return;
