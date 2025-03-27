@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
+import mapboxgl from "mapbox-gl";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CampSite } from "@/lib/supabase";
