@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import debounce from "lodash.debounce";
 
@@ -32,6 +32,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [features, setFeatures] = useState<MapboxFeature[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchPerformed, setSearchPerformed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Initial value effect
@@ -52,7 +53,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       try {
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-            value
+            value.trim()
           )}.json?access_token=${mapboxToken}&limit=5&country=us,ca,mx`
         );
 
@@ -62,6 +63,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
 
         const data = await response.json();
         setFeatures(data.features || []);
+        setSearchPerformed(true);
       } catch (error) {
         console.error("Failed to fetch geocoding results:", error);
         setFeatures([]);
@@ -100,18 +102,25 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
             placeholder={placeholder}
             value={inputValue}
             onChange={(e) => {
-              setInputValue(e.target.value);
-              if (e.target.value.length >= 3) {
+              const newValue = e.target.value;
+              setInputValue(newValue);
+              if (newValue.length >= 3) {
                 setIsOpen(true);
               } else {
                 setIsOpen(false);
               }
             }}
             className={cn("w-full", className)}
+            disabled={!mapboxToken}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {!isLoading && inputValue && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Search className="h-4 w-4 text-muted-foreground" />
             </div>
           )}
         </div>
@@ -132,6 +141,11 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
               {feature.place_name}
             </Button>
           ))}
+          {searchPerformed && features.length === 0 && (
+            <div className="p-3 text-sm text-muted-foreground">
+              No locations found. Try a different search term.
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "@/hooks/useLocation";
@@ -56,9 +56,26 @@ const TripPlannerForm = ({
   const [includeWalmarts, setIncludeWalmarts] = useState(true);
   const [includePropaneStations, setIncludePropaneStations] = useState(true);
   const [includeRepairShops, setIncludeRepairShops] = useState(true);
+  
+  // Derived state to determine if the form is valid for planning
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  // Validate form whenever relevant fields change
+  useEffect(() => {
+    const hasStartingPoint = Boolean(startLocation.trim() && (startCoordinates || initialStartCoords));
+    const hasDestination = Boolean(endLocation.trim() && (endCoordinates || initialDestCoords));
+    setIsFormValid(hasStartingPoint && hasDestination && Boolean(mapboxToken));
+  }, [startLocation, startCoordinates, endLocation, endCoordinates, mapboxToken, initialStartCoords, initialDestCoords]);
 
   // For debugging - log the mapboxToken
   console.log("MapboxToken in TripPlannerForm:", mapboxToken);
+  console.log("Form validity state:", { 
+    isFormValid, 
+    startLocation, 
+    hasStartCoords: Boolean(startCoordinates || initialStartCoords), 
+    endLocation, 
+    hasEndCoords: Boolean(endCoordinates || initialDestCoords)
+  });
 
   const handleUseCurrentLocation = async () => {
     try {
@@ -96,22 +113,14 @@ const TripPlannerForm = ({
       endLocation, 
       startCoordinates, 
       endCoordinates,
-      bufferDistance
+      bufferDistance,
+      isFormValid
     });
     
-    if ((!startLocation && !startCoordinates) || (!endLocation && !endCoordinates)) {
+    if (!isFormValid) {
       toast({
         title: "Missing information",
         description: "Please enter both start and end locations",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!mapboxToken) {
-      toast({
-        title: "Missing Mapbox token",
-        description: "Please set your Mapbox token in settings",
         variant: "destructive",
       });
       return;
@@ -123,6 +132,8 @@ const TripPlannerForm = ({
       let start = "";
       if (startCoordinates) {
         start = startCoordinates.join(",");
+      } else if (initialStartCoords) {
+        start = `${initialStartCoords.lng},${initialStartCoords.lat}`;
       } else {
         start = startLocation;
       }
@@ -130,6 +141,8 @@ const TripPlannerForm = ({
       let end = "";
       if (endCoordinates) {
         end = endCoordinates.join(",");
+      } else if (initialDestCoords) {
+        end = `${initialDestCoords.lng},${initialDestCoords.lat}`;
       } else {
         end = endLocation;
       }
@@ -147,7 +160,7 @@ const TripPlannerForm = ({
         includeWalmarts,
         includePropaneStations,
         includeRepairShops,
-        mapboxToken
+        mapboxToken: mapboxToken || ""
       });
       
       console.log("Trip planning result:", result);
@@ -192,10 +205,16 @@ const TripPlannerForm = ({
               onClick={handleUseCurrentLocation}
               className="ml-2"
               type="button"
+              disabled={!mapboxToken || isLoading}
             >
               <MapPin className="h-4 w-4" />
             </Button>
           </div>
+          {startLocation && startCoordinates && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Location selected with coordinates
+            </p>
+          )}
         </div>
         
         <div className="space-y-2">
@@ -207,6 +226,11 @@ const TripPlannerForm = ({
             className="w-full"
             initialValue={initialDestination}
           />
+          {endLocation && endCoordinates && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Location selected with coordinates
+            </p>
+          )}
         </div>
       </div>
       
@@ -330,12 +354,12 @@ const TripPlannerForm = ({
       <Button 
         onClick={handlePlanTrip} 
         className="w-full mt-6 font-medium bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors"
-        disabled={isLoading || (!startLocation && !startCoordinates) || (!endLocation && !endCoordinates) || !mapboxToken}
+        disabled={isLoading || !isFormValid}
       >
         {isLoading ? (
           <>
             <RotateCw className="mr-2 h-4 w-4 animate-spin" />
-            Planning...
+            Planning Trip...
           </>
         ) : (
           "Plan Trip"
@@ -345,6 +369,12 @@ const TripPlannerForm = ({
       {!mapboxToken && (
         <p className="text-sm text-destructive text-center mt-2">
           Please set your Mapbox token in settings to use the trip planner
+        </p>
+      )}
+      
+      {mapboxToken && !isFormValid && (
+        <p className="text-sm text-muted-foreground text-center mt-2">
+          Enter both start and destination locations to plan your trip
         </p>
       )}
     </div>

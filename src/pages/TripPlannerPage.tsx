@@ -43,7 +43,7 @@ const TripPlannerPage = () => {
   const { user, isAuthenticated, isOfflineMode } = useAuth();
   
   // Use the provided Mapbox token or get it from localStorage
-  const mapboxToken = "pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg";
+  const mapboxToken = process.env.MAPBOX_TOKEN || localStorage.getItem("mapbox_token") || "";
   
   // Debug logging
   console.log("TripPlannerPage - mapboxToken:", mapboxToken);
@@ -59,7 +59,12 @@ const TripPlannerPage = () => {
         description: `Planning route from ${locationState.startLocation} to ${locationState.destination}`,
       });
     }
-  }, [locationState, toast]);
+    
+    // Check if Mapbox token is missing and prompt user
+    if (!mapboxToken) {
+      setShowTokenDialog(true);
+    }
+  }, [locationState, toast, mapboxToken]);
 
   const handleAddToItinerary = (stop: TripStop) => {
     if (selectedStops.some(s => s.id === stop.id)) {
@@ -99,8 +104,8 @@ const TripPlannerPage = () => {
       const newTrip: SavedTrip = {
         id: uuidv4(),
         name: tripName,
-        startLocation: tripStops.length > 0 ? tripStops[0].name : "Starting Point",
-        endLocation: tripStops.length > 0 ? tripStops[tripStops.length - 1].name : "Destination",
+        startLocation: initialStartLocation || "Starting Point",
+        endLocation: initialDestination || "Destination",
         stops: selectedStops,
         routeData: routeData,
         createdAt: new Date().toISOString(),
@@ -128,8 +133,16 @@ const TripPlannerPage = () => {
   };
   
   const handleSaveToken = () => {
-    localStorage.setItem("mapbox_token", tokenInput);
-    window.location.reload();
+    if (tokenInput.trim()) {
+      localStorage.setItem("mapbox_token", tokenInput.trim());
+      window.location.reload();
+    } else {
+      toast({
+        title: "Invalid token",
+        description: "Please enter a valid Mapbox token",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
