@@ -1,20 +1,20 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/providers/AuthProvider";
-import { LogOut, Mail, Shield, AlertTriangle, ArrowLeft, User, CreditCard, MessageSquare, DollarSign, Heart, Edit, Save, Upload, X } from "lucide-react";
-import { getUserProfile, updateUserProfile, getCreatorSubscriptionPlans, createSubscriptionPlan, getUserSubscriptions, getSubscribersForCreator, getProfileComments, addProfileComment } from "@/lib/community/api";
+import { LogOut, User, CreditCard, MessageSquare, DollarSign, ArrowLeft } from "lucide-react";
+import { getUserProfile, getCreatorSubscriptionPlans, getUserSubscriptions, getSubscribersForCreator, getProfileComments } from "@/lib/community/api";
 import { UserProfile, SubscriptionPlan, UserSubscription, ProfileComment } from "@/lib/community/types";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client"; // Using the correct Supabase client
+
+// Import our new components
+import ProfileTab from "@/components/profile/ProfileTab";
+import MonetizationTab from "@/components/profile/MonetizationTab";
+import SubscriptionsTab from "@/components/profile/SubscriptionsTab";
+import ProfileComments from "@/components/profile/ProfileComments";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -25,14 +25,7 @@ const ProfilePage = () => {
   
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   
   const [isCreator, setIsCreator] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
@@ -41,12 +34,6 @@ const ProfilePage = () => {
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   
   const [comments, setComments] = useState<ProfileComment[]>([]);
-  const [newComment, setNewComment] = useState("");
-  
-  const [newPlanName, setNewPlanName] = useState("");
-  const [newPlanDescription, setNewPlanDescription] = useState("");
-  const [newPlanPrice, setNewPlanPrice] = useState("");
-  const [showNewPlanForm, setShowNewPlanForm] = useState(false);
 
   const handleSignOut = async () => {
     setIsLoggingOut(true);
@@ -60,14 +47,6 @@ const ProfilePage = () => {
   const handleBackToHome = () => {
     navigate('/');
   };
-
-  const formatCreatedDate = () => {
-    if (!user?.created_at) {
-      return "Unknown";
-    }
-    
-    return new Date(user.created_at).toLocaleDateString();
-  };
   
   useEffect(() => {
     if (user?.id) {
@@ -80,9 +59,6 @@ const ProfilePage = () => {
           
           if (profile) {
             setUserProfile(profile);
-            setDisplayName(profile.display_name || "");
-            setBio(profile.bio || "");
-            setAvatarUrl(profile.avatar_url);
             setIsCreator(profile.is_creator || false);
             
             if (profile.is_creator) {
@@ -101,21 +77,10 @@ const ProfilePage = () => {
           } else {
             // If profile is null, we need to create one
             console.log("No profile found, attempting to create one");
-            const newProfile = {
-              id: user.id,
-              display_name: user.email?.split('@')[0] || "User",
-              bio: "",
-              avatar_url: null,
-              is_creator: false
-            };
-            
-            const createdProfile = await updateUserProfile(newProfile);
-            if (createdProfile) {
-              setUserProfile(createdProfile);
-              setDisplayName(createdProfile.display_name || "");
-            } else {
-              throw new Error("Failed to create user profile");
-            }
+            toast({
+              title: "Profile not found",
+              description: "We need to create a profile for you.",
+            });
           }
         } catch (error) {
           console.error("Error loading user data:", error);
@@ -133,316 +98,18 @@ const ProfilePage = () => {
     }
   }, [user?.id, toast]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Avatar image must be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setAvatarFile(file);
-      const objectUrl = URL.createObjectURL(file);
-      setAvatarUrl(objectUrl);
-    }
+  const handleCommentAdded = (comment: ProfileComment) => {
+    setComments([comment, ...comments]);
   };
 
-const uploadAvatar = async (): Promise<string | null> => {
-  if (!avatarFile || !user?.id) return avatarUrl;
-  
-  setUploadingAvatar(true);
-  try {
-    const fileExt = avatarFile.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-    
-    // Validate file size and type
-    if (avatarFile.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Avatar image must be less than 5MB",
-        variant: "destructive",
-      });
-      setUploadingAvatar(false);
-      return null;
-    }
+  const handleCommentUpdated = (updatedComment: ProfileComment) => {
+    setComments(comments.map(comment => 
+      comment.id === updatedComment.id ? updatedComment : comment
+    ));
+  };
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(avatarFile.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a JPEG, PNG, GIF, or WebP image",
-        variant: "destructive",
-      });
-      setUploadingAvatar(false);
-      return null;
-    }
-    
-    const { error: uploadError } = await supabase.storage
-      .from('profiles')
-      .upload(fileName, avatarFile, {
-        cacheControl: '3600',
-        upsert: true
-      });
-    
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      toast({
-        title: "Upload failed",
-        description: uploadError.message || "There was an error uploading your avatar",
-        variant: "destructive",
-      });
-      return null;
-    }
-    
-    const { data: { publicUrl }, error: urlError } = supabase.storage
-      .from('profiles')
-      .getPublicUrl(fileName);
-    
-    if (urlError) {
-      console.error("Public URL error:", urlError);
-      toast({
-        title: "URL Generation Failed",
-        description: "Could not generate a public URL for your avatar",
-        variant: "destructive",
-      });
-      return null;
-    }
-    
-    return publicUrl;
-  } catch (error) {
-    console.error("Avatar upload error:", error);
-    toast({
-      title: "Upload Error",
-      description: "An unexpected error occurred while uploading your avatar",
-      variant: "destructive",
-    });
-    return null;
-  } finally {
-    setUploadingAvatar(false);
-  }
-};
-
-  const handleRemoveAvatar = () => {
-    setAvatarUrl(null);
-    setAvatarFile(null);
-  };
-  
-const saveProfile = async () => {
-    if (!user?.id || !userProfile) {
-      toast({
-        title: "Error",
-        description: "User not authenticated or profile not loaded.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    console.log("Save button clicked - Starting profile save process");
-    setIsSaving(true);
-    setSaveError(null);
-    
-  try {
-    let newAvatarUrl = avatarUrl;
-    
-    // Only upload if a new file is selected
-    if (avatarFile) {
-      newAvatarUrl = await uploadAvatar();
-      
-      // If upload fails, stop profile save
-      if (!newAvatarUrl) {
-        toast({
-          title: "Avatar Upload Failed",
-          description: "Please try uploading your avatar again",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-    
-    const profileData = {
-      id: user.id,
-      display_name: displayName,
-      bio: bio,
-      avatar_url: newAvatarUrl,
-      is_creator: isCreator
-    };
-    
-    console.log('Sending profile update with data:', profileData);
-    
-    const updatedProfile = await updateUserProfile(profileData);
-    
-      if (updatedProfile) {
-        setUserProfile(updatedProfile);
-        setAvatarUrl(updatedProfile.avatar_url);
-        setAvatarFile(null);
-        setIsEditing(false);
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully.",
-        });
-        console.log('Profile updated successfully:', updatedProfile);
-      } else {
-        throw new Error("Failed to update profile: No data returned");
-      }
-  } catch (error: any) {
-      console.error("Error updating profile:", error);
-      const errorMessage = error?.message || "Failed to update profile. Please try again.";
-      setSaveError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-  } finally {
-    setIsSaving(false);
-  }
-};
-  
-  const handleCreatePlan = async () => {
-    if (!user?.id) return;
-    
-    try {
-      if (!newPlanName || !newPlanDescription || !newPlanPrice) {
-        toast({
-          title: "Missing information",
-          description: "Please fill in all fields for your subscription plan.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const price = Number(newPlanPrice);
-      if (isNaN(price) || price <= 0) {
-        toast({
-          title: "Invalid price",
-          description: "Please enter a valid price.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const newPlan = await createSubscriptionPlan({
-        creator_id: user.id,
-        name: newPlanName,
-        description: newPlanDescription,
-        price: price,
-        stripe_price_id: null
-      });
-      
-      if (newPlan) {
-        setSubscriptionPlans([...subscriptionPlans, newPlan]);
-        setNewPlanName("");
-        setNewPlanDescription("");
-        setNewPlanPrice("");
-        setShowNewPlanForm(false);
-        toast({
-          title: "Plan created",
-          description: "Your subscription plan has been created. Note: Stripe integration is not complete yet.",
-        });
-      }
-    } catch (error) {
-      console.error("Error creating subscription plan:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create subscription plan. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
-    if (!user?.id) {
-      toast({
-        title: "Login required",
-        description: "Please log in to subscribe to this creator.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "Stripe Integration",
-      description: "Stripe payment processing would be triggered here.",
-    });
-  };
-  
-  const handleAddComment = async () => {
-    if (!user?.id || !userProfile?.id) return;
-    
-    if (!newComment.trim()) {
-      toast({
-        title: "Empty comment",
-        description: "Please enter a comment before submitting.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      const comment = await addProfileComment({
-        profile_id: userProfile.id,
-        commenter_id: user.id,
-        content: newComment
-      });
-      
-      if (comment) {
-        const commentWithUser = {
-          ...comment,
-          commenter: {
-            id: user.id,
-            display_name: userProfile.display_name || user.email?.split('@')[0] || "User",
-            avatar_url: userProfile.avatar_url
-          }
-        };
-        
-        setComments([commentWithUser, ...comments]);
-        setNewComment("");
-        toast({
-          title: "Comment added",
-          description: "Your comment has been added to the profile.",
-        });
-      }
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const toggleCreatorMode = async () => {
-    if (!user?.id || !userProfile) return;
-    
-    try {
-      const updatedProfile = await updateUserProfile({
-        id: user.id,
-        is_creator: !isCreator
-      });
-      
-      if (updatedProfile) {
-        setUserProfile(updatedProfile);
-        setIsCreator(!isCreator);
-        toast({
-          title: isCreator ? "Creator mode disabled" : "Creator mode enabled",
-          description: isCreator 
-            ? "You are no longer in creator mode." 
-            : "You are now in creator mode and can create subscription plans.",
-        });
-      }
-    } catch (error) {
-      console.error("Error toggling creator mode:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update creator status. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const handleCommentDeleted = (commentId: string) => {
+    setComments(comments.filter(comment => comment.id !== commentId));
   };
 
   if (isProfileLoading) {
@@ -489,444 +156,55 @@ const saveProfile = async () => {
         </TabsList>
         
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>Your account details and status</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="flex flex-col items-center mb-4">
-                    <div className="relative group">
-                      <Avatar className="h-24 w-24 mb-2">
-                        <AvatarImage src={avatarUrl || ""} alt={displayName} />
-                        <AvatarFallback className="text-lg">
-                          {displayName ? displayName.charAt(0).toUpperCase() : <User className="h-8 w-8" />}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <label 
-                          htmlFor="avatar-upload" 
-                          className="bg-primary/80 text-primary-foreground w-full h-full rounded-full flex items-center justify-center cursor-pointer"
-                        >
-                          <Upload className="h-6 w-6" />
-                          <span className="sr-only">Upload Avatar</span>
-                        </label>
-                        <input 
-                          id="avatar-upload" 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={handleAvatarChange}
-                        />
-                      </div>
-                    </div>
-                    {avatarUrl && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleRemoveAvatar}
-                        className="mt-2"
-                      >
-                        <X className="h-4 w-4 mr-1" /> Remove
-                      </Button>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">Click the avatar to upload a new image</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Display Name</label>
-                    <Input 
-                      value={displayName} 
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Enter your display name"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Bio</label>
-                    <Textarea 
-                      value={bio} 
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Tell others about yourself"
-                      rows={4}
-                    />
-                  </div>
-                  
-                  {saveError && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>{saveError}</AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-col items-center mb-4">
-                    <Avatar className="h-24 w-24 mb-2">
-                      <AvatarImage src={avatarUrl || ""} alt={userProfile?.display_name || "User"} />
-                      <AvatarFallback className="text-lg">
-                        {userProfile?.display_name ? userProfile.display_name.charAt(0).toUpperCase() : <User className="h-8 w-8" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <h3 className="text-lg font-medium">
-                      {userProfile?.display_name || user?.email?.split('@')[0] || "User"}
-                    </h3>
-                    {isCreator && (
-                      <span className="inline-flex items-center bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs mt-1">
-                        Creator
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                    <span>{user?.email}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Shield className={`h-5 w-5 ${isEmailVerified ? "text-green-500" : "text-amber-500"}`} />
-                    <span>
-                      {isEmailVerified 
-                        ? "Email verified" 
-                        : "Email not verified"}
-                    </span>
-                  </div>
-                  
-                  {userProfile?.bio && (
-                    <div className="mt-4">
-                      <h4 className="font-medium mb-1">About me:</h4>
-                      <p className="text-muted-foreground">{userProfile.bio}</p>
-                    </div>
-                  )}
-                  
-                  {!isEmailVerified && (
-                    <Alert variant="destructive" className="mt-4">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        Your email is not verified. Some features will be limited until you verify your email.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <div className="text-sm text-muted-foreground">
-                    Account created: {formatCreatedDate()}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-2">
-              {isEditing ? (
-                <div className="flex space-x-2 w-full">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsEditing(false);
-                      if (avatarFile) {
-                        setAvatarUrl(userProfile?.avatar_url || null);
-                        setAvatarFile(null);
-                      }
-                      setDisplayName(userProfile?.display_name || "");
-                      setBio(userProfile?.bio || "");
-                      setSaveError(null);
-                    }}
-                    className="flex-1"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={saveProfile}
-                    className="flex-1"
-                    disabled={isSaving || uploadingAvatar}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" /> Save
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditing(true)}
-                  className="w-full"
-                >
-                  <Edit className="mr-2 h-4 w-4" /> Edit Profile
-                </Button>
-              )}
-              
-              <Button 
-                variant="outline" 
-                onClick={handleSignOut}
-                disabled={isLoggingOut}
-                className="w-full"
-              >
-                {isLoggingOut ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Signing out...
-                  </>
-                ) : (
-                  <>
-                    Sign Out
-                    <LogOut className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+          <ProfileTab 
+            userProfile={userProfile} 
+            isEditing={isEditing} 
+            setIsEditing={setIsEditing}
+            isCreator={isCreator}
+          />
+          
+          <Button 
+            variant="outline" 
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+            className="w-full mt-4"
+          >
+            {isLoggingOut ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                Signing out...
+              </>
+            ) : (
+              <>
+                Sign Out
+                <LogOut className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
         </TabsContent>
         
         <TabsContent value="monetization">
-          <Card>
-            <CardHeader>
-              <CardTitle>Monetization</CardTitle>
-              <CardDescription>Earn money by sharing your content</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-medium">Creator Mode</h3>
-                  <p className="text-sm text-muted-foreground">Enable creator features to monetize your content</p>
-                </div>
-                <Button
-                  variant={isCreator ? "default" : "outline"}
-                  onClick={toggleCreatorMode}
-                >
-                  {isCreator ? "Enabled" : "Become a Creator"}
-                </Button>
-              </div>
-              
-              {isCreator && (
-                <>
-                  <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium mb-2">Your Subscription Plans</h3>
-                    
-                    {subscriptionPlans.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">You haven't created any subscription plans yet.</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {subscriptionPlans.map((plan) => (
-                          <div key={plan.id} className="border rounded-md p-4">
-                            <div className="flex justify-between">
-                              <h4 className="font-medium">{plan.name}</h4>
-                              <p className="font-semibold">${plan.price}/month</p>
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {!showNewPlanForm ? (
-                      <Button 
-                        className="mt-4"
-                        onClick={() => setShowNewPlanForm(true)}
-                      >
-                        Add Subscription Plan
-                      </Button>
-                    ) : (
-                      <div className="mt-4 space-y-3 border p-4 rounded-md">
-                        <h4 className="font-medium">New Subscription Plan</h4>
-                        <div>
-                          <label className="text-sm font-medium mb-1 block">Plan Name</label>
-                          <Input 
-                            value={newPlanName} 
-                            onChange={(e) => setNewPlanName(e.target.value)}
-                            placeholder="e.g. Basic, Premium, etc."
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1 block">Description</label>
-                          <Textarea 
-                            value={newPlanDescription} 
-                            onChange={(e) => setNewPlanDescription(e.target.value)}
-                            placeholder="Describe what subscribers will get"
-                            rows={2}
-                          />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1 block">Price per month ($)</label>
-                          <Input 
-                            value={newPlanPrice} 
-                            onChange={(e) => setNewPlanPrice(e.target.value)}
-                            placeholder="5.99"
-                            type="number"
-                            min="0.99"
-                            step="0.01"
-                          />
-                        </div>
-                        
-                        <div className="flex space-x-2 pt-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setShowNewPlanForm(false);
-                              setNewPlanName("");
-                              setNewPlanDescription("");
-                              setNewPlanPrice("");
-                            }}
-                            className="flex-1"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleCreatePlan}
-                            className="flex-1"
-                          >
-                            Create Plan
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium mb-2">Your Subscribers</h3>
-                    
-                    {subscribers.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">You don't have any subscribers yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {subscribers.map((sub) => (
-                          <div key={sub.id} className="border rounded-md p-3 flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{sub.subscriber_id}</p>
-                              <p className="text-sm text-muted-foreground">{sub.plan?.name || "Unknown plan"}</p>
-                            </div>
-                            <p className="font-semibold">${sub.plan?.price || "0"}/month</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium mb-2">Premium Campsites</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Monetize your favorite campsites by making them premium content for your subscribers.
-                    </p>
-                    
-                    <Button>Add Premium Campsite</Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <MonetizationTab 
+            isCreator={isCreator}
+            setIsCreator={setIsCreator}
+            subscriptionPlans={subscriptionPlans}
+            setSubscriptionPlans={setSubscriptionPlans}
+            subscribers={subscribers}
+          />
         </TabsContent>
         
         <TabsContent value="subscriptions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Subscriptions</CardTitle>
-              <CardDescription>Manage your active subscriptions</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {subscriptions.length === 0 ? (
-                <div className="text-center py-8">
-                  <Heart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Subscriptions Yet</h3>
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Support your favorite creators by subscribing to their content for exclusive access to premium campsites and more.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {subscriptions.map((sub) => (
-                    <div key={sub.id} className="border rounded-md p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium">{sub.plan?.name || "Subscription"}</h4>
-                          <p className="text-sm text-muted-foreground">{sub.plan?.description}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Renews on {new Date(sub.current_period_end).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold">${sub.plan?.price}/month</p>
-                          <Button variant="outline" size="sm" className="mt-2">
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <SubscriptionsTab subscriptions={subscriptions} />
         </TabsContent>
         
         <TabsContent value="comments">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Comments</CardTitle>
-              <CardDescription>Interact with your community</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-medium mb-2">Add a Comment</h3>
-                <Textarea 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment..."
-                  rows={3}
-                />
-                <Button 
-                  className="mt-2"
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                >
-                  Post Comment
-                </Button>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium mb-4">All Comments</h3>
-                
-                {comments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No comments yet. Be the first to comment!</p>
-                ) : (
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="border rounded-md p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                            {comment.commenter?.avatar_url ? (
-                              <img 
-                                src={comment.commenter.avatar_url} 
-                                alt={comment.commenter.display_name || "User"} 
-                                className="w-full h-full object-cover" 
-                              />
-                            ) : (
-                              <User className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between">
-                              <h4 className="font-medium">
-                                {comment.commenter?.display_name || "User"}
-                              </h4>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(comment.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <p className="text-sm mt-1">{comment.content}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <ProfileComments 
+            profileId={user?.id || ""}
+            comments={comments}
+            onCommentAdded={handleCommentAdded}
+            onCommentUpdated={handleCommentUpdated}
+            onCommentDeleted={handleCommentDeleted}
+          />
         </TabsContent>
       </Tabs>
     </div>
