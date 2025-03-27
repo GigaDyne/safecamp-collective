@@ -1,15 +1,11 @@
 
-import { useState, useEffect } from "react";
-import { MapPin, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "@/hooks/useLocation";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { planTrip } from "@/lib/trip-planner/route-service";
 import { RouteData, TripStop } from "@/lib/trip-planner/types";
-import { Switch } from "@/components/ui/switch";
-import AddressAutocompleteInput from "./AddressAutocompleteInput";
+import TripLocationInputs from "./form/TripLocationInputs";
+import TripDistanceSlider from "./form/TripDistanceSlider";
+import TripFilterOptions from "./form/TripFilterOptions";
+import TripPlanButton from "./form/TripPlanButton";
+import { useTripForm } from "./form/useTripForm";
 
 interface TripPlannerFormProps {
   setRouteData: (data: RouteData | null) => void;
@@ -38,37 +34,47 @@ const TripPlannerForm = ({
   initialStartCoords,
   initialDestCoords
 }: TripPlannerFormProps) => {
-  const { toast } = useToast();
-  const { location, getLocation } = useLocation();
-  const [startLocation, setStartLocation] = useState(initialStartLocation || "");
-  const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(
-    initialStartCoords ? [initialStartCoords.lng, initialStartCoords.lat] : null
-  );
-  const [endLocation, setEndLocation] = useState(initialDestination || "");
-  const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(
-    initialDestCoords ? [initialDestCoords.lng, initialDestCoords.lat] : null
-  );
-  const [bufferDistance, setBufferDistance] = useState(20); // miles
-  const [includeCampsites, setIncludeCampsites] = useState(true);
-  const [includeGasStations, setIncludeGasStations] = useState(true);
-  const [includeWaterStations, setIncludeWaterStations] = useState(true);
-  const [includeDumpStations, setIncludeDumpStations] = useState(true);
-  const [includeWalmarts, setIncludeWalmarts] = useState(true);
-  const [includePropaneStations, setIncludePropaneStations] = useState(true);
-  const [includeRepairShops, setIncludeRepairShops] = useState(true);
-  
-  // Derived state to determine if the form is valid for planning
-  const [isFormValid, setIsFormValid] = useState(false);
-
-  // Validate form whenever relevant fields change
-  useEffect(() => {
-    const hasStartingPoint = Boolean(startLocation.trim() && (startCoordinates || initialStartCoords));
-    const hasDestination = Boolean(endLocation.trim() && (endCoordinates || initialDestCoords));
-    setIsFormValid(hasStartingPoint && hasDestination && Boolean(mapboxToken));
-  }, [startLocation, startCoordinates, endLocation, endCoordinates, mapboxToken, initialStartCoords, initialDestCoords]);
-
-  // For debugging - log the mapboxToken
+  // Debug logging
   console.log("MapboxToken in TripPlannerForm:", mapboxToken);
+  
+  const {
+    startLocation,
+    setStartLocation,
+    startCoordinates,
+    setStartCoordinates,
+    endLocation,
+    setEndLocation,
+    endCoordinates,
+    setEndCoordinates,
+    bufferDistance,
+    setBufferDistance,
+    includeCampsites,
+    setIncludeCampsites,
+    includeGasStations,
+    setIncludeGasStations,
+    includeWaterStations,
+    setIncludeWaterStations,
+    includeDumpStations,
+    setIncludeDumpStations,
+    includeWalmarts,
+    setIncludeWalmarts,
+    includePropaneStations,
+    setIncludePropaneStations,
+    includeRepairShops,
+    setIncludeRepairShops,
+    isFormValid,
+    handlePlanTrip
+  } = useTripForm({
+    setRouteData,
+    setTripStops,
+    setIsLoading,
+    mapboxToken,
+    initialStartLocation,
+    initialDestination,
+    initialStartCoords,
+    initialDestCoords
+  });
+
   console.log("Form validity state:", { 
     isFormValid, 
     startLocation, 
@@ -77,306 +83,57 @@ const TripPlannerForm = ({
     hasEndCoords: Boolean(endCoordinates || initialDestCoords)
   });
 
-  const handleUseCurrentLocation = async () => {
-    try {
-      const coords = await getLocation();
-      if (coords) {
-        setStartLocation("Current Location");
-        setStartCoordinates([coords.longitude, coords.latitude]);
-        toast({
-          title: "Success",
-          description: "Current location set as starting point",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Unable to get your current location",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleStartLocationSelect = (location: { name: string; lat: number; lng: number }) => {
-    setStartLocation(location.name);
-    setStartCoordinates([location.lng, location.lat]);
-  };
-
-  const handleEndLocationSelect = (location: { name: string; lat: number; lng: number }) => {
-    setEndLocation(location.name);
-    setEndCoordinates([location.lng, location.lat]);
-  };
-
-  const handlePlanTrip = async () => {
-    console.log("Plan Trip clicked with params:", { 
-      startLocation, 
-      endLocation, 
-      startCoordinates, 
-      endCoordinates,
-      bufferDistance,
-      isFormValid
-    });
-    
-    if (!isFormValid) {
-      toast({
-        title: "Missing information",
-        description: "Please enter both start and end locations",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      let start = "";
-      if (startCoordinates) {
-        start = startCoordinates.join(",");
-      } else if (initialStartCoords) {
-        start = `${initialStartCoords.lng},${initialStartCoords.lat}`;
-      } else {
-        start = startLocation;
-      }
-      
-      let end = "";
-      if (endCoordinates) {
-        end = endCoordinates.join(",");
-      } else if (initialDestCoords) {
-        end = `${initialDestCoords.lng},${initialDestCoords.lat}`;
-      } else {
-        end = endLocation;
-      }
-
-      console.log("Calling planTrip with:", { start, end, bufferDistance });
-
-      const result = await planTrip({
-        startLocation: start,
-        endLocation: end,
-        bufferDistance,
-        includeCampsites,
-        includeGasStations,
-        includeWaterStations,
-        includeDumpStations,
-        includeWalmarts,
-        includePropaneStations,
-        includeRepairShops,
-        mapboxToken: mapboxToken || ""
-      });
-      
-      console.log("Trip planning result:", result);
-      
-      setRouteData(result.routeData);
-      setTripStops(result.availableStops);
-      
-      toast({
-        title: "Trip planned!",
-        description: `Found route with ${result.availableStops.length} possible stops`,
-      });
-    } catch (error) {
-      console.error("Error planning trip:", error);
-      toast({
-        title: "Error",
-        description: "Failed to plan trip. Please check your inputs and try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="p-4 border-b space-y-4 overflow-y-auto">
       <h2 className="text-lg font-medium mb-4">Plan Your Route</h2>
       
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <Label htmlFor="start">Starting Point</Label>
-          <div className="flex">
-            <AddressAutocompleteInput
-              placeholder="Starting Point"
-              mapboxToken={mapboxToken || ""}
-              onSelect={handleStartLocationSelect}
-              className="flex-1"
-              initialValue={initialStartLocation}
-            />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={handleUseCurrentLocation}
-              className="ml-2"
-              type="button"
-              disabled={!mapboxToken || isLoading}
-            >
-              <MapPin className="h-4 w-4" />
-            </Button>
-          </div>
-          {startLocation && startCoordinates && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Location selected with coordinates
-            </p>
-          )}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="end">Destination</Label>
-          <AddressAutocompleteInput
-            placeholder="Destination"
-            mapboxToken={mapboxToken || ""}
-            onSelect={handleEndLocationSelect}
-            className="w-full"
-            initialValue={initialDestination}
-          />
-          {endLocation && endCoordinates && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Location selected with coordinates
-            </p>
-          )}
-        </div>
-      </div>
+      <TripLocationInputs
+        mapboxToken={mapboxToken}
+        startLocation={startLocation}
+        setStartLocation={setStartLocation}
+        startCoordinates={startCoordinates}
+        setStartCoordinates={setStartCoordinates}
+        endLocation={endLocation}
+        setEndLocation={setEndLocation}
+        endCoordinates={endCoordinates}
+        setEndCoordinates={setEndCoordinates}
+        isLoading={isLoading}
+        initialStartLocation={initialStartLocation}
+        initialDestination={initialDestination}
+      />
       
       <div className="space-y-3">
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label htmlFor="buffer-distance">Search Distance: {bufferDistance} miles</Label>
-          </div>
-          <Slider 
-            id="buffer-distance"
-            min={5} 
-            max={50} 
-            step={5}
-            value={[bufferDistance]}
-            onValueChange={(value) => setBufferDistance(value[0])}
-          />
-        </div>
+        <TripDistanceSlider 
+          bufferDistance={bufferDistance} 
+          setBufferDistance={setBufferDistance} 
+        />
       </div>
       
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">Include:</h3>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-campsites" className="flex items-center gap-2">
-                Campsites
-              </Label>
-              <Switch 
-                id="include-campsites" 
-                checked={includeCampsites}
-                onCheckedChange={setIncludeCampsites}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-gas" className="flex items-center gap-2">
-                Gas Stations
-              </Label>
-              <Switch 
-                id="include-gas" 
-                checked={includeGasStations}
-                onCheckedChange={setIncludeGasStations}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-water" className="flex items-center gap-2">
-                Water Stations
-              </Label>
-              <Switch 
-                id="include-water" 
-                checked={includeWaterStations}
-                onCheckedChange={setIncludeWaterStations}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-dump" className="flex items-center gap-2">
-                Dump Stations
-              </Label>
-              <Switch 
-                id="include-dump" 
-                checked={includeDumpStations}
-                onCheckedChange={setIncludeDumpStations}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-walmart" className="flex items-center gap-2">
-                Walmarts
-              </Label>
-              <Switch 
-                id="include-walmart" 
-                checked={includeWalmarts}
-                onCheckedChange={setIncludeWalmarts}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-propane" className="flex items-center gap-2">
-                Propane Stations
-              </Label>
-              <Switch 
-                id="include-propane" 
-                checked={includePropaneStations}
-                onCheckedChange={setIncludePropaneStations}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-repair" className="flex items-center gap-2">
-                Repair Shops
-              </Label>
-              <Switch 
-                id="include-repair" 
-                checked={includeRepairShops}
-                onCheckedChange={setIncludeRepairShops}
-              />
-            </div>
-            
-            {onToggleCrimeData && (
-              <div className="flex items-center justify-between">
-                <Label htmlFor="include-crime-data" className="flex items-center gap-2">
-                  <span>Crime Data</span>
-                  <span className="text-xs text-muted-foreground">(beta)</span>
-                </Label>
-                <Switch 
-                  id="include-crime-data" 
-                  checked={showCrimeData}
-                  onCheckedChange={onToggleCrimeData}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <TripFilterOptions
+        includeCampsites={includeCampsites}
+        setIncludeCampsites={setIncludeCampsites}
+        includeGasStations={includeGasStations}
+        setIncludeGasStations={setIncludeGasStations}
+        includeWaterStations={includeWaterStations}
+        setIncludeWaterStations={setIncludeWaterStations}
+        includeDumpStations={includeDumpStations}
+        setIncludeDumpStations={setIncludeDumpStations}
+        includeWalmarts={includeWalmarts}
+        setIncludeWalmarts={setIncludeWalmarts}
+        includePropaneStations={includePropaneStations}
+        setIncludePropaneStations={setIncludePropaneStations}
+        includeRepairShops={includeRepairShops}
+        setIncludeRepairShops={setIncludeRepairShops}
+        showCrimeData={showCrimeData}
+        onToggleCrimeData={onToggleCrimeData}
+      />
       
-      <Button 
-        onClick={handlePlanTrip} 
-        className="w-full mt-6 font-medium bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors"
-        disabled={isLoading || !isFormValid}
-      >
-        {isLoading ? (
-          <>
-            <RotateCw className="mr-2 h-4 w-4 animate-spin" />
-            Planning Trip...
-          </>
-        ) : (
-          "Plan Trip"
-        )}
-      </Button>
-      
-      {!mapboxToken && (
-        <p className="text-sm text-destructive text-center mt-2">
-          Please set your Mapbox token in settings to use the trip planner
-        </p>
-      )}
-      
-      {mapboxToken && !isFormValid && (
-        <p className="text-sm text-muted-foreground text-center mt-2">
-          Enter both start and destination locations to plan your trip
-        </p>
-      )}
+      <TripPlanButton
+        isLoading={isLoading}
+        isFormValid={isFormValid}
+        onPlanTrip={handlePlanTrip}
+        mapboxToken={mapboxToken}
+      />
     </div>
   );
 };
