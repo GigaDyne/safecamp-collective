@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { useFriends } from "@/hooks/useFriends";
 import { useAuth } from "@/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

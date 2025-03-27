@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { useSocialFeed, useDeletePost } from "@/hooks/useSocialFeed";
 import { useAuth } from "@/providers/AuthProvider";
 import CreatePostForm from "@/components/social/CreatePostForm";

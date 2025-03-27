@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { StarIcon } from "lucide-react";
 import { CampSite } from "@/lib/supabase";
 import { XIcon, MapPinIcon, Route, FlagIcon } from "lucide-react";
-import { FlagSiteDialog } from "@/components/flags/FlagSiteDialog";
+import FlagSiteDialog from "@/components/flags/FlagSiteDialog";
 import CheckinButton from "@/components/social/CheckinButton";
 
 interface SelectedSiteInfoProps {

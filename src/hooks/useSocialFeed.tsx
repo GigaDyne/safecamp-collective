@@ -1,6 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getFeedPosts, getUserPosts, createPost, deletePost, toggleLike, SocialPost } from "@/lib/social/api";
+import { getFeedPosts, getUserPosts, createPost, deletePost, toggleLike } from "@/lib/social/api";
+import { SocialPost } from "@/lib/social/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/providers/AuthProvider";
 

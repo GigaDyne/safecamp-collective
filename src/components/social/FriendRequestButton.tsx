@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useCheckFriendship, useSendFriendRequest } from "@/hooks/useFriends";
-import { UserPlus, UserCheck, UserX, UserClock } from "lucide-react";
+import { UserPlus, UserCheck, UserX, Clock } from "lucide-react";
 
 interface FriendRequestButtonProps {
   userId: string;
@@ -37,7 +37,7 @@ const FriendRequestButton = ({ userId }: FriendRequestButtonProps) => {
   if (friendshipStatus === "pending") {
     return (
       <Button variant="outline" disabled>
-        <UserClock className="mr-2 h-4 w-4" />
+        <Clock className="mr-2 h-4 w-4" />
         Request Pending
       </Button>
     );
