@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { clsx } from "clsx";
-import { Map, Tent, Search, User, HelpCircle, MessageSquare } from "lucide-react";
+import { Map, Tent, Search, User, HelpCircle, MessageSquare, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/AuthProvider";
 import { getUserProfile } from "@/lib/community/api";
@@ -57,16 +57,16 @@ export default function BottomNavigation() {
           </Link>
           
           <Link
-            to="/community-help"
+            to="/social"
             className={clsx(
               "flex flex-col items-center p-2 rounded-lg",
-              location.pathname === "/community-help"
+              location.pathname === "/social"
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <HelpCircle className="h-6 w-6" />
-            <span className="text-xs mt-1">Help</span>
+            <Users className="h-6 w-6" />
+            <span className="text-xs mt-1">Social</span>
           </Link>
           
           <Link

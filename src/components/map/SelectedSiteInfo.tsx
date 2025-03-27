@@ -1,53 +1,105 @@
 
-import React from 'react';
+import React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import MapPopupContent from "./MapPopupContent";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { StarIcon } from "lucide-react";
 import { CampSite } from "@/lib/supabase";
+import { XIcon, MapPinIcon, Route, FlagIcon } from "lucide-react";
+import { FlagSiteDialog } from "@/components/flags/FlagSiteDialog";
+import CheckinButton from "@/components/social/CheckinButton";
 
 interface SelectedSiteInfoProps {
-  site: CampSite | null;
+  site: CampSite;
   onClose: () => void;
-  onAddToTrip: (site: CampSite) => void;
-  onGetDirections: (site: CampSite) => void;
+  onAddToTrip?: (site: CampSite) => void;
+  onGetDirections?: (site: CampSite) => void;
   onSubmitLocation?: (site: CampSite) => void;
 }
 
-const SelectedSiteInfo = ({ 
-  site, 
-  onClose, 
-  onAddToTrip, 
+const SelectedSiteInfo: React.FC<SelectedSiteInfoProps> = ({
+  site,
+  onClose,
+  onAddToTrip,
   onGetDirections,
   onSubmitLocation
-}: SelectedSiteInfoProps) => {
-  if (!site) return null;
-  
+}) => {
+  const [showFlagDialog, setShowFlagDialog] = React.useState(false);
+
   return (
-    <motion.div 
+    <motion.div
+      className="absolute bottom-0 left-0 right-0 z-10 p-4"
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      transition={{ type: "spring", damping: 20, stiffness: 300 }}
-      className="absolute bottom-4 left-0 right-0 mx-auto px-4 z-20"
     >
-      <div className="bg-card rounded-lg shadow-lg overflow-hidden max-w-md mx-auto">
-        <MapPopupContent 
-          item={site} 
-          isFromDatabase={site.source === 'supabase'}
-          isAlreadyInTrip={false}
-          onAddToTrip={onAddToTrip}
-          onGetDirections={onGetDirections}
-          onSubmitLocation={site.source !== 'supabase' ? () => onSubmitLocation?.(site) : undefined}
-        />
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="absolute top-2 right-2"
-          onClick={onClose}
-        >
-          &times;
-        </Button>
-      </div>
+      <Card className="shadow-lg">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg">{site.name}</CardTitle>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-sm text-muted-foreground flex items-center">
+            <MapPinIcon className="h-4 w-4 mr-1 inline" />
+            {site.location}
+          </div>
+        </CardHeader>
+        <CardContent className="pb-2">
+          <div className="flex justify-between mb-2">
+            <div className="flex items-center">
+              <StarIcon className="h-4 w-4 text-yellow-500 mr-1" />
+              <span className="text-sm font-medium">{site.safetyRating}/5</span>
+              <span className="text-xs text-muted-foreground ml-1">Safety</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm font-medium">{site.cellSignal}/5</span>
+              <span className="text-xs text-muted-foreground ml-1">Signal</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm font-medium">{site.quietness}/5</span>
+              <span className="text-xs text-muted-foreground ml-1">Quiet</span>
+            </div>
+          </div>
+          {site.description && (
+            <p className="text-sm line-clamp-2 text-muted-foreground mb-2">
+              {site.description}
+            </p>
+          )}
+        </CardContent>
+        <CardFooter className="grid grid-cols-2 gap-2 pt-0">
+          <Button size="sm" variant="outline" onClick={() => onGetDirections?.(site)}>
+            <Route className="h-4 w-4 mr-2" />
+            Directions
+          </Button>
+          
+          <CheckinButton 
+            campsiteId={site.id}
+            campsiteName={site.name}
+            size="sm"
+            variant="outline"
+          />
+          
+          <Button size="sm" onClick={() => onAddToTrip?.(site)}>
+            Add to Trip
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowFlagDialog(true)}
+          >
+            <FlagIcon className="h-4 w-4 mr-2" />
+            Report
+          </Button>
+        </CardFooter>
+      </Card>
+      <FlagSiteDialog
+        open={showFlagDialog}
+        onOpenChange={setShowFlagDialog}
+        site={site}
+      />
     </motion.div>
   );
 };

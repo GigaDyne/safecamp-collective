@@ -262,6 +262,67 @@ export type Database = {
         }
         Relationships: []
       }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          post_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       premium_campsites: {
         Row: {
           campsite_id: string
@@ -380,6 +441,53 @@ export type Database = {
           },
         ]
       }
+      social_posts: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          latitude: number | null
+          linked_campsite_id: string | null
+          location_name: string | null
+          longitude: number | null
+          type: string
+          user_id: string
+          visibility: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          linked_campsite_id?: string | null
+          location_name?: string | null
+          longitude?: number | null
+          type: string
+          user_id: string
+          visibility?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          linked_campsite_id?: string | null
+          location_name?: string | null
+          longitude?: number | null
+          type?: string
+          user_id?: string
+          visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_linked_campsite_id_fkey"
+            columns: ["linked_campsite_id"]
+            isOneToOne: false
+            referencedRelation: "campsites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string
@@ -448,6 +556,66 @@ export type Database = {
           route_data?: Json | null
           start_location?: string
           stops?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_friends: {
+        Row: {
+          created_at: string | null
+          friend_id: string
+          id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          friend_id: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          friend_id?: string
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_privacy_settings: {
+        Row: {
+          allow_messages: string | null
+          checkin_visibility: string | null
+          created_at: string | null
+          id: string
+          post_visibility: string | null
+          profile_visibility: string | null
+          show_profile_comments: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          allow_messages?: string | null
+          checkin_visibility?: string | null
+          created_at?: string | null
+          id: string
+          post_visibility?: string | null
+          profile_visibility?: string | null
+          show_profile_comments?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          allow_messages?: string | null
+          checkin_visibility?: string | null
+          created_at?: string | null
+          id?: string
+          post_visibility?: string | null
+          profile_visibility?: string | null
+          show_profile_comments?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -540,7 +708,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_post_visibility: {
+        Args: {
+          post_id: string
+          viewer_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

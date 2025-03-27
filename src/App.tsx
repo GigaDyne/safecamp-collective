@@ -23,6 +23,8 @@ import MessagesPage from "@/pages/MessagesPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import PaymentCancelPage from "@/pages/PaymentCancelPage";
 import CommunityHelpPage from "@/pages/CommunityHelpPage";
+import SocialFeedPage from "@/pages/SocialFeedPage";
+import FriendsPage from "@/pages/FriendsPage";
 
 function App() {
   return (
@@ -59,6 +61,8 @@ function App() {
             <Route path="navigation/:id" element={<TripNavigationPage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="community-help" element={<CommunityHelpPage />} />
+            <Route path="social" element={<SocialFeedPage />} />
+            <Route path="friends" element={<FriendsPage />} />
           </Route>
         </Route>
         
