@@ -9,7 +9,6 @@ import { useAuth } from "@/providers/AuthProvider";
 
 import TripPlannerHeader from "@/components/trip-planner/TripPlannerHeader";
 import TripPlannerContent from "@/components/trip-planner/TripPlannerContent";
-import MapboxTokenDialog from "@/components/trip-planner/MapboxTokenDialog";
 import SaveTripDialog from "@/components/trip-planner/SaveTripDialog";
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -29,8 +28,6 @@ const TripPlannerPage = () => {
   const [tripStops, setTripStops] = useState<TripStop[]>([]);
   const [selectedStops, setSelectedStops] = useState<TripStop[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showTokenDialog, setShowTokenDialog] = useState(false);
-  const [tokenInput, setTokenInput] = useState(() => localStorage.getItem("mapbox_token") || "");
   const [isSaving, setIsSaving] = useState(false);
   const [tripName, setTripName] = useState("My Trip");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -41,13 +38,6 @@ const TripPlannerPage = () => {
   const [initialDestCoords, setInitialDestCoords] = useState<{lat: number; lng: number} | undefined>(locationState.destinationCoordinates);
   
   const { user, isAuthenticated, isOfflineMode } = useAuth();
-  
-  // Use the provided Mapbox token or get it from localStorage
-  // Fix: Changed process.env to import.meta.env for Vite compatibility
-  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || localStorage.getItem("mapbox_token") || "";
-  
-  // Debug logging
-  console.log("TripPlannerPage - mapboxToken:", mapboxToken);
   
   const { toast } = useToast();
 
@@ -60,12 +50,7 @@ const TripPlannerPage = () => {
         description: `Planning route from ${locationState.startLocation} to ${locationState.destination}`,
       });
     }
-    
-    // Check if Mapbox token is missing and prompt user
-    if (!mapboxToken) {
-      setShowTokenDialog(true);
-    }
-  }, [locationState, toast, mapboxToken]);
+  }, [locationState, toast]);
 
   const handleAddToItinerary = (stop: TripStop) => {
     if (selectedStops.some(s => s.id === stop.id)) {
@@ -132,24 +117,10 @@ const TripPlannerPage = () => {
       setIsSaving(false);
     }
   };
-  
-  const handleSaveToken = () => {
-    if (tokenInput.trim()) {
-      localStorage.setItem("mapbox_token", tokenInput.trim());
-      window.location.reload();
-    } else {
-      toast({
-        title: "Invalid token",
-        description: "Please enter a valid Mapbox token",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <div className="relative h-screen flex flex-col">
       <TripPlannerHeader 
-        onOpenSettings={() => setShowTokenDialog(true)}
         onSaveTrip={handleSaveTrip}
         selectedStopsCount={selectedStops.length}
       />
@@ -163,7 +134,6 @@ const TripPlannerPage = () => {
         setSelectedStops={setSelectedStops}
         isLoading={isLoading}
         setIsLoading={setIsLoading}
-        mapboxToken={mapboxToken}
         showCrimeData={showCrimeData}
         setShowCrimeData={setShowCrimeData}
         onAddToItinerary={handleAddToItinerary}
@@ -171,14 +141,6 @@ const TripPlannerPage = () => {
         initialDestination={initialDestination}
         initialStartCoords={initialStartCoords}
         initialDestCoords={initialDestCoords}
-      />
-      
-      <MapboxTokenDialog 
-        open={showTokenDialog}
-        onOpenChange={setShowTokenDialog}
-        tokenInput={tokenInput}
-        onTokenInputChange={setTokenInput}
-        onSaveToken={handleSaveToken}
       />
       
       <SaveTripDialog 

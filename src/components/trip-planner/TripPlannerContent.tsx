@@ -1,3 +1,4 @@
+
 import React from "react";
 import TripPlannerForm from "@/components/trip-planner/TripPlannerForm";
 import TripItinerary from "@/components/trip-planner/TripItinerary";
@@ -13,7 +14,6 @@ interface TripPlannerContentProps {
   setSelectedStops: (stops: TripStop[]) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  mapboxToken: string;
   showCrimeData: boolean;
   setShowCrimeData: (show: boolean) => void;
   onAddToItinerary: (stop: TripStop) => void;
@@ -32,7 +32,6 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
   setSelectedStops,
   isLoading,
   setIsLoading,
-  mapboxToken,
   showCrimeData,
   setShowCrimeData,
   onAddToItinerary,
@@ -49,7 +48,6 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
           setTripStops={setTripStops}
           isLoading={isLoading}
           setIsLoading={setIsLoading}
-          mapboxToken={mapboxToken}
           showCrimeData={showCrimeData}
           onToggleCrimeData={setShowCrimeData}
           initialStartLocation={initialStartLocation}
@@ -72,7 +70,6 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
           tripStops={tripStops} 
           setTripStops={setTripStops}
           isLoading={isLoading}
-          mapboxToken={mapboxToken}
           selectedStops={selectedStops}
           onAddToItinerary={onAddToItinerary}
           showCrimeData={showCrimeData}

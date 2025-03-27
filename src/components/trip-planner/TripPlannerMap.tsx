@@ -1,154 +1,101 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { TripStop, RouteData } from '@/lib/trip-planner/types';
-import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
-import { useTripPlannerMap } from './hooks/useTripPlannerMap';
-import MapContextMenu from './map-components/MapContextMenu';
-import CrimeDataDialog from './map-components/CrimeDataDialog';
-import MapLegend from './map-components/MapLegend';
-import MapLoadingState from './map-components/MapLoadingState';
-import MapError from './map-components/MapError';
-import MapDebugInfo from './map-components/MapDebugInfo';
-import CrimeDataToggle from './map-components/CrimeDataToggle';
-import { MapProvider } from "@/contexts/MapContext";
-import MapControls from '../map/MapControls';
+import React, { useRef, useEffect, useState } from "react";
+import { useGoogleMapInitializer } from "@/hooks/useGoogleMapInitializer";
+import { useMapMarkers } from "@/components/trip-planner/hooks/useMapMarkers";
+import { useMapRoute } from "@/components/trip-planner/hooks/useMapRoute";
+import { TripStop, RouteData } from "@/lib/trip-planner/types";
+import { Loader2 } from "lucide-react";
+import CrimeDataToggle from "./map-components/CrimeDataToggle";
+import { useCrimeLayer } from "./hooks/useCrimeLayer";
 
 interface TripPlannerMapProps {
   routeData: RouteData | null;
   tripStops: TripStop[];
   setTripStops: (stops: TripStop[]) => void;
   isLoading: boolean;
-  mapboxToken?: string;
   selectedStops: TripStop[];
   onAddToItinerary: (stop: TripStop) => void;
-  className?: string;
-  showCrimeData?: boolean;
-  setShowCrimeData?: (show: boolean) => void;
+  showCrimeData: boolean;
+  setShowCrimeData: (show: boolean) => void;
 }
 
-const TripPlannerMap = ({
+const TripPlannerMap: React.FC<TripPlannerMapProps> = ({
   routeData,
   tripStops,
+  setTripStops,
   isLoading,
-  mapboxToken,
   selectedStops,
   onAddToItinerary,
-  setTripStops,
-  className = '',
-  showCrimeData = false,
+  showCrimeData,
   setShowCrimeData
-}: TripPlannerMapProps) => {
-  const [showDebug, setShowDebug] = useState(false);
-  const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
-  const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
+}) => {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<google.maps.Map | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
-  
-  // Use our custom hook for map functionality
-  const {
+
+  // Initialize Google Map
+  const { isLoading: isMapLoading, error: mapError } = useGoogleMapInitializer({
     mapContainer,
-    mapsLoaded,
-    error,
-    map
-  } = useTripPlannerMap({
-    routeData,
-    tripStops,
-    isLoading,
-    selectedStops,
-    onSelectedStopChange: setSelectedStop
+    onMapReady: (googleMap) => {
+      map.current = googleMap;
+      setMapInitialized(true);
+    },
+    options: {
+      center: { lat: 39.8283, lng: -98.5795 }, // Center of US
+      zoom: 4,
+      mapTypeId: 'roadmap'
+    }
   });
 
-  // Sync the map reference and set initialized state
-  useEffect(() => {
-    if (map.current) {
-      mapRef.current = map.current;
-      setMapInitialized(true);
-    }
-  }, [map.current]);
-  
-  // Handle context menu selection
-  const handleStopContextMenu = (stop: TripStop) => {
-    setSelectedStop(stop);
-  };
+  // Add markers for trip stops
+  const { markers } = useMapMarkers({
+    map,
+    tripStops,
+    selectedStops,
+    mapInitialized,
+    onStopClick: onAddToItinerary
+  });
 
-  // Set up debug mode on double click
-  useEffect(() => {
-    const handleDoubleClick = () => {
-      setShowDebug(prev => !prev);
-    };
-    
-    document.addEventListener('dblclick', handleDoubleClick);
-    
-    return () => {
-      document.removeEventListener('dblclick', handleDoubleClick);
-    };
-  }, []);
+  // Add route to map
+  const { routePolyline } = useMapRoute({
+    map,
+    routeData,
+    mapInitialized
+  });
 
-  if (error) {
-    return <MapError message={error} />;
-  }
+  // Add crime data layer if enabled
+  useCrimeLayer({
+    map,
+    mapInitialized,
+    showCrimeData
+  });
+
+  const mapLoadingState = isMapLoading || !mapInitialized;
 
   return (
-    <MapContextMenu 
-      selectedStop={selectedStop}
-      selectedStops={selectedStops}
-      onAddToItinerary={onAddToItinerary}
-    >
-      <div className="relative w-full h-full">
-        <div 
-          ref={mapContainer} 
-          className="absolute inset-0 w-full h-full" 
-          style={{ minHeight: '500px' }} 
-          data-testid="map-container"
-        />
-        
-        {/* Add Crime Data Toggle with improved visibility */}
-        {setShowCrimeData && (
-          <CrimeDataToggle
-            enabled={showCrimeData}
-            onToggle={setShowCrimeData}
-            className="top-4 right-4"
-          />
-        )}
-        
-        {/* Properly wrap MapControls with MapProvider */}
-        {mapInitialized && (
-          <MapProvider value={{ map: mapRef.current }}>
-            <MapControls />
-          </MapProvider>
-        )}
-        
-        {/* Improved loading state */}
-        {isLoading && <MapLoadingState message="Planning your trip..." />}
-        
-        {!mapsLoaded && (
-          <MapLoadingState message="Loading Google Maps..." />
-        )}
-        
-        {!isLoading && !error && tripStops.length === 0 && routeData && (
-          <div className="absolute bottom-4 left-4 right-4 bg-background p-4 rounded-md shadow-lg border border-border text-center">
-            <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
+    <div className="h-full relative">
+      <div ref={mapContainer} className="h-full w-full" />
+      
+      {/* Map loading overlay */}
+      {mapLoadingState && (
+        <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-2 text-sm">Loading map...</p>
           </div>
-        )}
-        
-        {showDebug && (
-          <MapDebugInfo 
-            mapboxToken={mapboxToken}
-            mapInitialized={mapInitialized}
-            mapContainerRef={mapContainer}
-            mapRef={mapRef}
-            error={error}
+        </div>
+      )}
+      
+      {/* Crime data toggle */}
+      {!mapLoadingState && (
+        <div className="absolute top-4 right-4 z-10">
+          <CrimeDataToggle 
+            showCrimeData={showCrimeData} 
+            onToggle={setShowCrimeData} 
           />
-        )}
-        
-        <MapLegend showCrimeData={showCrimeData} />
-
-        <CrimeDataDialog 
-          selectedCrimeData={selectedCrimeData}
-          setSelectedCrimeData={setSelectedCrimeData}
-        />
-      </div>
-    </MapContextMenu>
+        </div>
+      )}
+    </div>
   );
 };
 
