@@ -95,7 +95,7 @@ const CampSiteCardWithPremium: React.FC<CampSiteCardWithPremiumProps> = ({
                 <span>{tag.label}</span>
               </Badge>
             ))}
-            {site.features.slice(0, 1).map((feature, i) => (
+            {site.features && site.features.length > 0 && site.features.slice(0, 1).map((feature, i) => (
               <Badge key={`feature-${i}`} variant="outline" className="text-xs flex gap-1 items-center py-0 h-5">
                 <span>{feature}</span>
               </Badge>
