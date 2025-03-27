@@ -9,18 +9,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface CrimeDataToggleProps {
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
+  className?: string;
 }
 
 const CrimeDataToggle: React.FC<CrimeDataToggleProps> = ({ 
   enabled, 
-  onToggle 
+  onToggle,
+  className
 }) => {
   return (
-    <div className="flex items-center space-x-2 bg-card/80 backdrop-blur-sm rounded-md px-3 py-1.5 shadow-sm border border-border">
+    <div className={cn("flex items-center space-x-2 bg-card/80 backdrop-blur-sm rounded-md px-3 py-1.5 shadow-sm border border-border", className)}>
       <Switch
         id="crime-data-toggle"
         checked={enabled}

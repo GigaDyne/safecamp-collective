@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { TripStop } from '@/lib/trip-planner/types';
 import { useNavigationMap } from './hooks/useNavigationMap';
@@ -26,7 +25,6 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   
-  // Initialize navigation map using Google Maps
   const { mapContainer, loading, map } = useNavigationMap({
     tripStops,
     currentStopIndex,
@@ -34,14 +32,12 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
     showCrimeData
   });
 
-  // Update mapLoaded state when map is ready
   useEffect(() => {
     if (map.current) {
       setMapLoaded(true);
     }
   }, [map.current]);
 
-  // Check for URL parameters
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const crimeParam = params.get('showCrime');
@@ -56,24 +52,21 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
       <div className="relative h-full w-full">
         <div ref={mapContainer} className="h-full w-full" />
         
-        {/* Crime data toggle button with improved styling */}
-        <CrimeDataToggle 
-          enabled={showCrimeData} 
-          onToggle={setShowCrimeData} 
-          className="top-4 right-4"
-        />
+        <div className="absolute top-4 right-4 z-10">
+          <CrimeDataToggle 
+            enabled={showCrimeData} 
+            onToggle={setShowCrimeData}
+          />
+        </div>
 
-        {/* Properly wrap MapControls with MapProvider */}
         {mapLoaded && (
           <MapProvider value={{ map: map.current }}>
             <MapControls />
           </MapProvider>
         )}
 
-        {/* Show loading state when map is loading */}
         {loading && <MapLoadingState message="Loading navigation map..." />}
 
-        {/* Crime data detail dialog */}
         <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
           <DialogContent className="sm:max-w-md bg-background shadow-xl">
             <DialogHeader>

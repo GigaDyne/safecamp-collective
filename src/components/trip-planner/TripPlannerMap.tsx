@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useGoogleMapInitializer } from "@/hooks/useGoogleMapInitializer";
 import { useMapMarkers } from "@/components/trip-planner/hooks/useMapMarkers";
