@@ -35,6 +35,11 @@ const CampSiteCardWithPremium: React.FC<CampSiteCardWithPremiumProps> = ({
   const getTags = () => {
     const tags = [];
     
+    if (site.type === 'walmart') {
+      tags.push({ label: "Walmart", icon: <span className="font-bold">W</span> });
+      return tags;
+    }
+    
     if (site.cellSignal >= 4) tags.push({ label: "Good Signal", icon: <Wifi size={12} className="text-primary" /> });
     else if (site.cellSignal <= 2) tags.push({ label: "Poor Signal", icon: <Wifi size={12} className="text-muted-foreground" /> });
     

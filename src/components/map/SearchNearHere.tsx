@@ -31,7 +31,15 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
   }, []);
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() && selectedCategories.length === 0) {
+      toast({
+        title: "Search query empty",
+        description: "Please enter a search term or select a category",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!map.current) {
       toast({
         title: "Map not initialized",
@@ -44,10 +52,17 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
     setIsLoading(true);
     try {
       const center = map.current.getCenter();
+      
+      // Use the query or default to a category search if only categories are selected
+      const searchTerm = query.trim() || (selectedCategories.includes("walmart") ? "walmart" : selectedCategories[0] || "");
+      
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-        query
+        searchTerm
       )}.json?proximity=${center.lng},${center.lat}&access_token=${mapboxToken}&limit=10`;
 
+      console.log("Searching for:", searchTerm);
+      console.log("Selected categories:", selectedCategories);
+      
       const response = await fetch(url);
       const data = await response.json();
 
@@ -56,40 +71,51 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
         let filteredResults = data.features;
         if (selectedCategories.length > 0) {
           filteredResults = data.features.filter((feature: any) => {
-            const categories = feature.properties?.category?.split(",") || [];
-            const placeType = feature.place_type || [];
-            return selectedCategories.some(cat => 
-              categories.includes(cat) || 
-              placeType.includes(cat) || 
-              feature.text.toLowerCase().includes(cat.toLowerCase())
-            );
+            // Extract potential category information from various sources
+            const featureText = feature.text?.toLowerCase() || "";
+            const placeName = feature.place_name?.toLowerCase() || "";
+            const category = feature.properties?.category?.toLowerCase() || "";
+            const placeType = feature.place_type?.map((t: string) => t.toLowerCase()) || [];
+            
+            // Check if any of the selected categories match
+            return selectedCategories.some(cat => {
+              const searchCat = cat.toLowerCase();
+              return featureText.includes(searchCat) || 
+                     placeName.includes(searchCat) || 
+                     category.includes(searchCat) || 
+                     placeType.includes(searchCat);
+            });
           });
         }
+        
+        console.log("Found features:", data.features.length);
+        console.log("Filtered features:", filteredResults.length);
         
         // Transform features to a format compatible with our app
         const formattedResults = filteredResults.map((feature: any) => ({
           id: feature.id,
-          name: feature.text,
-          description: feature.place_name,
+          name: feature.text || "Unknown",
+          description: feature.place_name || "",
           latitude: feature.center[1],
           longitude: feature.center[0],
           safetyRating: 3, // Default value
           cellSignal: 3, // Default value
           quietness: 3, // Default value
           source: "mapbox",
-          type: feature.properties?.category || "poi"
+          type: selectedCategories.includes("walmart") ? "walmart" : 
+                (feature.properties?.category || selectedCategories[0] || "poi")
         })) as CampSite[];
 
         onResultsFound(formattedResults);
         
         toast({
           title: "Search results",
-          description: `Found ${formattedResults.length} results for "${query}"`,
+          description: `Found ${formattedResults.length} results for "${searchTerm}"`,
         });
       } else {
         toast({
           title: "No results found",
-          description: `No results found for "${query}" near this location.`,
+          description: `No results found for "${searchTerm}" near this location.`,
         });
         onResultsFound([]);
       }
@@ -119,6 +145,13 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
     }
   };
 
+  useEffect(() => {
+    // Auto search when categories are selected/deselected
+    if (selectedCategories.length > 0) {
+      handleSearch();
+    }
+  }, [selectedCategories]);
+
   return (
     <div className="bg-background/90 shadow-lg rounded-lg p-4 space-y-3 w-full max-w-xl">
       <div className="flex items-center gap-2">
@@ -147,7 +180,7 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
         </div>
         <Button 
           onClick={handleSearch}
-          disabled={isLoading || !query.trim()}
+          disabled={isLoading || (!query.trim() && selectedCategories.length === 0)}
           variant="default"
           size="sm"
           className="shrink-0"

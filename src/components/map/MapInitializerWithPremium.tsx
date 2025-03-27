@@ -322,6 +322,55 @@ const MapInitializerWithPremium = ({
     }
   }, [campSites, isMapLoaded, premiumCampsiteIds]);
 
+  const createMapPinForType = (site: CampSite, isPremium: boolean) => {
+    const getTypeBasedPin = () => {
+      if (site.type === 'walmart') {
+        return createSpecialPin('walmart', site, isPremium);
+      }
+      
+      return createMapPinWithPremium({
+        safetyRating: site.safetyRating,
+        isPremium,
+        onClick: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setSelectedSite(site);
+          setSelectedSiteIsPremium(isPremium);
+          flyToMarker(site);
+        }
+      });
+    };
+    
+    return getTypeBasedPin();
+  };
+
+  const createSpecialPin = (type: string, site: CampSite, isPremium: boolean) => {
+    const el = document.createElement("div");
+    el.className = "marker-element relative";
+    
+    let iconHtml = '';
+    
+    if (type === 'walmart') {
+      iconHtml = `
+        <div class="cursor-pointer transition-all hover:scale-110 bg-blue-600 text-white p-1 rounded-full w-8 h-8 flex items-center justify-center font-bold">
+          W
+        </div>
+      `;
+    }
+    
+    el.innerHTML = iconHtml;
+    
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedSite(site);
+      setSelectedSiteIsPremium(isPremium);
+      flyToMarker(site);
+    });
+    
+    return el;
+  };
+
   useEffect(() => {
     if (!map.current || isLoading || !isMapLoaded || !campSites || isPremiumLoading) {
       return;
@@ -362,20 +411,7 @@ const MapInitializerWithPremium = ({
         try {
           const isPremium = premiumCampsiteIds.has(site.id);
           
-          const handleMarkerClick = (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            setSelectedSite(site);
-            setSelectedSiteIsPremium(isPremium);
-            flyToMarker(site);
-          };
-          
-          const markerElement = createMapPinWithPremium({
-            safetyRating: site.safetyRating,
-            isPremium,
-            onClick: handleMarkerClick
-          });
+          const markerElement = createMapPinForType(site, isPremium);
           
           markerElement.dataset.sitesHash = currentCampSitesString;
           

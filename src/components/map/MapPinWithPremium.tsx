@@ -1,48 +1,40 @@
+import React from 'react';
 
-import { CampSite } from "@/lib/supabase";
-import { Sparkles } from "lucide-react";
-
-interface CreateMapPinWithPremiumProps {
-  safetyRating: number;
+export const createMapPinWithPremium = ({
+  safetyRating = 3,
+  isPremium = false,
+  onClick,
+}: {
+  safetyRating?: number;
   isPremium?: boolean;
-  onClick: (e: MouseEvent) => void;
-}
+  onClick?: (e: MouseEvent) => void;
+}) => {
+  // Calculate color based on safety rating
+  const getColor = () => {
+    if (safetyRating <= 2) return "fill-red-500";
+    if (safetyRating == 3) return "fill-yellow-500";
+    return "fill-green-500";
+  };
 
-export const createMapPinWithPremium = ({ safetyRating, isPremium = false, onClick }: CreateMapPinWithPremiumProps) => {
-  // Create the marker element
+  // Create the pin element
   const el = document.createElement("div");
   el.className = "marker-element relative";
-  el.addEventListener("click", onClick);
   
-  // Determine color based on safety rating
-  let color = "bg-red-500";
-  if (safetyRating >= 4) {
-    color = "bg-green-500";
-  } else if (safetyRating >= 3) {
-    color = "bg-yellow-500";
-  } else if (safetyRating >= 2) {
-    color = "bg-orange-500";
-  }
-  
-  // Create premium badge if applicable
-  const premiumBadgeHtml = isPremium 
-    ? `<div class="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center animate-pulse">
-         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 3v5m0 12v-1M5.5 7.5l1 1M17.5 17.5l-1-1M7 16l-1.9 1.9M19 10h-5M3 10H2M17.5 7.5l1-1M10 3h4"/></svg>
-       </div>` 
-    : '';
-  
-  // Set inner HTML
+  // Create and set custom map pin HTML
   el.innerHTML = `
-    <div class="relative">
-      <div class="w-6 h-6 ${color} rounded-full flex items-center justify-center border-2 border-white shadow-md relative transform hover:scale-110 transition-transform duration-200">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-      </div>
-      ${premiumBadgeHtml}
+    <div class="cursor-pointer transition-all hover:scale-110 ${isPremium ? "scale-125" : ""} ${isPremium ? "drop-shadow-[0_0_8px_rgba(255,204,0,0.6)]" : ""}">
+      <svg width="24" height="32" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.383 0 0 5.109 0 11.6C0 18.4 12 32 12 32C12 32 24 18.4 24 11.6C24 5.109 18.617 0 12 0Z" class="${getColor()} stroke-white stroke-1"/>
+        <circle cx="12" cy="11" r="4.5" class="fill-white"/>
+      </svg>
+      ${isPremium ? `<div class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 border border-white shadow"></div>` : ''}
     </div>
   `;
-  
+
+  // Add click handler
+  if (onClick) {
+    el.addEventListener("click", onClick);
+  }
+
   return el;
 };
