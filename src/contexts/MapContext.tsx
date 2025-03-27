@@ -1,9 +1,8 @@
 
-import { createContext, useContext, useState, useRef, ReactNode, MutableRefObject } from "react";
-import mapboxgl from "mapbox-gl";
+import { createContext, useContext, useState, useRef, ReactNode } from "react";
 
 interface MapContextType {
-  map: google.maps.Map | mapboxgl.Map | null;
+  map: React.MutableRefObject<google.maps.Map | null>;
   tokenEntered: boolean;
   setTokenEntered: (entered: boolean) => void;
   mapboxToken: string;
@@ -30,16 +29,33 @@ interface MapContextType {
   setShowMissingSiteDialog: (show: boolean) => void;
 }
 
-const MapContext = createContext<MapContextType | undefined>(undefined);
+const defaultContext: MapContextType = {
+  map: { current: null },
+  tokenEntered: false,
+  setTokenEntered: () => {},
+  mapboxToken: '',
+  setMapboxToken: () => {},
+  useViewportLoading: false,
+  setUseViewportLoading: () => {},
+  viewportBounds: null,
+  setViewportBounds: () => {},
+  showAddSiteDialog: false,
+  setShowAddSiteDialog: () => {},
+  showFilterDrawer: false,
+  setShowFilterDrawer: () => {},
+  showMissingSiteDialog: false,
+  setShowMissingSiteDialog: () => {}
+};
+
+const MapContext = createContext<MapContextType>(defaultContext);
 
 interface MapProviderProps {
   children: ReactNode;
-  value: {
-    map: google.maps.Map | mapboxgl.Map | null;
-  };
+  value?: Partial<MapContextType>;
 }
 
 export function MapProvider({ children, value }: MapProviderProps) {
+  const mapRef = useRef<google.maps.Map | null>(null);
   const [tokenEntered, setTokenEntered] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
     const localStorageTokenKey = "mapbox_token";
@@ -59,7 +75,7 @@ export function MapProvider({ children, value }: MapProviderProps) {
   return (
     <MapContext.Provider
       value={{
-        map: value.map,
+        map: value?.map || mapRef,
         tokenEntered,
         setTokenEntered,
         mapboxToken,
@@ -74,6 +90,7 @@ export function MapProvider({ children, value }: MapProviderProps) {
         setShowFilterDrawer,
         showMissingSiteDialog,
         setShowMissingSiteDialog,
+        ...value
       }}
     >
       {children}
@@ -83,7 +100,7 @@ export function MapProvider({ children, value }: MapProviderProps) {
 
 export function useMapContext() {
   const context = useContext(MapContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useMapContext must be used within a MapProvider");
   }
   return context;

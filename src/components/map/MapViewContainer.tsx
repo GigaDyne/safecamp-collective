@@ -30,7 +30,9 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     setMapboxToken,
     map,
     useViewportLoading,
-    viewportBounds
+    setUseViewportLoading,
+    viewportBounds,
+    setViewportBounds
   } = useMapContext();
   
   const {
@@ -150,7 +152,6 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
           bounds.extend({ lat: result.latitude, lng: result.longitude });
         });
         
-        // @ts-ignore - Temporarily ignore while transitioning from Mapbox to Google Maps
         map.current.fitBounds(bounds, {
           padding: 50
         });
