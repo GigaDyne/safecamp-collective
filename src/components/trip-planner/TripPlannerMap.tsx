@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TripStop, RouteData } from '@/lib/trip-planner/types';
 import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
 import { useTripPlannerMap } from './hooks/useTripPlannerMap';
@@ -35,7 +35,7 @@ const TripPlannerMap = ({
   showCrimeData = false,
   setShowCrimeData
 }: TripPlannerMapProps) => {
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug, setShowDebug] = useState(true); // Set to true initially for debugging
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   const [selectedStop, setSelectedStop] = useState<TripStop | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -56,9 +56,10 @@ const TripPlannerMap = ({
   });
 
   // Sync the map reference
-  React.useEffect(() => {
+  useEffect(() => {
     if (map.current) {
       mapRef.current = map.current;
+      console.log("Map reference synced successfully:", map.current);
     }
   }, [map.current]);
   
@@ -68,7 +69,7 @@ const TripPlannerMap = ({
   };
 
   // Set up debug mode on double click
-  React.useEffect(() => {
+  useEffect(() => {
     const handleDoubleClick = () => {
       setShowDebug(prev => !prev);
     };
@@ -80,6 +81,17 @@ const TripPlannerMap = ({
     };
   }, []);
 
+  // Debug log to check component rendering
+  useEffect(() => {
+    console.log("TripPlannerMap rendering:", { 
+      mapContainer: mapContainer.current, 
+      mapsLoaded,
+      mapInitialized,
+      mapRef: mapRef.current,
+      error
+    });
+  }, [mapContainer, mapsLoaded, mapInitialized, mapRef.current, error]);
+
   if (error) {
     return <MapError message={error} />;
   }
@@ -90,41 +102,43 @@ const TripPlannerMap = ({
       selectedStops={selectedStops}
       onAddToItinerary={onAddToItinerary}
     >
-      <div 
-        ref={mapContainer} 
-        className="absolute inset-0 h-[500px] md:h-full w-full" 
-        style={{ minHeight: '500px' }} 
-        data-testid="map-container"
-      />
-      
-      {isLoading && <MapLoadingState message="Planning your trip..." />}
-      
-      {!mapsLoaded && (
-        <MapLoadingState message="Loading Google Maps..." />
-      )}
-      
-      {!isLoading && !error && tripStops.length === 0 && routeData && (
-        <div className="absolute bottom-4 left-4 right-4 bg-card p-4 rounded-md shadow-md text-center">
-          <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
-        </div>
-      )}
-      
-      {showDebug && (
-        <MapDebugInfo 
-          mapboxToken={mapboxToken}
-          mapInitialized={mapInitialized}
-          mapContainerRef={mapContainer}
-          mapRef={mapRef}
-          error={error}
+      <div className="relative w-full h-full">
+        <div 
+          ref={mapContainer} 
+          className="absolute inset-0 w-full h-full" 
+          style={{ minHeight: '500px' }} 
+          data-testid="map-container"
         />
-      )}
-      
-      <MapLegend showCrimeData={showCrimeData} />
+        
+        {isLoading && <MapLoadingState message="Planning your trip..." />}
+        
+        {!mapsLoaded && (
+          <MapLoadingState message="Loading Google Maps..." />
+        )}
+        
+        {!isLoading && !error && tripStops.length === 0 && routeData && (
+          <div className="absolute bottom-4 left-4 right-4 bg-card p-4 rounded-md shadow-md text-center">
+            <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
+          </div>
+        )}
+        
+        {showDebug && (
+          <MapDebugInfo 
+            mapboxToken={mapboxToken}
+            mapInitialized={mapInitialized}
+            mapContainerRef={mapContainer}
+            mapRef={mapRef}
+            error={error}
+          />
+        )}
+        
+        <MapLegend showCrimeData={showCrimeData} />
 
-      <CrimeDataDialog 
-        selectedCrimeData={selectedCrimeData}
-        setSelectedCrimeData={setSelectedCrimeData}
-      />
+        <CrimeDataDialog 
+          selectedCrimeData={selectedCrimeData}
+          setSelectedCrimeData={setSelectedCrimeData}
+        />
+      </div>
     </MapContextMenu>
   );
 };

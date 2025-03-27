@@ -41,10 +41,17 @@ export const useTripPlannerMap = ({
 
   // Initialize the map
   useEffect(() => {
-    if (!mapContainer.current || map.current || !mapsLoaded) return;
+    if (!mapContainer.current || map.current || !mapsLoaded) {
+      console.log("Map initialization conditions not met:", { 
+        containerExists: !!mapContainer.current, 
+        mapAlreadyExists: !!map.current, 
+        mapsLoaded 
+      });
+      return;
+    }
     
     try {
-      console.log("Initializing Google Maps in TripPlannerMap");
+      console.log("Initializing Google Maps in TripPlannerMap with container:", mapContainer.current);
       // Center map on Austin, Texas by default
       const defaultCenter = { lat: 30.2672, lng: -97.7431 };
       
@@ -59,6 +66,8 @@ export const useTripPlannerMap = ({
         rotateControl: true,
         fullscreenControl: true
       });
+      
+      console.log("Map created:", map.current);
       
       // Add event listener for when map is fully loaded
       google.maps.event.addListenerOnce(map.current, 'idle', () => {
@@ -90,7 +99,16 @@ export const useTripPlannerMap = ({
 
   // Add route to map when routeData changes
   useEffect(() => {
-    if (!map.current || !mapInitialized || !routeData) return;
+    if (!map.current || !mapInitialized || !routeData) {
+      console.log("Route data update conditions not met:", { 
+        mapExists: !!map.current, 
+        mapInitialized, 
+        routeDataExists: !!routeData 
+      });
+      return;
+    }
+    
+    console.log("Adding route to map:", routeData);
     
     // Clear existing polyline
     if (routePolyline.current) {
@@ -119,12 +137,22 @@ export const useTripPlannerMap = ({
       const bounds = new google.maps.LatLngBounds();
       path.forEach(point => bounds.extend(point));
       map.current.fitBounds(bounds);
+      
+      console.log("Route added to map successfully");
     }
   }, [routeData, mapInitialized]);
 
   // Add markers for trip stops
   useEffect(() => {
-    if (!map.current || !mapInitialized) return;
+    if (!map.current || !mapInitialized) {
+      console.log("Trip stops update conditions not met:", { 
+        mapExists: !!map.current, 
+        mapInitialized 
+      });
+      return;
+    }
+    
+    console.log("Adding markers for trip stops:", tripStops.length);
     
     // Clear existing markers
     markers.current.forEach(marker => marker.setMap(null));
@@ -177,6 +205,7 @@ export const useTripPlannerMap = ({
       });
       
       map.current.fitBounds(bounds);
+      console.log("Map bounds adjusted to show all stops");
     }
   }, [tripStops, mapInitialized, onSelectedStopChange]);
 
