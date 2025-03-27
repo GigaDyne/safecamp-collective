@@ -36,6 +36,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initial value effect
   useEffect(() => {
@@ -44,20 +45,18 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     }
   }, [initialValue]);
 
-  const clearInput = () => {
-    setInputValue("");
-    setFeatures([]);
-    setIsOpen(false);
-    setError(null);
-    setSearchPerformed(false);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
-
   // Create a memoized debounced function that won't change on every render
+  // Using useCallback ensures the debounced function isn't recreated on each render
   const debouncedFetch = useCallback(
     debounce(async (value: string) => {
+      // Cancel any previous requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Create a new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
       if (!value || value.length < 3 || !mapboxToken) {
         setFeatures([]);
         setIsLoading(false);
@@ -70,7 +69,8 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
         const response = await fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
             value.trim()
-          )}.json?access_token=${mapboxToken}&limit=5&country=us,ca,mx`
+          )}.json?access_token=${mapboxToken}&limit=5&country=us,ca,mx`,
+          { signal: abortControllerRef.current.signal }
         );
 
         if (!response.ok) {
@@ -89,9 +89,12 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
         
         setSearchPerformed(true);
       } catch (error) {
-        console.error("Failed to fetch geocoding results:", error);
-        setFeatures([]);
-        setError("Unable to fetch results. Please try again.");
+        // Only set error if it's not an abort error (user canceled)
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          console.error("Failed to fetch geocoding results:", error);
+          setFeatures([]);
+          setError("Unable to fetch results. Please try again.");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -106,6 +109,8 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     
     if (newValue.length >= 3) {
       setIsLoading(true);
+      // Always reset error state when trying a new search
+      setError(null);
       debouncedFetch(newValue);
     } else {
       setIsOpen(false);
@@ -114,12 +119,29 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     }
   };
 
-  // Cancel debounced function on unmount
-  useEffect(() => {
-    return () => {
-      debouncedFetch.cancel();
-    };
-  }, [debouncedFetch]);
+  const clearInput = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
+    // Cancel any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    setInputValue("");
+    setFeatures([]);
+    setIsOpen(false);
+    setError(null);
+    setIsLoading(false);
+    setSearchPerformed(false);
+    
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
 
   const handleSelect = (feature: MapboxFeature) => {
     setInputValue(feature.place_name);
@@ -127,6 +149,16 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     const [lng, lat] = feature.center;
     onSelect({ name: feature.place_name, lat, lng });
   };
+
+  // Cancel debounced function and pending requests on unmount
+  useEffect(() => {
+    return () => {
+      debouncedFetch.cancel();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [debouncedFetch]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -148,7 +180,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   }, []);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen && (features.length > 0 || error !== null)} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <div className={cn("relative", className)}>
           <Input
@@ -160,7 +192,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
             disabled={!mapboxToken}
             onFocus={() => {
               // Re-open dropdown when focusing if we have results and sufficient input length
-              if (features.length > 0 && inputValue.length >= 3) {
+              if ((features.length > 0 || error !== null) && inputValue.length >= 3) {
                 setIsOpen(true);
               }
             }}
@@ -180,11 +212,9 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
                 variant="ghost" 
                 size="icon" 
                 className="h-4 w-4 p-0" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearInput();
-                }}
+                onClick={clearInput}
                 type="button"
+                tabIndex={-1}
               >
                 <X className="h-4 w-4 text-muted-foreground" />
                 <span className="sr-only">Clear input</span>
@@ -197,26 +227,30 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       </PopoverTrigger>
       <PopoverContent
         ref={popoverRef}
-        className="p-0 w-[var(--radix-popover-trigger-width)] max-h-[300px] overflow-y-auto bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-border shadow-lg z-50"
+        className="p-0 w-[var(--radix-popover-trigger-width)] max-h-[300px] overflow-y-auto bg-background backdrop-blur-md border border-border shadow-lg z-50"
         align="start"
         sideOffset={5}
       >
         <div className="rounded-md overflow-hidden">
           {features.length > 0 ? (
-            features.map((feature) => (
-              <Button
-                key={feature.id}
-                variant="ghost"
-                className="w-full justify-start font-normal px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                onClick={() => handleSelect(feature)}
-                type="button"
-              >
-                {feature.place_name}
-              </Button>
-            ))
+            <div className="py-1">
+              {features.map((feature) => (
+                <Button
+                  key={feature.id}
+                  variant="ghost"
+                  className="w-full justify-start font-normal px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => handleSelect(feature)}
+                  type="button"
+                >
+                  {feature.place_name}
+                </Button>
+              ))}
+            </div>
           ) : (
             <div className="p-3 text-sm text-muted-foreground">
-              {error || (searchPerformed ? "No locations found. Try a different search term." : "Type at least 3 characters to search...")}
+              {error || (searchPerformed 
+                ? "No locations found. Try a different search term." 
+                : "Type at least 3 characters to search...")}
             </div>
           )}
         </div>
