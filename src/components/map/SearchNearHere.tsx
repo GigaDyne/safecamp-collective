@@ -24,6 +24,12 @@ const SearchNearHere = ({ onResultsFound }: SearchNearHereProps) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     if (!map.current) {

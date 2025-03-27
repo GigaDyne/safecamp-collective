@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Filter, Plus, Route, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +38,8 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     searchResults,
     setSearchResults,
     isSearchActive,
-    setIsSearchActive
+    setIsSearchActive,
+    clearSearch
   } = useSearchContext();
   
   const navigate = useNavigate();
@@ -180,7 +182,7 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
         <SearchBar visible={searchVisible} setVisible={setSearchVisible} />
       </div>
       
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center px-4 z-10">
+      <div className="absolute bottom-24 left-0 right-0 flex justify-center px-4 z-10">
         {showSearchNearHere ? (
           <SearchNearHere onResultsFound={handleSearchResults} />
         ) : (
@@ -188,7 +190,7 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
             variant="default" 
             size="sm" 
             onClick={() => setShowSearchNearHere(true)}
-            className="bg-background/90 hover:bg-background"
+            className="bg-background/90 hover:bg-background shadow-md"
           >
             <Search className="h-4 w-4 mr-2" />
             Search Near Here
