@@ -1,4 +1,3 @@
-
 import { useMapContext } from "@/contexts/MapContext";
 import { useNavigate } from "react-router-dom";
 import { Filter, Plus, Route } from "lucide-react";

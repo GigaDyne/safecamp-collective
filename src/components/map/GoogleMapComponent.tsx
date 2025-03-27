@@ -88,7 +88,7 @@ const GoogleMapComponent = ({
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
-      <MapProvider>
+      <MapProvider value={{ map: map.current }}>
         <MapControls />
       </MapProvider>
       
