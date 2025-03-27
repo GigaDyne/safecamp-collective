@@ -52,6 +52,7 @@ function App() {
             <Route path="site/:id" element={<SiteDetailPage />} />
             <Route path="search" element={<NearbyPage />} />
             <Route path="creator/:id" element={<CreatorProfilePage />} />
+            <Route path="trip-planner" element={<TripPlannerPage />} />
             
             {/* Protected routes */}
             <Route element={<ProtectedRoute requireAuth={true} />}>

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import MapView from "@/components/map/MapView";
 import { Button } from "@/components/ui/button";
 import { Shield, ShieldAlert, Map, Layers } from "lucide-react";
@@ -7,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const MapPage = () => {
   const [showCrimeData, setShowCrimeData] = useState(false);
+  const navigate = useNavigate();
   
   // Force Austin center when the map component loads
   useEffect(() => {
@@ -66,7 +68,7 @@ const MapPage = () => {
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-1"
-                onClick={() => window.location.href = "/trip-planner?showCrime=" + showCrimeData}
+                onClick={() => navigate(`/trip-planner?showCrime=${showCrimeData}`)}
               >
                 <Map className="h-4 w-4" />
                 <span className="hidden sm:inline">Trip Planner</span>
