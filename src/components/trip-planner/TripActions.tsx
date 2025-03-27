@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +51,7 @@ const TripActions: React.FC<TripActionsProps> = ({
     
     try {
       const newTrip: SavedTrip = {
-        id: uuidv4(),
+        id: savedTripId || uuidv4(),
         name: tripName,
         stops: selectedStops,
         createdAt: new Date().toISOString(),
@@ -67,8 +66,6 @@ const TripActions: React.FC<TripActionsProps> = ({
         title: "Trip saved!",
         description: `"${tripName}" has been saved successfully`,
       });
-      
-      setTripName("");
     } catch (error) {
       console.error("Error saving trip:", error);
       toast({

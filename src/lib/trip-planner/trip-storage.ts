@@ -1,4 +1,3 @@
-
 import { SavedTrip } from "./types";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
@@ -185,7 +184,7 @@ export const updateTripPlan = async (updatedTrip: SavedTrip): Promise<void> => {
 export const generateShareableLink = (tripId: string): string => {
   // In a real app, this might involve creating a short URL or a special token
   // For this demo, we'll just return the local URL path
-  return `/trip-navigation/${tripId}`;
+  return `/navigation/${tripId}`;
 };
 
 // Import a shared trip
