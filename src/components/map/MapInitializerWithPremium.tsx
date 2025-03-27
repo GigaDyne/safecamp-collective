@@ -39,27 +39,22 @@ const MapInitializerWithPremium = ({
 
   const { data: premiumCampsites = [], isLoading: isPremiumLoading } = usePremiumCampsites();
   
-  // Extract premium campsite IDs for quick lookup
   const premiumCampsiteIds = useMemo(() => {
     return new Set(premiumCampsites.map(pc => pc.campsite_id));
   }, [premiumCampsites]);
   
-  // Initialize map and get refs
   const { mapContainer, map, isMapLoaded } = useMapInitializer({ 
     mapboxToken, 
     onMapReady 
   });
 
-  // Center map on Austin when loaded
   useEffect(() => {
     if (map.current && isMapLoaded) {
-      // Ensure map is centered on Austin
       map.current.setCenter([-97.7431, 30.2672]);
       map.current.setZoom(10);
     }
   }, [isMapLoaded]);
 
-  // Handle map popup functionality
   const { 
     selectedSite, 
     selectedSiteIsPremium, 
@@ -71,7 +66,6 @@ const MapInitializerWithPremium = ({
     clearPopup
   } = useMapPopup({ map });
 
-  // Handle right-click context menu
   const { setLocationToAdd: setContextMenuLocation } = useMapContextMenu({
     map,
     onShowAddLocationDialog: (location) => {
@@ -80,7 +74,6 @@ const MapInitializerWithPremium = ({
     }
   });
 
-  // Handle markers creation and updates
   useMapMarkers({
     map,
     campSites,
@@ -90,17 +83,15 @@ const MapInitializerWithPremium = ({
     onSiteClick: showSitePopup
   });
 
-  // Initialize crime data layer if enabled
   const { crimeData, isLoading: isCrimeDataLoading, isMockData } = useCrimeData({
     map,
     enabled: showCrimeData && isMapLoaded
   });
 
-  // Add crime layer to map
   useCrimeLayer({
     map,
     crimeData,
-    enabled: showCrimeData && isMapLoaded,
+    showCrimeData: showCrimeData && isMapLoaded,
     onMarkerClick: (data) => {
       toast({
         title: `${data.county_name}, ${data.state_abbr}`,
@@ -110,7 +101,6 @@ const MapInitializerWithPremium = ({
     }
   });
 
-  // Handle submission of new location
   const handleAddSiteSubmission = (formData: any) => {
     toast({
       title: "Location submitted",
@@ -120,7 +110,6 @@ const MapInitializerWithPremium = ({
     setLocationToAdd(null);
   };
 
-  // Handle when user submits an existing location as new
   const handleExistingSiteSubmission = (site: CampSite) => {
     setLocationToAdd({
       latitude: site.latitude, 
@@ -131,14 +120,12 @@ const MapInitializerWithPremium = ({
 
   return (
     <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in relative">
-      {/* Crime data loading indicator */}
       {isCrimeDataLoading && showCrimeData && (
         <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
           Loading crime data...
         </div>
       )}
       
-      {/* Crime data info badge */}
       {showCrimeData && crimeData.length > 0 && (
         <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20 flex items-center space-x-2">
           <span>Showing crime data for {crimeData.length} areas</span>
@@ -155,7 +142,6 @@ const MapInitializerWithPremium = ({
         </div>
       )}
       
-      {/* Add Site Dialog */}
       <AddSiteDialog 
         open={showAddLocationDialog} 
         onOpenChange={setShowAddLocationDialog}
@@ -163,7 +149,6 @@ const MapInitializerWithPremium = ({
         onSubmit={handleAddSiteSubmission}
       />
       
-      {/* Mobile selected site info panel */}
       <AnimatePresence>
         {selectedSite && !showPopup && (
           <SelectedSiteInfo

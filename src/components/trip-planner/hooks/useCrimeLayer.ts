@@ -5,15 +5,19 @@ import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
 interface UseCrimeLayerProps {
   map: React.RefObject<google.maps.Map | null>;
   mapInitialized?: boolean;
-  showCrimeData: boolean;
+  showCrimeData?: boolean;
+  enabled?: boolean;
   crimeData?: CountyCrimeData[];
+  onMarkerClick?: (data: CountyCrimeData) => void;
 }
 
 export const useCrimeLayer = ({
   map,
   mapInitialized = true,
   showCrimeData,
-  crimeData = []
+  enabled,
+  crimeData = [],
+  onMarkerClick
 }: UseCrimeLayerProps) => {
   const crimeLayer = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
@@ -22,8 +26,11 @@ export const useCrimeLayer = ({
       return;
     }
 
+    // Determine if crime data should be shown (compatibility with both properties)
+    const shouldShowCrimeData = showCrimeData || enabled;
+
     // Display crime data if enabled
-    if (showCrimeData) {
+    if (shouldShowCrimeData) {
       // Check if the Google Maps visualization library is loaded
       if (google.maps.visualization && !crimeLayer.current) {
         try {
@@ -72,6 +79,32 @@ export const useCrimeLayer = ({
               'rgba(255, 0, 0, 1)'
             ]
           });
+          
+          // Add click handler for crime data points if provided
+          if (onMarkerClick && crimeData && crimeData.length > 0) {
+            map.current.addListener('click', (event) => {
+              // Find the closest crime data point to the click
+              const clickLat = event.latLng.lat();
+              const clickLng = event.latLng.lng();
+              
+              // Simple proximity check
+              const closestPoint = crimeData.reduce((closest, point) => {
+                const distance = Math.sqrt(
+                  Math.pow(clickLat - point.lat, 2) + 
+                  Math.pow(clickLng - point.lng, 2)
+                );
+                
+                if (distance < 0.02 && (!closest.distance || distance < closest.distance)) {
+                  return { point, distance };
+                }
+                return closest;
+              }, { point: null, distance: null } as { point: CountyCrimeData | null, distance: number | null });
+              
+              if (closestPoint.point) {
+                onMarkerClick(closestPoint.point);
+              }
+            });
+          }
         } catch (err) {
           console.error("Error creating crime heatmap:", err);
         }
@@ -90,7 +123,7 @@ export const useCrimeLayer = ({
         crimeLayer.current = null;
       }
     };
-  }, [map, mapInitialized, showCrimeData, crimeData]);
+  }, [map, mapInitialized, showCrimeData, enabled, crimeData, onMarkerClick]);
 
   return { crimeLayer: crimeLayer.current };
 };
