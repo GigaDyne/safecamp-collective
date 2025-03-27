@@ -96,9 +96,10 @@ const SelectedSiteInfo: React.FC<SelectedSiteInfoProps> = ({
         </CardFooter>
       </Card>
       <FlagSiteDialog
-        open={showFlagDialog}
-        onOpenChange={setShowFlagDialog}
-        site={site}
+        siteId={site.id}
+        siteName={site.name}
+        isOpen={showFlagDialog}
+        onClose={() => setShowFlagDialog(false)}
       />
     </motion.div>
   );
