@@ -6,9 +6,14 @@ export function useLoadGoogleMaps(apiKey: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Don't load if already loaded or if already trying to load
-    if (window.google?.maps || document.getElementById('google-maps-script')) {
+    // Check if Google Maps is already loaded
+    if (window.google && window.google.maps) {
       setIsLoaded(true);
+      return;
+    }
+    
+    // Don't load if already trying to load
+    if (document.getElementById('google-maps-script')) {
       return;
     }
 

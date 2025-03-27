@@ -4,13 +4,22 @@ import { MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-const MapTokenInput = () => {
+interface MapTokenInputProps {
+  onTokenSubmit?: (token: string) => void;
+  defaultToken?: string;
+}
+
+const MapTokenInput = ({ onTokenSubmit, defaultToken }: MapTokenInputProps = {}) => {
   const { toast } = useToast();
   const googleMapsKey = "AIzaSyC4AviHEkjo5wMQwSm8IbX29UVbcPfmr1U";
 
   const handleContinue = () => {
     // Since we're now using a fixed Google Maps API key, we can just reload the page
-    window.location.reload();
+    if (onTokenSubmit) {
+      onTokenSubmit(googleMapsKey);
+    } else {
+      window.location.reload();
+    }
   };
 
   return (

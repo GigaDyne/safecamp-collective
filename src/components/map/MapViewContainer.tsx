@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Filter, Plus, Route, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +16,6 @@ import ViewportIndicator from "./ViewportIndicator";
 import MapActionButtons from "./MapActionButtons";
 import SearchNearHere from "./SearchNearHere";
 import { Button } from "@/components/ui/button";
-import mapboxgl from "mapbox-gl";
 
 interface MapViewContainerProps {
   showCrimeData?: boolean;
@@ -159,14 +157,10 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
   return (
     <div className="map-container bg-muted/20 relative h-full">
       {!tokenEntered ? (
-        <MapTokenInput 
-          onTokenSubmit={handleTokenSubmit} 
-          defaultToken={mapboxToken}
-        />
+        <MapTokenInput />
       ) : null}
       
       <MapVisualizer
-        mapboxToken={mapboxToken}
         campSites={combinedCampsites}
         isLoading={isLoading || isViewportLoading}
         showCrimeData={showCrimeData}
