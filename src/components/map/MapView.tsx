@@ -351,7 +351,7 @@ const MapView = ({ showCrimeData = false }) => {
                         isFreeToStay: true
                       };
                       
-                      addCampSite(siteData);
+                      handleAddSite(siteData);
                       added++;
                     });
                     
