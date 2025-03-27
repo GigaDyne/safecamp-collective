@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CampSite } from "@/lib/supabase";
 import { useMapContext } from "@/contexts/MapContext";
+import { useSearchContext } from "@/contexts/SearchContext";
 import { useCampSites } from "@/hooks/useCampSites";
 import { useViewportCampsites } from "@/hooks/viewport-campsites";
 import MapVisualizer from "./MapVisualizer";
@@ -14,6 +15,7 @@ import MapControls from "./MapControls";
 import MissingSitesButton from "./MissingSitesButton";
 import ViewportIndicator from "./ViewportIndicator";
 import MapActionButtons from "./MapActionButtons";
+import SearchNearHere from "./SearchNearHere";
 
 interface MapViewContainerProps {
   showCrimeData?: boolean;
@@ -30,10 +32,18 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     viewportBounds
   } = useMapContext();
   
+  const {
+    searchResults,
+    setSearchResults,
+    isSearchActive,
+    setIsSearchActive
+  } = useSearchContext();
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   
   const [searchVisible, setSearchVisible] = useState(false);
+  const [showSearchNearHere, setShowSearchNearHere] = useState(false);
   const { campSites: apiCampSites, isLoading } = useCampSites();
   const [filterCriteria, setFilterCriteria] = useState({
     safetyRating: 0,
@@ -56,6 +66,11 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
   });
   
   const combinedCampsites = useMemo(() => {
+    // If search is active, prioritize search results
+    if (isSearchActive && searchResults.length > 0) {
+      return searchResults;
+    }
+    
     if (!useViewportLoading) {
       return filteredCampSites.length > 0 ? filteredCampSites : apiCampSites || [];
     }
@@ -77,7 +92,7 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     }
     
     return allCampsites;
-  }, [useViewportLoading, filteredCampSites, apiCampSites, viewportCampsites]);
+  }, [useViewportLoading, filteredCampSites, apiCampSites, viewportCampsites, isSearchActive, searchResults]);
 
   const handleTokenSubmit = (token: string) => {
     setMapboxToken(token);
@@ -122,6 +137,24 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     }
   }, [missingCampsites, toast]);
 
+  const handleSearchResults = (results: CampSite[]) => {
+    setSearchResults(results);
+    setIsSearchActive(results.length > 0);
+    
+    if (results.length > 0 && map.current) {
+      // Calculate bounds to fit all results
+      const bounds = new mapboxgl.LngLatBounds();
+      results.forEach(result => {
+        bounds.extend([result.longitude, result.latitude]);
+      });
+      
+      map.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 13
+      });
+    }
+  };
+
   return (
     <div className="map-container bg-muted/20 relative h-full">
       {!tokenEntered ? (
@@ -146,6 +179,22 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
       
       <div className="absolute top-4 left-0 right-0 px-4 z-10 transition-all duration-300 ease-in-out">
         <SearchBar visible={searchVisible} setVisible={setSearchVisible} />
+      </div>
+      
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center px-4 z-10">
+        {showSearchNearHere ? (
+          <SearchNearHere onResultsFound={handleSearchResults} />
+        ) : (
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => setShowSearchNearHere(true)}
+            className="bg-background/90 hover:bg-background"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search Near Here
+          </Button>
+        )}
       </div>
       
       {tokenEntered && <MapControls />}

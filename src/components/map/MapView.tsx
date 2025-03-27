@@ -1,5 +1,6 @@
 
 import { useMapContext, MapProvider } from "@/contexts/MapContext";
+import { SearchProvider } from "@/contexts/SearchContext";
 import MapViewContainer from "./MapViewContainer";
 
 interface MapViewProps {
@@ -9,7 +10,9 @@ interface MapViewProps {
 const MapView = ({ showCrimeData = false }: MapViewProps) => {
   return (
     <MapProvider>
-      <MapViewContainer showCrimeData={showCrimeData} />
+      <SearchProvider>
+        <MapViewContainer showCrimeData={showCrimeData} />
+      </SearchProvider>
     </MapProvider>
   );
 };
