@@ -1,12 +1,11 @@
 
 import React from 'react';
-import mapboxgl from 'mapbox-gl';
 
 interface MapDebugInfoProps {
   mapboxToken?: string;
   mapInitialized: boolean;
   mapContainerRef: React.RefObject<HTMLDivElement>;
-  mapRef: React.RefObject<mapboxgl.Map | null>;
+  mapRef: React.RefObject<google.maps.Map | null>;
   error: string | null;
 }
 
