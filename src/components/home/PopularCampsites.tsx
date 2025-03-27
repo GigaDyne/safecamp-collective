@@ -6,6 +6,7 @@ import { useFeaturedCampsites } from "@/hooks/useFeaturedCampsites";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageOff } from "lucide-react";
 
+// More reliable image URLs from Unsplash that should always work
 const reliableImageUrls = [
   'https://images.unsplash.com/photo-1472396961693-142e6e269027?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
   'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
@@ -65,24 +66,20 @@ const PopularCampsites: React.FC = () => {
               <div key={campsite.id} className="group cursor-pointer" onClick={() => navigate(`/site/${campsite.id}`)}>
                 <div className="overflow-hidden rounded-md mb-2 h-32 bg-muted relative">
                   {imageErrors[index] ? (
+                    // Show fallback image when the original image fails to load
                     <img 
                       src={getFallbackImage(index)}
                       alt={campsite.name} 
                       className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
-                      onError={() => console.log('Even fallback image failed to load')}
                     />
                   ) : (
+                    // Try to load the original image first
                     <img 
                       src={campsite.image_url || getFallbackImage(index)}
                       alt={campsite.name} 
                       className="w-full h-32 object-cover rounded-md transition-transform group-hover:scale-105"
                       onError={() => handleImageError(index)}
                     />
-                  )}
-                  {imageErrors[index] && !getFallbackImage(index) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                      <ImageOff className="h-8 w-8 text-muted-foreground" />
-                    </div>
                   )}
                 </div>
                 <h3 className="font-medium text-sm line-clamp-1">{campsite.name}</h3>
