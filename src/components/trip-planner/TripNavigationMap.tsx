@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, ShieldAlert } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
+import { MapProvider } from '@/contexts/MapContext';
+import MapControls from '../map/MapControls';
 import CrimeDataToggle from './map-components/CrimeDataToggle';
 
 interface TripNavigationMapProps {
@@ -51,6 +53,11 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
           onToggle={setShowCrimeData} 
           className="top-4 right-4"
         />
+
+        {/* Wrap MapControls with MapProvider */}
+        <MapProvider>
+          <MapControls />
+        </MapProvider>
 
         {/* Crime data detail dialog */}
         <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>

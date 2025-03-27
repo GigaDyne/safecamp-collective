@@ -2,7 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { HelmetProvider } from "react-helmet-async";
-import { AuthProvider } from "@/providers/AuthProvider";
+import AuthProvider from "@/providers/AuthProvider";
 import LoginPage from "@/pages/AuthPages/LoginPage";
 import SignUpPage from "@/pages/AuthPages/SignUpPage";
 import VerifyEmailPage from "@/pages/AuthPages/VerifyEmailPage";

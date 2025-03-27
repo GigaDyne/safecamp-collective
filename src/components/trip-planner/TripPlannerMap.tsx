@@ -10,6 +10,7 @@ import MapLoadingState from './map-components/MapLoadingState';
 import MapError from './map-components/MapError';
 import MapDebugInfo from './map-components/MapDebugInfo';
 import CrimeDataToggle from './map-components/CrimeDataToggle';
+import { MapProvider } from "@/contexts/MapContext";
 import MapControls from '../map/MapControls';
 
 interface TripPlannerMapProps {
@@ -130,8 +131,10 @@ const TripPlannerMap = ({
           />
         )}
         
-        {/* Add Map Controls */}
-        <MapControls />
+        {/* Add Map Controls with MapProvider */}
+        <MapProvider>
+          <MapControls />
+        </MapProvider>
         
         {isLoading && <MapLoadingState message="Planning your trip..." />}
         

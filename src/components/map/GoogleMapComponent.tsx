@@ -1,6 +1,7 @@
 
 import { useRef, useEffect } from "react";
 import { useGoogleMapInitializer } from "@/hooks/useGoogleMapInitializer";
+import { MapProvider } from "@/contexts/MapContext";
 import MapControls from "./MapControls";
 import { CampSite } from "@/lib/supabase";
 
@@ -87,7 +88,9 @@ const GoogleMapComponent = ({
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
-      <MapControls />
+      <MapProvider>
+        <MapControls />
+      </MapProvider>
       
       {isLoading && (
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center text-white">
