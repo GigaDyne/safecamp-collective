@@ -9,11 +9,19 @@ import { useGoogleMapsContext } from "@/contexts/GoogleMapsContext";
 
 interface TripNavigationMapProps {
   trip: Trip;
+  tripStops: TripStop[];
   currentStopIndex: number;
+  userLocation?: { lat: number; lng: number } | null;
   onMapReady?: (map: google.maps.Map | null) => void;
 }
 
-const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigationMapProps) => {
+const TripNavigationMap = ({ 
+  trip, 
+  tripStops, 
+  currentStopIndex,
+  userLocation, 
+  onMapReady 
+}: TripNavigationMapProps) => {
   const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const markers = useRef<google.maps.Marker[]>([]);
@@ -27,17 +35,17 @@ const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigatio
   } = useGoogleMapInitializer();
 
   useEffect(() => {
-    if (map.current && onMapReady) {
-      onMapReady(map.current);
+    if (map && onMapReady) {
+      onMapReady(map);
     }
   }, [map, onMapReady]);
 
   // Set up directions renderer
   useEffect(() => {
-    if (!window.google || !map.current || !isMapLoaded) return;
+    if (!window.google || !map || !isMapLoaded) return;
     
     const renderer = new google.maps.DirectionsRenderer({
-      map: map.current,
+      map: map,
       suppressMarkers: true,
       polylineOptions: {
         strokeColor: '#4A90E2',
@@ -55,7 +63,7 @@ const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigatio
 
   // Display the current route segment
   useEffect(() => {
-    if (!directionsRenderer || !window.google || !isMapLoaded || !trip.stops || trip.stops.length < 2) return;
+    if (!directionsRenderer || !window.google || !isMapLoaded || !tripStops || tripStops.length < 2) return;
     
     clearMarkers();
     
@@ -66,13 +74,13 @@ const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigatio
       
       try {
         // Determine start and end points for the current segment
-        const currentStop = trip.stops[currentStopIndex];
-        const nextStop = currentStopIndex < trip.stops.length - 1 
-          ? trip.stops[currentStopIndex + 1] 
+        const currentStop = tripStops[currentStopIndex];
+        const nextStop = currentStopIndex < tripStops.length - 1 
+          ? tripStops[currentStopIndex + 1] 
           : null;
         
         if (!currentStop || !nextStop) {
-          directionsRenderer.setDirections({ routes: [] });
+          directionsRenderer.setDirections({ routes: [], request: {} } as google.maps.DirectionsResult);
           setIsLoadingRoute(false);
           return;
         }
@@ -91,27 +99,30 @@ const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigatio
         directionsRenderer.setDirections(result);
         
         // Center the map to show the entire route
-        if (map.current && result.routes[0]?.bounds) {
-          map.current.fitBounds(result.routes[0].bounds);
+        if (map && result.routes[0]?.bounds) {
+          map.fitBounds(result.routes[0].bounds);
         }
       } catch (error) {
         console.error('Error calculating route:', error);
-        directionsRenderer.setDirections({ routes: [] });
+        directionsRenderer.setDirections({ routes: [], request: {} } as google.maps.DirectionsResult);
       } finally {
         setIsLoadingRoute(false);
       }
     };
     
     displayCurrentSegment();
-  }, [currentStopIndex, directionsRenderer, isMapLoaded, trip.stops, map]);
+  }, [currentStopIndex, directionsRenderer, isMapLoaded, tripStops, map]);
 
   // Add a marker to the map
   const addMarker = (stop: TripStop, label: string) => {
-    if (!map.current) return;
+    if (!map) return;
     
     const marker = new google.maps.Marker({
-      position: { lat: stop.coordinates.lat, lng: stop.coordinates.lng },
-      map: map.current,
+      position: { 
+        lat: stop.coordinates.lat, 
+        lng: stop.coordinates.lng 
+      },
+      map: map,
       title: stop.name,
       label,
       icon: {
@@ -134,7 +145,7 @@ const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigatio
     });
     
     marker.addListener('click', () => {
-      infoWindow.open(map.current, marker);
+      infoWindow.open(map, marker);
     });
   };
 

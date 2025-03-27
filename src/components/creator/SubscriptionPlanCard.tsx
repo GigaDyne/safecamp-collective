@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SubscriptionPlan, UserSubscription } from "@/lib/community/types";
@@ -9,7 +9,6 @@ import { createCheckoutSession, checkSubscription } from "@/lib/community/paymen
 import { reactivateSubscription, cancelSubscription } from "@/lib/community/api";
 import { useNavigate } from "react-router-dom";
 import { CreditCard, Edit, Trash, X, RefreshCcw } from "lucide-react";
-import { useState } from "react";
 
 interface SubscriptionPlanCardProps {
   plan: SubscriptionPlan;
@@ -169,7 +168,7 @@ export default function SubscriptionPlanCard({
                 <X className="h-4 w-4 mr-1" />
                 Cancel Subscription
               </Button>
-            ) : subscription?.status === 'cancelled' ? (
+            ) : subscription?.status === 'cancelled' || subscription?.status === 'canceled' ? (
               <Button 
                 onClick={handleReactivateSubscription}
                 disabled={isProcessing}

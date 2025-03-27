@@ -1,34 +1,38 @@
 
-import { MapPin, Fuel, Droplet, Trash2 } from "lucide-react";
-import React from "react";
+import { MapPin, Droplet, Gas, Coffee, ShoppingCart, Mountain, Bike, Wrench } from "lucide-react";
 
 export const getStopTypeIcon = (type: string) => {
   switch (type) {
     case 'campsite':
-      return <MapPin className="h-4 w-4 text-green-500" />;
-    case 'gas':
-      return <Fuel className="h-4 w-4 text-red-500" />;
+      return <Mountain className="h-4 w-4 text-green-600" />;
     case 'water':
-      return <Droplet className="h-4 w-4 text-blue-500" />;
-    case 'dump':
-      return <Trash2 className="h-4 w-4 text-amber-500" />;
+      return <Droplet className="h-4 w-4 text-blue-600" />;
+    case 'rest_area':
+      return <Coffee className="h-4 w-4 text-amber-600" />;
+    case 'gas_station':
+    case 'gas':
+      return <Gas className="h-4 w-4 text-red-600" />;
+    case 'grocery':
+      return <ShoppingCart className="h-4 w-4 text-purple-600" />;
     case 'walmart':
-      return <MapPin className="h-4 w-4 text-blue-600" />;
+      return <ShoppingCart className="h-4 w-4 text-blue-600" />;
     case 'propane':
-      return <Fuel className="h-4 w-4 text-orange-500" />;
+      return <Gas className="h-4 w-4 text-orange-600" />;
+    case 'dump':
+      return <Droplet className="h-4 w-4 text-brown-600" />;
     case 'repair':
-      return <Trash2 className="h-4 w-4 text-zinc-700" />;
+      return <Wrench className="h-4 w-4 text-gray-600" />;
+    case 'point_of_interest':
+      return <MapPin className="h-4 w-4 text-indigo-600" />;
     default:
-      return <MapPin className="h-4 w-4" />;
+      return <MapPin className="h-4 w-4 text-gray-600" />;
   }
 };
 
-export const renderEta = (distanceMeters: number) => {
-  const distanceMiles = distanceMeters / 1609.34;
-  const timeHours = distanceMiles / 55;
-  
-  const hours = Math.floor(timeHours);
-  const minutes = Math.floor((timeHours - hours) * 60);
+export const renderEta = (distance: number) => {
+  // Simple estimate: assume 55 mph average speed
+  const hours = Math.floor(distance / (1609.34 * 55));
+  const minutes = Math.round((distance / (1609.34 * 55) - hours) * 60);
   
   if (hours > 0) {
     return `${hours}h ${minutes}m`;

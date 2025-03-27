@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Navigation, MapPin, Info, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getTripPlanById } from "@/lib/trip-planner/trip-storage";
-import { SavedTrip, TripStop } from "@/lib/trip-planner/types";
+import { TripStop, SavedTrip } from "@/lib/trip-planner/types";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation as useCurrentLocation } from "@/hooks/useLocation";
@@ -203,6 +204,7 @@ const TripNavigationPage = () => {
       {/* Map */}
       <div className="relative flex-1">
         <TripNavigationMap 
+          trip={trip}
           tripStops={trip.stops} 
           currentStopIndex={currentStopIndex}
           userLocation={userLocation}
