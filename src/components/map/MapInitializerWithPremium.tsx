@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -9,19 +8,24 @@ import { createMapPinWithPremium } from "./MapPinWithPremium";
 import CampSiteCardWithPremium from "./CampSiteCardWithPremium";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePremiumCampsites } from "@/hooks/usePremiumCampsites";
+import { useCrimeData } from "@/hooks/useCrimeData";
+import { useCrimeLayer } from "@/hooks/useCrimeLayer";
+import Badge from "@/components/Badge";
 
 interface MapInitializerWithPremiumProps {
   mapboxToken: string;
   campSites: CampSite[] | undefined;
   isLoading: boolean;
   onMapReady?: (map: mapboxgl.Map) => void;
+  showCrimeData?: boolean;
 }
 
 const MapInitializerWithPremium = ({ 
   mapboxToken, 
   campSites, 
   isLoading, 
-  onMapReady 
+  onMapReady,
+  showCrimeData = false
 }: MapInitializerWithPremiumProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -33,19 +37,15 @@ const MapInitializerWithPremium = ({
   const [selectedSite, setSelectedSite] = useState<CampSite | null>(null);
   const [selectedSiteIsPremium, setSelectedSiteIsPremium] = useState(false);
   
-  // Get premium campsites
   const { data: premiumCampsites = [], isLoading: isPremiumLoading } = usePremiumCampsites();
   
-  // Create a set of campsite IDs that have premium listings
   const premiumCampsiteIds = useMemo(() => {
     return new Set(premiumCampsites.map(pc => pc.campsite_id));
   }, [premiumCampsites]);
   
-  // Create a stable stringified version of campSites for comparison
   const campSitesString = useMemo(() => {
     if (!campSites) return "";
     
-    // Create a simplified version with only the essential properties for comparison
     const simplifiedSites = campSites.map(site => ({
       id: site.id,
       lat: site.latitude,
@@ -57,7 +57,24 @@ const MapInitializerWithPremium = ({
     return JSON.stringify(simplifiedSites);
   }, [campSites, premiumCampsiteIds]);
 
-  // Initialize map only once
+  const { crimeData, isLoading: isCrimeDataLoading, isMockData } = useCrimeData({
+    map,
+    enabled: showCrimeData && isMapLoaded
+  });
+
+  useCrimeLayer({
+    map,
+    crimeData,
+    enabled: showCrimeData && isMapLoaded,
+    onMarkerClick: (data) => {
+      toast({
+        title: `${data.county_name}, ${data.state_abbr}`,
+        description: `Safety score: ${data.safety_score}/100`,
+        variant: "default"
+      });
+    }
+  });
+
   useEffect(() => {
     if (!mapboxToken || map.current || !mapContainer.current || mapInitializedRef.current) return;
     
@@ -70,10 +87,10 @@ const MapInitializerWithPremium = ({
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-111.8910, 40.7608], // Default center
+        center: [-111.8910, 40.7608],
         zoom: 5,
         attributionControl: false,
-        preserveDrawingBuffer: true // Prevents redraws
+        preserveDrawingBuffer: true
       });
 
       map.current.addControl(
@@ -83,19 +100,16 @@ const MapInitializerWithPremium = ({
         "bottom-left"
       );
 
-      // Close the site card when clicking on the map (but not on a marker)
       map.current.on('click', () => {
         setSelectedSite(null);
         setSelectedSiteIsPremium(false);
       });
 
-      // Add basic interactions
       map.current.on("load", () => {
         if (!map.current) return;
         console.log("Map load event fired");
         setIsMapLoaded(true);
         
-        // Add public lands layer (would be more complex in production)
         map.current.addSource("public-lands", {
           type: "geojson",
           data: {
@@ -115,14 +129,14 @@ const MapInitializerWithPremium = ({
               ["get", "agency"],
               "BLM", "rgba(254, 213, 111, 0.2)",
               "USFS", "rgba(52, 211, 153, 0.2)",
-              "rgba(155, 155, 155, 0.2)" // default
+              "rgba(155, 155, 155, 0.2)"
             ],
             "fill-outline-color": [
               "match",
               ["get", "agency"],
               "BLM", "rgba(254, 213, 111, 0.5)",
               "USFS", "rgba(52, 211, 153, 0.5)",
-              "rgba(155, 155, 155, 0.5)" // default
+              "rgba(155, 155, 155, 0.5)"
             ],
           },
         });
@@ -131,7 +145,6 @@ const MapInitializerWithPremium = ({
           onMapReady(map.current);
         }
 
-        // Fetch user location after map is loaded
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -158,7 +171,6 @@ const MapInitializerWithPremium = ({
       });
     }
 
-    // Cleanup function - only run when component unmounts
     return () => {
       if (map.current) {
         console.log("Cleaning up map");
@@ -166,9 +178,8 @@ const MapInitializerWithPremium = ({
         map.current = null;
       }
     };
-  }, [mapboxToken, toast]); // Only re-run when mapboxToken changes
+  }, [mapboxToken, toast]);
 
-  // Function to fly to a marker
   const flyToMarker = (site: CampSite) => {
     if (!map.current) return;
     
@@ -177,31 +188,26 @@ const MapInitializerWithPremium = ({
       zoom: 14,
       essential: true,
       duration: 1500,
-      padding: { bottom: 250 } // Make room for the card at the bottom
+      padding: { bottom: 250 }
     });
   };
 
-  // Handle markers separately with deep comparison of camp sites
   useEffect(() => {
     if (!map.current || isLoading || !isMapLoaded || !campSites || isPremiumLoading) {
       return;
     }
     
-    // Store the current string representation in a ref to avoid re-renders
     const currentCampSitesString = campSitesString;
     
-    // Skip if campSites haven't changed
     if (markersRef.current.length > 0 && currentCampSitesString === markersRef.current[0]?.getElement().dataset.sitesHash) {
       return;
     }
     
     console.log("Updating markers - campSites have changed");
     
-    // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    // Add new markers only if the map is fully loaded
     if (map.current.loaded()) {
       addMarkers();
     } else {
@@ -211,17 +217,14 @@ const MapInitializerWithPremium = ({
     function addMarkers() {
       if (!map.current || !campSites) return;
       
-      // Add new markers
       campSites.forEach(site => {
         try {
           const isPremium = premiumCampsiteIds.has(site.id);
           
-          // Create a DOM click handler that works with native MouseEvent
           const handleMarkerClick = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
             
-            // Set the selected site and fly to it
             setSelectedSite(site);
             setSelectedSiteIsPremium(isPremium);
             flyToMarker(site);
@@ -233,7 +236,6 @@ const MapInitializerWithPremium = ({
             onClick: handleMarkerClick
           });
           
-          // Store the hash in the element for comparison
           markerElement.dataset.sitesHash = currentCampSitesString;
           
           const marker = new mapboxgl.Marker({
@@ -248,12 +250,10 @@ const MapInitializerWithPremium = ({
         }
       });
     }
-  }, [campSitesString, isLoading, isMapLoaded, premiumCampsiteIds, campSites, isPremiumLoading]); 
+  }, [campSitesString, isLoading, isMapLoaded, premiumCampsiteIds, campSites, isPremiumLoading]);
 
-  // Close card on map click (not marker click)
   useEffect(() => {
     const handleMapClick = (e: MouseEvent) => {
-      // Only close if we're not clicking on a marker
       if (e.target && !(e.target as HTMLElement).closest('.marker-element')) {
         setSelectedSite(null);
         setSelectedSiteIsPremium(false);
@@ -273,6 +273,28 @@ const MapInitializerWithPremium = ({
 
   return (
     <div ref={mapContainer} className="w-full h-full bg-muted/20 animate-fade-in relative">
+      {isCrimeDataLoading && showCrimeData && (
+        <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
+          Loading crime data...
+        </div>
+      )}
+      
+      {showCrimeData && crimeData.length > 0 && (
+        <div className="absolute top-4 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20 flex items-center space-x-2">
+          <span>Showing crime data for {crimeData.length} areas</span>
+          {isMockData && (
+            <Badge variant="outline" className="text-yellow-600 border-yellow-600 text-xs">
+              MOCK DATA
+            </Badge>
+          )}
+          {!isMockData && (
+            <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+              REAL DATA
+            </Badge>
+          )}
+        </div>
+      )}
+      
       <AnimatePresence>
         {selectedSite && (
           <motion.div 

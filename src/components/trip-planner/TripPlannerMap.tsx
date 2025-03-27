@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { TripStop, RouteData } from '@/lib/trip-planner/types';
@@ -41,6 +40,8 @@ interface TripPlannerMapProps {
   selectedStops: TripStop[];
   onAddToItinerary: (stop: TripStop) => void;
   className?: string;
+  showCrimeData?: boolean;
+  setShowCrimeData?: (show: boolean) => void;
 }
 
 const TripPlannerMap = ({
@@ -51,14 +52,14 @@ const TripPlannerMap = ({
   selectedStops,
   onAddToItinerary,
   setTripStops,
-  className = ''
+  className = '',
+  showCrimeData = false,
+  setShowCrimeData
 }: TripPlannerMapProps) => {
   const { toast } = useToast();
   const [showDebug, setShowDebug] = useState(false);
-  const [showCrimeData, setShowCrimeData] = useState(true); // Default to true for testing
   const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
   
-  // Initialize the map
   const {
     mapContainer,
     map,
@@ -66,14 +67,12 @@ const TripPlannerMap = ({
     error,
   } = useMapInitialization({ mapboxToken, routeData });
 
-  // Handle route drawing
   useMapRoute({ 
     map, 
     routeData, 
     mapInitialized 
   });
 
-  // Handle popups
   const {
     selectedStop,
     setSelectedStop,
@@ -85,7 +84,6 @@ const TripPlannerMap = ({
     onAddToItinerary
   });
 
-  // Handle markers
   useMapMarkers({
     map,
     tripStops,
@@ -95,30 +93,25 @@ const TripPlannerMap = ({
     mapInitialized
   });
 
-  // Use the URL search params to check if crime data should be shown
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const crimeParam = params.get('showCrime');
     
-    // If the param exists and is 'true', enable crime data
     if (crimeParam === 'true') {
       setShowCrimeData(true);
     }
     
-    // Find crime toggle in page and set it to checked if showCrimeData is true
     const crimeToggle = document.querySelector('input[name="crime-data"]') as HTMLInputElement;
     if (crimeToggle && showCrimeData) {
       crimeToggle.checked = true;
     }
   }, []);
 
-  // Handle crime data
   const { crimeData, isLoading: isCrimeDataLoading, isMockData } = useCrimeData({
     map,
     enabled: showCrimeData
   });
 
-  // Handle crime data layer
   useCrimeLayer({
     map,
     crimeData,
@@ -128,7 +121,6 @@ const TripPlannerMap = ({
     }
   });
 
-  // Setup debug mode toggle
   useEffect(() => {
     const handleDoubleClick = () => {
       setShowDebug(prev => !prev);
@@ -141,14 +133,12 @@ const TripPlannerMap = ({
     };
   }, []);
 
-  // Log useful debug info
   useEffect(() => {
     console.log("Crime data enabled:", showCrimeData);
     console.log("Crime data loaded:", crimeData.length);
     console.log("Map initialized:", mapInitialized);
   }, [showCrimeData, crimeData.length, mapInitialized]);
 
-  // If there's an error, show the error component
   if (error) {
     return <MapError message={error} />;
   }
@@ -231,7 +221,6 @@ const TripPlannerMap = ({
         </ContextMenuContent>
       )}
 
-      {/* Crime data detail dialog */}
       <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

@@ -1,4 +1,3 @@
-
 import React from "react";
 import TripPlannerForm from "@/components/trip-planner/TripPlannerForm";
 import TripItinerary from "@/components/trip-planner/TripItinerary";
@@ -43,8 +42,8 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
   initialDestCoords
 }) => {
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-56px)] overflow-hidden">
-      <div className="w-full md:w-1/3 h-1/2 md:h-full flex flex-col overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)]">
+      <div className="w-full md:w-[350px] overflow-y-auto border-r">
         <TripPlannerForm 
           setRouteData={setRouteData} 
           setTripStops={setTripStops}
@@ -67,7 +66,7 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
         />
       </div>
       
-      <div className="w-full md:w-2/3 h-1/2 md:h-full relative bg-muted/20">
+      <div className="flex-1 relative overflow-hidden">
         <TripPlannerMap 
           routeData={routeData} 
           tripStops={tripStops} 
@@ -76,7 +75,8 @@ const TripPlannerContent: React.FC<TripPlannerContentProps> = ({
           mapboxToken={mapboxToken}
           selectedStops={selectedStops}
           onAddToItinerary={onAddToItinerary}
-          className="h-full w-full"
+          showCrimeData={showCrimeData}
+          setShowCrimeData={setShowCrimeData}
         />
       </div>
     </div>
