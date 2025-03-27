@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Filter, Plus, Route, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -142,15 +143,18 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     setIsSearchActive(results.length > 0);
     
     if (results.length > 0 && map.current) {
-      const bounds = new mapboxgl.LngLatBounds();
-      results.forEach(result => {
-        bounds.extend([result.longitude, result.latitude]);
-      });
-      
-      map.current.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 13
-      });
+      // For Google Maps, create a bounds object differently
+      if (window.google && map.current) {
+        const bounds = new window.google.maps.LatLngBounds();
+        results.forEach(result => {
+          bounds.extend({ lat: result.latitude, lng: result.longitude });
+        });
+        
+        // @ts-ignore - Temporarily ignore while transitioning from Mapbox to Google Maps
+        map.current.fitBounds(bounds, {
+          padding: 50
+        });
+      }
     }
   };
 
