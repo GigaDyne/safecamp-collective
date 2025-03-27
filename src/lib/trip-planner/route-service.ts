@@ -1,6 +1,8 @@
+
 import { v4 as uuidv4 } from "uuid";
 import { TripPlanRequest, TripPlanResponse, RouteData, TripStop } from "./types";
 import { mockCampSites } from "@/data/mockData";
+import { supabase } from "@/lib/supabase";
 
 // Mapbox API endpoints
 const MAPBOX_DIRECTIONS_API = "https://api.mapbox.com/directions/v5/mapbox/driving";
@@ -120,14 +122,104 @@ const getDistanceBetweenPoints = (
   return R * c; // in meters
 };
 
-// Find campsites along a route
-const findCampsitesAlongRoute = (
+// Find campsites along a route from Supabase
+const findCampsitesFromDatabase = async (
+  route: { coordinates: [number, number][] },
+  bufferDistanceMiles: number
+): Promise<TripStop[]> => {
+  const bufferDistanceKm = bufferDistanceMiles * 1.60934; // Convert miles to km
+  
+  try {
+    // Find the min/max coordinates to create a bounding box for the query
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    
+    route.coordinates.forEach(coord => {
+      const [lng, lat] = coord;
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    });
+    
+    // Add the buffer distance to the bounding box
+    // Rough approximation: 1 degree latitude ≈ 111 km
+    const latBuffer = bufferDistanceKm / 111;
+    // 1 degree longitude varies with latitude, so we use a conservative estimate
+    const lngBuffer = bufferDistanceKm / (111 * Math.cos(((minLat + maxLat) / 2) * Math.PI / 180));
+    
+    const boundingBox = {
+      minLat: minLat - latBuffer,
+      maxLat: maxLat + latBuffer,
+      minLng: minLng - lngBuffer,
+      maxLng: maxLng + lngBuffer
+    };
+    
+    // Query Supabase for campsites within the bounding box
+    const { data, error } = await supabase
+      .from('campsites')
+      .select('*')
+      .gte('latitude', boundingBox.minLat)
+      .lte('latitude', boundingBox.maxLat)
+      .gte('longitude', boundingBox.minLng)
+      .lte('longitude', boundingBox.maxLng);
+    
+    if (error) {
+      console.error('Error fetching campsites from database:', error);
+      // Fall back to mock data if query fails
+      return findCampsitesFromMockData(route, bufferDistanceMiles);
+    }
+    
+    if (!data || data.length === 0) {
+      console.log('No campsites found in database, using mock data');
+      return findCampsitesFromMockData(route, bufferDistanceMiles);
+    }
+    
+    console.log(`Found ${data.length} campsites in database within bounding box`);
+    
+    // Filter for campsites near the route and convert to TripStop format
+    return data
+      .map(campsite => {
+        const point: [number, number] = [campsite.longitude, campsite.latitude];
+        const nearRoute = isPointNearRoute(point, route.coordinates, bufferDistanceKm);
+        
+        if (nearRoute.isNear) {
+          return {
+            id: campsite.id,
+            name: campsite.name,
+            location: `${campsite.latitude},${campsite.longitude}`,
+            type: 'campsite' as const,
+            coordinates: {
+              lat: campsite.latitude,
+              lng: campsite.longitude
+            },
+            distanceFromRoute: nearRoute.distance,
+            safetyRating: campsite.safety_rating,
+            details: {
+              description: campsite.description,
+              features: campsite.features,
+              images: campsite.images,
+              reviewCount: campsite.review_count
+            },
+            source: 'supabase'
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as TripStop[];
+  } catch (err) {
+    console.error('Error in findCampsitesFromDatabase:', err);
+    // Fall back to mock data if anything goes wrong
+    return findCampsitesFromMockData(route, bufferDistanceMiles);
+  }
+};
+
+// Find campsites from mock data (fallback)
+const findCampsitesFromMockData = (
   route: { coordinates: [number, number][] },
   bufferDistanceMiles: number
 ): TripStop[] => {
   const bufferDistanceKm = bufferDistanceMiles * 1.60934; // Convert miles to km
   
-  // Use mock data for campsites (in a real app, we'd fetch from Supabase)
   return mockCampSites
     .map(campsite => {
       const point: [number, number] = [campsite.longitude, campsite.latitude];
@@ -150,12 +242,102 @@ const findCampsitesAlongRoute = (
             features: campsite.features,
             images: campsite.images,
             reviewCount: campsite.reviewCount
-          }
+          },
+          source: 'mock'
         };
       }
       return null;
     })
     .filter(Boolean) as TripStop[];
+};
+
+// Find points of interest on Mapbox around a route
+const findMapboxPOIs = async (
+  route: { coordinates: [number, number][] },
+  bufferDistanceMiles: number,
+  mapboxToken: string
+): Promise<TripStop[]> => {
+  const bufferDistanceKm = bufferDistanceMiles * 1.60934; // Convert miles to km
+  const poiStops: TripStop[] = [];
+  
+  try {
+    // We'll check several points along the route for POIs
+    const checkPoints = 10; // Number of points to check along the route
+    const routeLength = route.coordinates.length;
+    
+    if (routeLength < 2) return []; // Not enough points in route
+    
+    // Select evenly spaced points along the route
+    for (let i = 0; i < checkPoints; i++) {
+      const idx = Math.floor((routeLength - 1) * (i / (checkPoints - 1)));
+      const [lng, lat] = route.coordinates[idx];
+      
+      // Use Mapbox forward geocoding API with POI type filters
+      const url = `${MAPBOX_GEOCODING_API}/${lng},${lat}.json?types=poi&proximity=${lng},${lat}&bbox=${lng-0.1},${lat-0.1},${lng+0.1},${lat+0.1}&limit=10&access_token=${mapboxToken}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) continue;
+      
+      const data = await response.json();
+      
+      if (!data.features || data.features.length === 0) continue;
+      
+      // Filter for camping-related POIs
+      const campingKeywords = ['campground', 'camp', 'camping', 'rv park', 'caravan'];
+      
+      for (const feature of data.features) {
+        // Skip if no place name or already added
+        if (!feature.place_name || 
+            poiStops.some(stop => 
+              stop.coordinates.lng === feature.center[0] && 
+              stop.coordinates.lat === feature.center[1]
+            )
+           ) {
+          continue;
+        }
+        
+        // Check if this POI is camping-related
+        const isRelevant = campingKeywords.some(keyword => 
+          feature.place_name.toLowerCase().includes(keyword) || 
+          (feature.properties?.category || '').toLowerCase().includes(keyword)
+        );
+        
+        if (!isRelevant) continue;
+        
+        // Check if this POI is near our route
+        const point: [number, number] = feature.center;
+        const nearRoute = isPointNearRoute(point, route.coordinates, bufferDistanceKm);
+        
+        if (nearRoute.isNear) {
+          poiStops.push({
+            id: `mapbox-${uuidv4()}`,
+            name: feature.text || feature.place_name,
+            location: `${feature.center[1]},${feature.center[0]}`,
+            type: 'campsite',
+            coordinates: {
+              lat: feature.center[1],
+              lng: feature.center[0]
+            },
+            distanceFromRoute: nearRoute.distance,
+            safetyRating: 3, // Default middle rating
+            details: {
+              description: `This campsite was found on Mapbox (${feature.place_name})`,
+              features: ['Found on map'],
+              images: [],
+              reviewCount: 0
+            },
+            source: 'mapbox'
+          });
+        }
+      }
+    }
+    
+    console.log(`Found ${poiStops.length} camping POIs from Mapbox`);
+    return poiStops;
+  } catch (err) {
+    console.error('Error finding Mapbox POIs:', err);
+    return [];
+  }
 };
 
 // Generate mock amenities along the route
@@ -302,11 +484,31 @@ export const planTrip = async (
   
   // Add campsites if requested
   if (includeCampsites) {
-    const campsites = findCampsitesAlongRoute(
+    // First try to get campsites from the database
+    const databaseCampsites = await findCampsitesFromDatabase(
       routeData.geometry,
       bufferDistance
     );
-    stops.push(...campsites);
+    stops.push(...databaseCampsites);
+    
+    // Then try to find additional campsites from Mapbox
+    const mapboxCampsites = await findMapboxPOIs(
+      routeData.geometry,
+      bufferDistance,
+      mapboxToken
+    );
+    
+    // Add Mapbox campsites that don't overlap with database ones
+    const existingCoordinates = new Set(
+      databaseCampsites.map(site => `${site.coordinates.lat.toFixed(5)},${site.coordinates.lng.toFixed(5)}`)
+    );
+    
+    mapboxCampsites.forEach(site => {
+      const coordKey = `${site.coordinates.lat.toFixed(5)},${site.coordinates.lng.toFixed(5)}`;
+      if (!existingCoordinates.has(coordKey)) {
+        stops.push(site);
+      }
+    });
   }
   
   // Add other amenities if requested (in a real app, we'd fetch from an API)
@@ -326,6 +528,8 @@ export const planTrip = async (
     );
     stops.push(...amenities);
   }
+  
+  console.log(`Returning ${stops.length} total stops for the trip`);
   
   return {
     routeData,

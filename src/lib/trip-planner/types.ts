@@ -11,6 +11,7 @@ export interface TripStop {
   distanceFromRoute?: number;
   distance?: number;
   eta?: string;
+  source?: 'supabase' | 'mapbox' | 'mock';
 }
 
 export interface RouteData {

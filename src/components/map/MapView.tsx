@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
-import { Filter, Plus, Route } from "lucide-react";
+import { Filter, Plus, Route, MapPin } from "lucide-react";
 import { useCampSites, useAddCampSite } from "@/hooks/useCampSites";
 import { useViewportCampsites } from "@/hooks/useViewportCampsites";
 import { CampSite } from "@/lib/supabase";
@@ -16,8 +17,14 @@ import MapFilterDrawer, { FilterCriteria } from "./MapFilterDrawer";
 import { 
   Dialog,
   DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const localStorageTokenKey = "mapbox_token";
 
@@ -33,6 +40,7 @@ const MapView = ({ showCrimeData = false }) => {
   const [tokenEntered, setTokenEntered] = useState(false);
   const [showAddSiteDialog, setShowAddSiteDialog] = useState(false);
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [showMissingSiteDialog, setShowMissingSiteDialog] = useState(false);
   const [filteredCampSites, setFilteredCampSites] = useState<CampSite[]>([]);
   const { toast } = useToast();
   
@@ -54,11 +62,14 @@ const MapView = ({ showCrimeData = false }) => {
   
   const { 
     campsites: viewportCampsites, 
-    isLoading: isViewportLoading 
+    isLoading: isViewportLoading,
+    missingCampsites,
   } = useViewportCampsites(viewportBounds, {
     enabled: useViewportLoading && tokenEntered,
     limit: 50,
-    debounceMs: 300
+    debounceMs: 300,
+    includeMapboxPOIs: true,
+    map: map.current
   });
   
   const combinedCampsites = useMemo(() => {
@@ -202,6 +213,16 @@ const MapView = ({ showCrimeData = false }) => {
     });
   }, [toast]);
 
+  useEffect(() => {
+    if (missingCampsites) {
+      toast({
+        title: "Additional Campsites Found",
+        description: "We've found campsites on the map that aren't in our database. Click the banner to add them.",
+        duration: 7000,
+      });
+    }
+  }, [missingCampsites, toast]);
+
   return (
     <div className="map-container bg-muted/20 relative h-full">
       {!tokenEntered ? (
@@ -223,6 +244,16 @@ const MapView = ({ showCrimeData = false }) => {
         <div className="absolute top-20 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
           {isViewportLoading ? 'Loading campsites in view...' : `${viewportCampsites?.length || 0} campsites in current view`}
         </div>
+      )}
+      
+      {missingCampsites && (
+        <button 
+          onClick={() => setShowMissingSiteDialog(true)}
+          className="absolute top-32 left-4 bg-amber-100 text-amber-900 text-sm py-1 px-3 rounded-full shadow-sm border border-amber-300 z-20 flex items-center gap-2 hover:bg-amber-200 transition-colors"
+        >
+          <MapPin className="h-4 w-4" />
+          <span>Map shows unmarked campsites - Click to add them</span>
+        </button>
       )}
       
       <div className="absolute top-4 left-0 right-0 px-4 z-10 transition-all duration-300 ease-in-out">
@@ -250,6 +281,95 @@ const MapView = ({ showCrimeData = false }) => {
                 onSubmit={handleAddSite}
                 onCancel={() => setShowAddSiteDialog(false)}
               />
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={showMissingSiteDialog} onOpenChange={setShowMissingSiteDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add Missing Campsites</DialogTitle>
+                <DialogDescription>
+                  We've detected campground labels on the map that aren't in our database. Would you like to add them?
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="max-h-[300px] overflow-y-auto space-y-2 my-4">
+                {viewportCampsites?.filter(site => site.source === 'mapbox').map(site => (
+                  <div key={site.id} className="flex items-center justify-between border rounded-md p-2">
+                    <div>
+                      <p className="font-medium text-sm">{site.name}</p>
+                      <p className="text-xs text-muted-foreground">{site.location}</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // Prepare data for the add form
+                        const siteData = {
+                          name: site.name,
+                          latitude: site.latitude,
+                          longitude: site.longitude,
+                          description: "Found on map",
+                          safetyRating: 3,
+                          cellSignal: 3,
+                          noiseLevel: 3,
+                          accessibility: 3,
+                          isFreeToStay: true
+                        };
+                        
+                        handleAddSite(siteData);
+                        toast({
+                          title: "Campsite Added",
+                          description: `${site.name} has been added to our database.`,
+                        });
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowMissingSiteDialog(false)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // Add all missing sites
+                    const missingSites = viewportCampsites?.filter(site => site.source === 'mapbox') || [];
+                    let added = 0;
+                    
+                    missingSites.forEach(site => {
+                      const siteData = {
+                        name: site.name,
+                        latitude: site.latitude,
+                        longitude: site.longitude,
+                        description: "Found on map",
+                        safetyRating: 3,
+                        cellSignal: 3,
+                        noiseLevel: 3,
+                        accessibility: 3,
+                        isFreeToStay: true
+                      };
+                      
+                      addCampSite(siteData);
+                      added++;
+                    });
+                    
+                    setShowMissingSiteDialog(false);
+                    
+                    if (added > 0) {
+                      toast({
+                        title: "Campsites Added",
+                        description: `Added ${added} new campsites to our database.`,
+                      });
+                    }
+                  }}
+                >
+                  Add All
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </>
