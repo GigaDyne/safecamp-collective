@@ -74,22 +74,60 @@ export const useMapRoute = ({
           }
         });
 
-        // Add the route layer
+        // Add the route layer with improved styling and zoom-dependent width
         map.current.addLayer({
           id: 'route-line',
           type: 'line',
           source: 'route',
           layout: {
             'line-join': 'round',
-            'line-cap': 'round'
+            'line-cap': 'round',
+            'visibility': 'visible'
           },
           paint: {
-            'line-color': '#8B5CF6',
-            'line-width': 6,
-            'line-opacity': 0.8
+            'line-color': '#F97316', // Bright orange for high visibility
+            'line-width': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              1, 8,    // Width 8 at zoom level 1 (far out)
+              5, 6,    // Width 6 at zoom level 5
+              10, 5,   // Width 5 at zoom level 10
+              15, 4    // Width 4 at zoom level 15 (close in)
+            ],
+            'line-opacity': 0.9,
+            'line-blur': 0.5
           }
-        });
+        }, 'poi-label'); // Add before POI labels but above other layers
 
+        // Add a small border/outline to the route for better contrast
+        map.current.addLayer({
+          id: 'route-line-border',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+            'visibility': 'visible'
+          },
+          paint: {
+            'line-color': '#FFFFFF', // White border
+            'line-width': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              1, 12,   // Width 12 at zoom level 1 (far out)
+              5, 10,   // Width 10 at zoom level 5
+              10, 9,   // Width 9 at zoom level 10
+              15, 8    // Width 8 at zoom level 15 (close in)
+            ],
+            'line-opacity': 0.5
+          }
+        }, 'route-line'); // Add below the main route line
+
+        // Make the route line non-interactive so it doesn't block clicks on markers
+        map.current.setLayoutProperty('route-line', 'visibility', 'visible');
+        
         // Add start marker
         const startCoords = routeData.geometry.coordinates[0];
         const startMarker = new mapboxgl.Marker({ color: '#10B981' })
@@ -104,6 +142,20 @@ export const useMapRoute = ({
           .addTo(map.current);
         markersRef.current.push(endMarker);
 
+        // Add route midpoint marker for extremely short routes at low zoom levels
+        if (routeData.geometry.coordinates.length > 2) {
+          const midIndex = Math.floor(routeData.geometry.coordinates.length / 2);
+          const midCoords = routeData.geometry.coordinates[midIndex];
+          const midMarker = new mapboxgl.Marker({ 
+            color: '#F97316',
+            scale: 0.7, 
+            anchor: 'center' 
+          })
+            .setLngLat([midCoords[0], midCoords[1]])
+            .addTo(map.current);
+          markersRef.current.push(midMarker);
+        }
+
         routeSourceAdded.current = true;
         
         // Set the map bounds to fit the route
@@ -112,6 +164,7 @@ export const useMapRoute = ({
           bounds.extend([coord[0], coord[1]]);
         });
         
+        // Add some padding to the bounds to make sure the route is visible
         map.current.fitBounds(bounds, {
           padding: 50,
           maxZoom: 15

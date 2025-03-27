@@ -4,7 +4,7 @@ import MapView from "@/components/map/MapView";
 
 const MapPage = () => {
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full overflow-hidden">
       <MapView />
     </div>
   );
