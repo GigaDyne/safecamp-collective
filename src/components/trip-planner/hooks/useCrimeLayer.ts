@@ -1,16 +1,19 @@
 
 import { useEffect, useRef } from 'react';
+import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
 
 interface UseCrimeLayerProps {
   map: React.RefObject<google.maps.Map | null>;
-  mapInitialized: boolean;
+  mapInitialized?: boolean;
   showCrimeData: boolean;
+  crimeData?: CountyCrimeData[];
 }
 
 export const useCrimeLayer = ({
   map,
-  mapInitialized,
-  showCrimeData
+  mapInitialized = true,
+  showCrimeData,
+  crimeData = []
 }: UseCrimeLayerProps) => {
   const crimeLayer = useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
@@ -24,21 +27,31 @@ export const useCrimeLayer = ({
       // Check if the Google Maps visualization library is loaded
       if (google.maps.visualization && !crimeLayer.current) {
         try {
-          // Create mock crime data points (in a real app, this would come from an API)
-          const mockCrimeData = Array.from({ length: 50 }, () => {
-            // Get the center of the map
-            const center = map.current?.getCenter();
-            if (!center) return null;
-            
-            const lat = center.lat() + (Math.random() - 0.5) * 0.2;
-            const lng = center.lng() + (Math.random() - 0.5) * 0.2;
-            
-            return new google.maps.LatLng(lat, lng);
-          }).filter(Boolean) as google.maps.LatLng[];
+          // Use provided crime data if available, otherwise create mock data
+          let heatmapData: google.maps.LatLng[];
+          
+          if (crimeData && crimeData.length > 0) {
+            // Convert real crime data to heatmap points
+            heatmapData = crimeData.map(point => 
+              new google.maps.LatLng(point.lat, point.lng)
+            );
+          } else {
+            // Create mock crime data points as fallback
+            heatmapData = Array.from({ length: 50 }, () => {
+              // Get the center of the map
+              const center = map.current?.getCenter();
+              if (!center) return null;
+              
+              const lat = center.lat() + (Math.random() - 0.5) * 0.2;
+              const lng = center.lng() + (Math.random() - 0.5) * 0.2;
+              
+              return new google.maps.LatLng(lat, lng);
+            }).filter(Boolean) as google.maps.LatLng[];
+          }
           
           // Create a heatmap layer
           crimeLayer.current = new google.maps.visualization.HeatmapLayer({
-            data: mockCrimeData,
+            data: heatmapData,
             map: map.current,
             radius: 20,
             opacity: 0.7,
@@ -77,7 +90,7 @@ export const useCrimeLayer = ({
         crimeLayer.current = null;
       }
     };
-  }, [map, mapInitialized, showCrimeData]);
+  }, [map, mapInitialized, showCrimeData, crimeData]);
 
   return { crimeLayer: crimeLayer.current };
 };
