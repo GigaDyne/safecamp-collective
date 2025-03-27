@@ -42,12 +42,12 @@ export const useMapInitialization = ({ mapboxToken, routeData }: UseMapInitializ
       
       console.log("Initializing Mapbox map with token:", mapboxToken ? "Token exists" : "No token");
       
-      // Create new map instance
+      // Create new map instance with Austin, Texas coordinates
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-97.9222, 39.3820], // Center of US
-        zoom: 3,
+        center: [-97.7431, 30.2672], // Austin, Texas coordinates
+        zoom: 10, // Closer zoom to focus on the city
         attributionControl: true,
         preserveDrawingBuffer: true,
         maxZoom: 18

@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useToast } from "@/hooks/use-toast";
@@ -27,8 +26,8 @@ export function useMapInitializer({ mapboxToken, onMapReady }: UseMapInitializer
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/outdoors-v12",
-        center: [-111.8910, 40.7608],
-        zoom: 5,
+        center: [-97.7431, 30.2672],
+        zoom: 10,
         attributionControl: false,
         preserveDrawingBuffer: true
       });
