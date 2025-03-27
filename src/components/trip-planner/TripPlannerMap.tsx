@@ -29,15 +29,11 @@ const TripPlannerMap: React.FC<TripPlannerMapProps> = ({
   showCrimeData,
   setShowCrimeData
 }) => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<google.maps.Map | null>(null);
   const [mapInitialized, setMapInitialized] = useState(false);
 
   // Initialize Google Map
-  const { isLoading: isMapLoading, error: mapError } = useGoogleMapInitializer({
-    mapContainer,
+  const { mapContainer, map, isMapLoaded, error } = useGoogleMapInitializer({
     onMapReady: (googleMap) => {
-      map.current = googleMap;
       setMapInitialized(true);
     },
     options: {
@@ -66,11 +62,11 @@ const TripPlannerMap: React.FC<TripPlannerMapProps> = ({
   // Add crime data layer if enabled
   useCrimeLayer({
     map,
-    mapInitialized,
-    showCrimeData
+    showCrimeData,
+    mapInitialized
   });
 
-  const mapLoadingState = isMapLoading || !mapInitialized;
+  const mapLoadingState = isLoading || !mapInitialized;
 
   return (
     <div className="h-full relative">
@@ -90,7 +86,7 @@ const TripPlannerMap: React.FC<TripPlannerMapProps> = ({
       {!mapLoadingState && (
         <div className="absolute top-4 right-4 z-10">
           <CrimeDataToggle 
-            showCrimeData={showCrimeData} 
+            enabled={showCrimeData} 
             onToggle={setShowCrimeData} 
           />
         </div>

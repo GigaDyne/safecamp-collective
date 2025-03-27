@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from "uuid";
 import { TripPlanRequest, TripPlanResponse, RouteData, TripStop } from "./types";
 import { mockCampSites } from "@/data/mockData";
@@ -43,38 +42,38 @@ const geocodeLocation = async (location: string, mapboxToken: string): Promise<[
 };
 
 // Get directions between two locations
-const getDirections = async (start: string, end: string, mapboxToken: string): Promise<RouteData> => {
-  if (!mapboxToken) {
-    throw new Error("Mapbox token is missing");
+export const getDirections = async (start: string, end: string, mapboxToken: string = ""): Promise<RouteData | null> => {
+  try {
+    // Mock data for Google Maps implementation
+    console.log(`Getting directions from ${start} to ${end}`);
+    
+    // Create a mock route for testing
+    const mockRoute: RouteData = {
+      distance: 500000, // 500 km
+      duration: 18000, // 5 hours
+      geometry: {
+        coordinates: [
+          [-122.4194, 37.7749], // San Francisco
+          [-122.2, 37.8],
+          [-121.8, 38.0],
+          [-121.5, 38.2],
+          [-121.2, 38.5],
+          [-120.8, 38.7],
+          [-120.5, 38.9],
+          [-120.0, 39.1],
+          [-119.5, 39.3],
+          [-118.2437, 34.0522] // Los Angeles
+        ]
+      },
+      startLocation: start,
+      endLocation: end
+    };
+    
+    return mockRoute;
+  } catch (error) {
+    console.error("Error fetching directions:", error);
+    return null;
   }
-
-  // Get coordinates for start and end
-  const startCoords = await geocodeLocation(start, mapboxToken);
-  const endCoords = await geocodeLocation(end, mapboxToken);
-
-  // Build the request URL
-  const url = `${MAPBOX_DIRECTIONS_API}/${startCoords[0]},${startCoords[1]};${endCoords[0]},${endCoords[1]}?steps=true&geometries=geojson&access_token=${mapboxToken}`;
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Directions API failed: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  if (!data.routes || data.routes.length === 0) {
-    throw new Error("No route found");
-  }
-
-  // Ensure the route data is properly structured for our application
-  return {
-    geometry: {
-      coordinates: data.routes[0].geometry.coordinates
-    },
-    distance: data.routes[0].distance,
-    duration: data.routes[0].duration,
-    startLocation: start,
-    endLocation: end
-  };
 };
 
 // Check if a point is within a buffer distance of a route

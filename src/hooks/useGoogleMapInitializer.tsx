@@ -5,13 +5,15 @@ import { useLoadGoogleMaps } from "./useLoadGoogleMaps";
 
 interface UseGoogleMapInitializerProps {
   onMapReady?: (map: google.maps.Map) => void;
+  options?: google.maps.MapOptions;
 }
 
-export function useGoogleMapInitializer({ onMapReady }: UseGoogleMapInitializerProps = {}) {
+export function useGoogleMapInitializer({ onMapReady, options }: UseGoogleMapInitializerProps = {}) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const mapInitializedRef = useRef(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const googleMapsKey = "AIzaSyC4AviHEkjo5wMQwSm8IbX29UVbcPfmr1U";
   const { isLoaded: mapsScriptLoaded, error: mapsError } = useLoadGoogleMaps(googleMapsKey);
@@ -24,10 +26,8 @@ export function useGoogleMapInitializer({ onMapReady }: UseGoogleMapInitializerP
 
     try {
       // Center on Austin, Texas
-      const austinCoordinates = { lat: 30.2672, lng: -97.7431 };
-      
-      map.current = new google.maps.Map(mapContainer.current, {
-        center: austinCoordinates,
+      const defaultOptions = {
+        center: { lat: 30.2672, lng: -97.7431 },
         zoom: 10,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         zoomControl: true,
@@ -36,7 +36,12 @@ export function useGoogleMapInitializer({ onMapReady }: UseGoogleMapInitializerP
         streetViewControl: true,
         rotateControl: true,
         fullscreenControl: true
-      });
+      };
+      
+      map.current = new google.maps.Map(
+        mapContainer.current, 
+        options || defaultOptions
+      );
 
       // Add event listener for when the map is fully loaded
       google.maps.event.addListenerOnce(map.current, 'idle', () => {
@@ -53,6 +58,7 @@ export function useGoogleMapInitializer({ onMapReady }: UseGoogleMapInitializerP
       });
     } catch (error) {
       console.error("Error initializing map:", error);
+      setError("Map initialization failed");
       toast({
         title: "Map initialization failed",
         description: "Please check your internet connection and try again.",
@@ -67,7 +73,7 @@ export function useGoogleMapInitializer({ onMapReady }: UseGoogleMapInitializerP
         map.current = null;
       }
     };
-  }, [mapsScriptLoaded, toast, onMapReady]);
+  }, [mapsScriptLoaded, toast, onMapReady, options]);
 
   const initializeMapLayers = () => {
     if (!map.current) return;
@@ -101,6 +107,8 @@ export function useGoogleMapInitializer({ onMapReady }: UseGoogleMapInitializerP
     mapContainer,
     map,
     isMapLoaded,
-    mapsError
+    mapsError,
+    error,
+    isLoading: !isMapLoaded && mapsScriptLoaded
   };
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, Loader2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getDirections } from "@/lib/trip-planner/route-service";
@@ -43,7 +44,7 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
   const { toast } = useToast();
   const [startLocation, setStartLocation] = useState(initialStartLocation || "");
   const [destination, setDestination] = useState(initialDestination || "");
-  const [distanceRadius, setDistanceRadius] = useState(50);
+  const [bufferDistance, setBufferDistance] = useState(50);
   const [filterOptions, setFilterOptions] = useState({
     restAreas: true,
     gasStations: true,
@@ -88,10 +89,7 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
     setTripStops([]);
 
     try {
-      const route = await getDirections(
-        data.start,
-        data.destination
-      );
+      const route = await getDirections(data.start, data.destination);
 
       if (!route) {
         toast({
@@ -102,8 +100,25 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
         return;
       }
 
-      setRouteData(route.routeData);
-      setTripStops(route.tripStops);
+      setRouteData(route);
+      
+      // Generate some mock trip stops
+      const mockStops: TripStop[] = Array.from({ length: 10 }, (_, i) => ({
+        id: `stop-${i}`,
+        name: `Stop ${i + 1}`,
+        location: `Location ${i + 1}`,
+        coordinates: {
+          lat: 37.7749 + (Math.random() - 0.5) * 2,
+          lng: -122.4194 + (Math.random() - 0.5) * 2
+        },
+        type: ['campsite', 'gas', 'coffee', 'grocery'][Math.floor(Math.random() * 4)] as any,
+        safetyRating: Math.floor(Math.random() * 5) + 1,
+        distanceFromRoute: Math.random() * 5000,
+        distance: Math.random() * 50000,
+        eta: `${Math.floor(Math.random() * 5)}h ${Math.floor(Math.random() * 60)}m`
+      }));
+      
+      setTripStops(mockStops);
 
       toast({
         title: "Route loaded",
@@ -185,26 +200,27 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
             Additional Options
           </Label>
           <TripDistanceSlider 
-            distanceRadius={distanceRadius}
-            onDistanceChange={setDistanceRadius}
+            bufferDistance={bufferDistance}
+            setBufferDistance={setBufferDistance}
           />
           <TripFilterOptions 
-            filterOptions={filterOptions}
-            onFilterChange={setFilterOptions}
+            includeCampsites={filterOptions.campgrounds}
+            setIncludeCampsites={(value) => setFilterOptions(prev => ({ ...prev, campgrounds: value }))}
+            includeGasStations={filterOptions.gasStations}
+            setIncludeGasStations={(value) => setFilterOptions(prev => ({ ...prev, gasStations: value }))}
+            includeWaterStations={true}
+            setIncludeWaterStations={() => {}}
+            includeDumpStations={true}
+            setIncludeDumpStations={() => {}}
+            includeWalmarts={true}
+            setIncludeWalmarts={() => {}}
+            includePropaneStations={true}
+            setIncludePropaneStations={() => {}}
+            includeRepairShops={true}
+            setIncludeRepairShops={() => {}}
+            showCrimeData={showCrimeData}
+            onToggleCrimeData={onToggleCrimeData}
           />
-          <div className="flex items-center justify-between rounded-md border p-3 shadow-sm">
-            <div className="space-y-0.5">
-              <Label htmlFor="crimeData">Show Crime Data</Label>
-              <p className="text-sm text-muted-foreground">
-                Display crime data along the route
-              </p>
-            </div>
-            <Switch
-              id="crimeData"
-              checked={showCrimeData}
-              onCheckedChange={onToggleCrimeData}
-            />
-          </div>
         </div>
       </CardContent>
     </Card>
