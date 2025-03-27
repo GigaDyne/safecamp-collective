@@ -20,20 +20,21 @@ const CrimeDataToggle = ({ enabled, onToggle, className }: CrimeDataToggleProps)
             pressed={enabled}
             onPressedChange={onToggle}
             className={cn(
-              "h-10 w-10 rounded-full p-0 absolute z-10 bg-background/90 shadow-md border border-border",
-              enabled ? "text-primary" : "text-muted-foreground",
+              "h-12 w-12 rounded-full p-0 absolute z-10 bg-white dark:bg-slate-800 shadow-lg",
+              "border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700",
+              enabled ? "text-primary" : "text-foreground",
               className
             )}
             aria-label="Toggle crime data"
           >
             {enabled ? (
-              <BarChart3 className="h-5 w-5" />
+              <BarChart3 className="h-6 w-6" />
             ) : (
-              <AlertTriangle className="h-5 w-5" />
+              <AlertTriangle className="h-6 w-6" />
             )}
           </Toggle>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side="right" className="bg-white dark:bg-slate-800 shadow-lg">
           <p>{enabled ? "Hide" : "Show"} crime data</p>
         </TooltipContent>
       </Tooltip>

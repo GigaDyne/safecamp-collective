@@ -9,6 +9,8 @@ import MapLegend from './map-components/MapLegend';
 import MapLoadingState from './map-components/MapLoadingState';
 import MapError from './map-components/MapError';
 import MapDebugInfo from './map-components/MapDebugInfo';
+import CrimeDataToggle from './map-components/CrimeDataToggle';
+import MapControls from '../map/MapControls';
 
 interface TripPlannerMapProps {
   routeData: RouteData | null;
@@ -119,6 +121,18 @@ const TripPlannerMap = ({
           data-testid="map-container"
         />
         
+        {/* Add Crime Data Toggle */}
+        {setShowCrimeData && (
+          <CrimeDataToggle
+            enabled={showCrimeData}
+            onToggle={setShowCrimeData}
+            className="top-4 right-4"
+          />
+        )}
+        
+        {/* Add Map Controls */}
+        <MapControls />
+        
         {isLoading && <MapLoadingState message="Planning your trip..." />}
         
         {!mapsLoaded && (
@@ -126,7 +140,7 @@ const TripPlannerMap = ({
         )}
         
         {!isLoading && !error && tripStops.length === 0 && routeData && (
-          <div className="absolute bottom-4 left-4 right-4 bg-card p-4 rounded-md shadow-md text-center">
+          <div className="absolute bottom-4 left-4 right-4 bg-white dark:bg-slate-800 p-4 rounded-md shadow-lg border border-gray-200 dark:border-slate-700 text-center">
             <p className="text-sm">No stops found within the search distance. Try increasing the search distance.</p>
           </div>
         )}

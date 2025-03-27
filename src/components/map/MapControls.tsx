@@ -83,21 +83,21 @@ const MapControls = () => {
 
   return (
     <div className="absolute right-4 top-20 z-10 flex flex-col gap-2">
-      <div className="glass-card rounded-lg overflow-hidden shadow-md">
-        <div className="flex flex-col divide-y divide-border/30">
+      <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden shadow-lg border border-gray-200 dark:border-slate-700">
+        <div className="flex flex-col divide-y divide-gray-200 dark:divide-slate-700">
           <Button 
             variant="ghost" 
-            className="h-10 px-2 rounded-none hover:bg-white/10" 
+            className="h-12 w-12 rounded-none hover:bg-gray-100 dark:hover:bg-slate-700" 
             onClick={handleZoomIn}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </Button>
           <Button 
             variant="ghost" 
-            className="h-10 px-2 rounded-none hover:bg-white/10" 
+            className="h-12 w-12 rounded-none hover:bg-gray-100 dark:hover:bg-slate-700" 
             onClick={handleZoomOut}
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -105,10 +105,10 @@ const MapControls = () => {
       <Button 
         variant="secondary" 
         size="icon" 
-        className="glass-card h-10 w-10 shadow-md"
+        className="h-12 w-12 bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700"
         onClick={handleLocate}
       >
-        <Compass className="h-4 w-4" />
+        <Compass className="h-5 w-5" />
       </Button>
       
       <DropdownMenu>
@@ -116,22 +116,22 @@ const MapControls = () => {
           <Button 
             variant="secondary" 
             size="icon" 
-            className="glass-card h-10 w-10 shadow-md"
+            className="h-12 w-12 bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700"
           >
-            <Layers className="h-4 w-4" />
+            <Layers className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => handleLayerChange('roadmap')}>
+        <DropdownMenuContent align="end" className="w-40 shadow-lg">
+          <DropdownMenuItem onClick={() => handleLayerChange('roadmap')} className="cursor-pointer">
             Standard
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleLayerChange('satellite')}>
+          <DropdownMenuItem onClick={() => handleLayerChange('satellite')} className="cursor-pointer">
             Satellite
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleLayerChange('hybrid')}>
+          <DropdownMenuItem onClick={() => handleLayerChange('hybrid')} className="cursor-pointer">
             Hybrid
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleLayerChange('terrain')}>
+          <DropdownMenuItem onClick={() => handleLayerChange('terrain')} className="cursor-pointer">
             Terrain
           </DropdownMenuItem>
         </DropdownMenuContent>

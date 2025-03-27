@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, ShieldAlert } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
+import CrimeDataToggle from './map-components/CrimeDataToggle';
 
 interface TripNavigationMapProps {
   tripStops: TripStop[];
@@ -44,30 +45,16 @@ const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNa
       <div className="relative h-full w-full">
         <div ref={mapContainer} className="h-full w-full" />
         
-        {/* Crime data toggle button */}
-        <div className="absolute top-4 right-4 z-10">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={showCrimeData ? "default" : "outline"}
-                  size="sm"
-                  className={`${showCrimeData ? 'bg-red-500 hover:bg-red-600' : ''}`}
-                  onClick={() => setShowCrimeData(!showCrimeData)}
-                >
-                  {showCrimeData ? <ShieldAlert className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{showCrimeData ? 'Hide' : 'Show'} crime data overlay</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        {/* Crime data toggle button with improved styling */}
+        <CrimeDataToggle 
+          enabled={showCrimeData} 
+          onToggle={setShowCrimeData} 
+          className="top-4 right-4"
+        />
 
         {/* Crime data detail dialog */}
         <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 shadow-xl">
             <DialogHeader>
               <DialogTitle>Crime Statistics</DialogTitle>
               <DialogDescription>
