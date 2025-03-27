@@ -1,174 +1,83 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+@import "./styles/map-popup.css";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
- 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
- 
-    --radius: 0.5rem;
-  }
- 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
-}
- 
-@layer base {
-  * {
-    @apply border-border;
-  }
+  html,
   body {
-    @apply bg-background text-foreground;
+    height: 100%;
   }
-}
 
-/* Map specific styles */
-.mapboxgl-map {
-  width: 100%;
-  height: 100%;
-}
-
-.map-container {
-  width: 100%;
-  height: 100%;
-}
-
-.mapboxgl-popup-content {
-  @apply bg-card shadow-lg rounded-md border border-border;
-}
-
-.mapboxgl-ctrl-group {
-  @apply bg-background border border-border rounded-md shadow-sm;
-}
-
-.mapboxgl-ctrl button {
-  @apply text-foreground bg-card hover:bg-muted;
-}
-
-/* Make sure the map container takes full height */
-.relative.h-full.w-full {
-  min-height: 500px; 
-}
-
-/* Trip planner specific styles */
-.trip-planner-popup {
-  @apply bg-card shadow-lg border border-border;
-}
-
-.marker-element {
-  cursor: pointer;
-  z-index: 1;
-}
-
-.selected-stop {
-  z-index: 2;
-}
-
-/* Fix for map container visibility */
-[data-testid="map-container"] {
-  min-height: 500px !important;
-  visibility: visible !important;
-  position: relative !important;
-}
-
-/* Ensure parent containers don't hide the map */
-.h-\[calc\(100vh-56px\)\] {
-  min-height: 500px;
-}
-
-/* Map canvas style fixes */
-.mapboxgl-canvas-container, 
-.mapboxgl-canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Map legend positioning fix */
-.map-legend {
-  z-index: 20;
-}
-
-/* Collapsible map legend animation */
-.map-legend [data-state='open'] {
-  animation: slideDown 200ms ease-out;
-}
-
-.map-legend [data-state='closed'] {
-  animation: slideUp 200ms ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    height: 0;
-    opacity: 0;
+  body {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
   }
-  to {
-    height: var(--radix-collapsible-content-height);
-    opacity: 1;
-  }
-}
 
-@keyframes slideUp {
-  from {
-    height: var(--radix-collapsible-content-height);
-    opacity: 1;
+  input,
+  textarea,
+  select,
+  button {
+    color: inherit;
+    font: inherit;
   }
-  to {
-    height: 0;
-    opacity: 0;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* Firefox focus ring reset */
+  button::-moz-focus-inner,
+  [type='button']::-moz-focus-inner,
+  [type='reset']::-moz-focus-inner,
+  [type='submit']::-moz-focus-inner {
+    border: none;
+  }
+
+  /* Chrome search input clear button reset */
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+
+  /* Chrome autofill background removal */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-transition: background-color 5000s ease-in-out 0s;
   }
 }
