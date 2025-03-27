@@ -1,16 +1,14 @@
 
-import { User } from "@supabase/supabase-js";
-
 export interface UserProfile {
   id: string;
-  display_name: string | null;
+  display_name: string;
   bio: string | null;
   avatar_url: string | null;
-  is_creator: boolean;
   stripe_account_id: string | null;
   stripe_customer_id: string | null;
-  created_at: string;
-  updated_at: string;
+  is_creator: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SubscriptionPlan {
@@ -29,13 +27,26 @@ export interface UserSubscription {
   subscriber_id: string;
   creator_id: string;
   plan_id: string;
-  stripe_subscription_id: string;
-  status: string;
+  plan?: SubscriptionPlan;
   current_period_start: string;
   current_period_end: string;
+  status: 'active' | 'canceled' | 'incomplete' | 'past_due';
+  stripe_subscription_id: string;
   created_at: string;
   updated_at: string;
-  plan?: SubscriptionPlan;
+}
+
+export interface HelpRequest {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  location: string | null;
+  amount_requested: number | null;
+  amount_received: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PremiumCampsite {
@@ -49,36 +60,14 @@ export interface PremiumCampsite {
   updated_at: string;
 }
 
-export interface HelpRequest {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  amount_requested: number | null;
-  amount_received: number;
-  is_active: boolean;
-  location: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Donation {
   id: string;
   donor_id: string;
   recipient_id: string;
   help_request_id: string | null;
   amount: number;
-  stripe_payment_id: string;
   message: string | null;
-  created_at: string;
-}
-
-export interface Message {
-  id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  is_read: boolean;
+  stripe_payment_id: string;
   created_at: string;
 }
 
@@ -88,23 +77,28 @@ export interface Conversation {
   user2_id: string;
   last_message_at: string;
   created_at: string;
-  other_user?: UserProfile;
-  last_message?: Message;
 }
 
-// Create a simplified commenter type that matches what we're getting from the API
-export type CommentUser = {
+export interface Message {
   id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-};
+  conversation_id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
 
 export interface ProfileComment {
   id: string;
   profile_id: string;
   commenter_id: string;
+  commenter?: {
+    id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
   content: string;
   created_at: string;
   updated_at: string;
-  commenter?: CommentUser; // Now using the simpler CommentUser type
 }

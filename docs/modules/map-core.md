@@ -1,4 +1,5 @@
 
+
 # Map Core Module
 
 ## Purpose
@@ -47,3 +48,4 @@
 - Improve search performance for large datasets
 - Enhance context menu with more interaction options
 - Implement map style customization options
+

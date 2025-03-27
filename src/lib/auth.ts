@@ -1,154 +1,222 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/lib/supabase";
-import { v4 as uuidv4 } from "uuid";
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
-// Check connectivity to Supabase
-export const checkSupabaseConnectivity = async (): Promise<boolean> => {
+// Check if a user is authenticated
+export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    // Instead of querying a specific table that might not exist,
-    // we'll use a simple authentication check which doesn't require specific table access
-    const start = Date.now();
-    
-    // Call getSession without arguments
-    const { error } = await supabase.auth.getSession();
-    
-    const elapsed = Date.now() - start;
-    
-    console.log(`Supabase connectivity check: ${error ? 'failed' : 'succeeded'} in ${elapsed}ms`);
-    
-    return !error;
-  } catch (e) {
-    console.error("Supabase connectivity check error:", e);
+    const { data: { session } } = await supabase.auth.getSession();
+    return session !== null;
+  } catch (error) {
+    console.error('Error checking authentication status:', error);
     return false;
   }
 };
 
-// Ensure user is authenticated, creating an anonymous account if necessary
-export const ensureAuthenticated = async (): Promise<User> => {
+// Get the current user ID
+export const getCurrentUserId = async (): Promise<string | null> => {
   try {
-    // Check if user is already authenticated
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error("Session error:", sessionError);
-      throw sessionError;
-    }
-    
-    if (sessionData?.session) {
-      console.log("Found existing session:", sessionData.session.user.id);
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user) {
-        return {
-          id: userData.user.id,
-          email: userData.user.email || '',
-          createdAt: new Date(userData.user.created_at || Date.now()).toLocaleDateString()
-        };
-      }
-    }
-    
-    console.log("No session found, creating anonymous account");
-    // If not authenticated, create anonymous account
-    return await signInAnonymously();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id || null;
   } catch (error) {
-    console.error("Authentication error:", error);
-    
-    // Fallback to a local mock user if authentication fails
-    const offlineUser = localStorage.getItem('offline_user');
-    if (offlineUser) {
-      console.log("Using cached offline user");
-      return JSON.parse(offlineUser);
-    }
-    
-    // Create and store a new offline user as last resort
-    console.log("Creating new offline user");
-    const mockUser = {
-      id: `offline-${uuidv4()}`,
-      email: 'guest@safecampapp.com',
-      createdAt: new Date().toLocaleDateString()
-    };
-    
-    localStorage.setItem('offline_user', JSON.stringify(mockUser));
-    return mockUser;
+    console.error('Error getting current user ID:', error);
+    return null;
   }
 };
 
-// Sign in anonymously
-export const signInAnonymously = async (): Promise<User> => {
+// Get the current user object
+export const getCurrentUser = async () => {
   try {
-    // First check connectivity
-    const isConnected = await checkSupabaseConnectivity();
-    if (!isConnected) {
-      throw new Error("No connection to authentication service");
-    }
-    
-    // Use direct domain name instead of anonymous-safecampapp.com which seems to be invalid
-    const randomEmail = `guest-${uuidv4().substring(0, 8)}@nomad.camp`;
-    const randomPassword = uuidv4();
-    
-    console.log("Attempting anonymous sign-up with email:", randomEmail);
-    
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+};
+
+// Function to ensure a user is authenticated before performing an action
+export const ensureAuthenticated = async (): Promise<string> => {
+  const isAuth = await isAuthenticated();
+  if (!isAuth) {
+    throw new Error('Authentication required');
+  }
+  
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error('User ID not available');
+  }
+  
+  return userId;
+};
+
+// Sign up with email and password
+export const signUp = async (email: string, password: string) => {
+  try {
     const { data, error } = await supabase.auth.signUp({
-      email: randomEmail,
-      password: randomPassword,
+      email,
+      password,
     });
     
-    if (error) {
-      console.error("Anonymous sign-up error:", error);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error during sign up:', error);
+    throw error;
+  }
+};
+
+// Sign in with email and password
+export const signIn = async (email: string, password: string) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error during sign in:', error);
+    throw error;
+  }
+};
+
+// Sign out
+export const signOut = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error during sign out:', error);
+    throw error;
+  }
+};
+
+// Reset password
+export const resetPassword = async (email: string) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error sending reset password email:', error);
+    throw error;
+  }
+};
+
+// Update password
+export const updatePassword = async (newPassword: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error updating password:', error);
+    throw error;
+  }
+};
+
+// Hook for handling auth operations with toast notifications
+export const useAuth = () => {
+  const { toast } = useToast();
+  
+  const handleSignIn = async (email: string, password: string) => {
+    try {
+      const data = await signIn(email, password);
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome back!",
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Please check your credentials and try again.",
+        variant: "destructive",
+      });
       throw error;
     }
-    
-    console.log("Anonymous sign-up successful:", data.user?.id);
-    
-    localStorage.setItem('anonymous_email', randomEmail);
-    localStorage.setItem('anonymous_password', randomPassword);
-    
-    if (data.user) {
-      return {
-        id: data.user.id,
-        email: data.user.email || randomEmail,
-        createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
-      };
+  };
+  
+  const handleSignUp = async (email: string, password: string) => {
+    try {
+      const data = await signUp(email, password);
+      toast({
+        title: "Signed up successfully",
+        description: "Please check your email for verification.",
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Sign up failed",
+        description: error.message || "Please try again with a different email.",
+        variant: "destructive",
+      });
+      throw error;
     }
-    
-    throw new Error("Failed to create anonymous user");
-  } catch (error) {
-    console.error('Error signing in anonymously:', error);
-    
-    // Try to sign in with existing anonymous credentials
-    const storedEmail = localStorage.getItem('anonymous_email');
-    const storedPassword = localStorage.getItem('anonymous_password');
-    
-    if (storedEmail && storedPassword) {
-      try {
-        console.log("Trying to sign in with existing anonymous credentials");
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: storedEmail,
-          password: storedPassword,
-        });
-        
-        if (!error && data.user) {
-          console.log("Signed in with existing anonymous credentials");
-          return {
-            id: data.user.id,
-            email: data.user.email || storedEmail,
-            createdAt: new Date(data.user.created_at || Date.now()).toLocaleDateString()
-          };
-        }
-      } catch (signInError) {
-        console.error("Error signing in with existing credentials:", signInError);
-      }
+  };
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Sign out failed",
+        description: error.message || "An error occurred while signing out.",
+        variant: "destructive",
+      });
+      throw error;
     }
-    
-    // Fallback to a local mock user if anonymous sign-in fails
-    console.log("Creating offline mock user as last resort");
-    const mockUser = {
-      id: `offline-${uuidv4()}`,
-      email: 'guest@nomad.camp',
-      createdAt: new Date().toLocaleDateString()
-    };
-    
-    localStorage.setItem('offline_user', JSON.stringify(mockUser));
-    return mockUser;
-  }
+  };
+  
+  const handleResetPassword = async (email: string) => {
+    try {
+      await resetPassword(email);
+      toast({
+        title: "Reset email sent",
+        description: "Please check your email for password reset instructions.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Reset failed",
+        description: error.message || "An error occurred while sending reset email.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  const handleUpdatePassword = async (newPassword: string) => {
+    try {
+      await updatePassword(newPassword);
+      toast({
+        title: "Password updated",
+        description: "Your password has been successfully updated.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message || "An error occurred while updating your password.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  return {
+    signIn: handleSignIn,
+    signUp: handleSignUp,
+    signOut: handleSignOut,
+    resetPassword: handleResetPassword,
+    updatePassword: handleUpdatePassword,
+  };
 };

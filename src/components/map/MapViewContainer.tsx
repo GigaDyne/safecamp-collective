@@ -1,13 +1,11 @@
 
 import { useState, useEffect, useMemo } from "react";
-import { Filter, Plus, Route, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CampSite } from "@/lib/supabase";
 import { useMapContext } from "@/contexts/MapContext";
 import { useSearchContext } from "@/contexts/SearchContext";
 import { useCampSites } from "@/hooks/useCampSites";
-import { useViewportCampsites } from "@/hooks/viewport-campsites";
+import { useViewportCampsites } from "@/hooks/useViewportCampsites";
 import MapVisualizer from "./MapVisualizer";
 import SearchBar from "./SearchBar";
 import MapTokenInput from "./MapTokenInput";
@@ -17,6 +15,7 @@ import ViewportIndicator from "./ViewportIndicator";
 import MapActionButtons from "./MapActionButtons";
 import SearchNearHere from "./SearchNearHere";
 import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
 interface MapViewContainerProps {
   showCrimeData?: boolean;
@@ -43,7 +42,6 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     clearSearch
   } = useSearchContext();
   
-  const navigate = useNavigate();
   const { toast } = useToast();
   
   const [searchVisible, setSearchVisible] = useState(false);
@@ -152,9 +150,7 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
           bounds.extend({ lat: result.latitude, lng: result.longitude });
         });
         
-        map.current.fitBounds(bounds, {
-          padding: 50
-        });
+        map.current.fitBounds(bounds);
       }
     }
   };

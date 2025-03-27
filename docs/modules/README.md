@@ -1,4 +1,5 @@
 
+
 # SafeCamp Module Documentation
 
 This folder contains documentation for the main modules of the SafeCamp application. Each markdown file describes a specific module's purpose, functionality, components, and related database tables.
@@ -32,3 +33,4 @@ When updating these documents:
 2. Update the relevant document when adding new components or features
 3. Add new TODOs as they are identified
 4. Cross-reference between modules when adding integrations
+

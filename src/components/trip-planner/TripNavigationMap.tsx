@@ -1,94 +1,159 @@
-import React, { useEffect, useState } from 'react';
-import { TripStop } from '@/lib/trip-planner/types';
-import { useNavigationMap } from './hooks/useNavigationMap';
-import { CountyCrimeData } from '@/lib/trip-planner/crime-data-service';
-import CrimeDataTooltip from './map-components/CrimeDataTooltip';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Shield, ShieldAlert } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
-import { MapProvider } from '@/contexts/MapContext';
-import MapControls from '../map/MapControls';
-import CrimeDataToggle from './map-components/CrimeDataToggle';
-import MapLoadingState from './map-components/MapLoadingState';
+
+import { useState, useEffect, useRef } from "react";
+import { useGoogleMapInitializer } from "@/hooks/useGoogleMapInitializer";
+import { Trip, TripStop } from "@/lib/trip-planner/types";
+import { createStopMarker } from "./map-utils/createStopMarker";
+import MapError from "./map-components/MapError";
+import MapLoadingState from "./map-components/MapLoadingState";
+import { useGoogleMapsContext } from "@/contexts/GoogleMapsContext";
 
 interface TripNavigationMapProps {
-  tripStops: TripStop[];
+  trip: Trip;
   currentStopIndex: number;
-  userLocation: { lat: number; lng: number } | null;
+  onMapReady?: (map: google.maps.Map | null) => void;
 }
 
-const TripNavigationMap = ({ tripStops, currentStopIndex, userLocation }: TripNavigationMapProps) => {
-  const [showCrimeData, setShowCrimeData] = useState<boolean>(false);
-  const [selectedCrimeData, setSelectedCrimeData] = useState<CountyCrimeData | null>(null);
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
+const TripNavigationMap = ({ trip, currentStopIndex, onMapReady }: TripNavigationMapProps) => {
+  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const markers = useRef<google.maps.Marker[]>([]);
+  const { googleMapsKey } = useGoogleMapsContext();
   
-  const { mapContainer, loading, map } = useNavigationMap({
-    tripStops,
-    currentStopIndex,
-    userLocation,
-    showCrimeData
-  });
+  const { 
+    mapContainer, 
+    map, 
+    isMapLoaded, 
+    mapsError 
+  } = useGoogleMapInitializer();
 
   useEffect(() => {
-    if (map.current) {
-      setMapLoaded(true);
+    if (map.current && onMapReady) {
+      onMapReady(map.current);
     }
-  }, [map.current]);
+  }, [map, onMapReady]);
 
+  // Set up directions renderer
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const crimeParam = params.get('showCrime');
+    if (!window.google || !map.current || !isMapLoaded) return;
     
-    if (crimeParam === 'true') {
-      setShowCrimeData(true);
-    }
-  }, []);
+    const renderer = new google.maps.DirectionsRenderer({
+      map: map.current,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: '#4A90E2',
+        strokeWeight: 5,
+        strokeOpacity: 0.7,
+      },
+    });
+    
+    setDirectionsRenderer(renderer);
+    
+    return () => {
+      renderer.setMap(null);
+    };
+  }, [isMapLoaded, map]);
+
+  // Display the current route segment
+  useEffect(() => {
+    if (!directionsRenderer || !window.google || !isMapLoaded || !trip.stops || trip.stops.length < 2) return;
+    
+    clearMarkers();
+    
+    const displayCurrentSegment = async () => {
+      setIsLoadingRoute(true);
+      
+      const directionsService = new google.maps.DirectionsService();
+      
+      try {
+        // Determine start and end points for the current segment
+        const currentStop = trip.stops[currentStopIndex];
+        const nextStop = currentStopIndex < trip.stops.length - 1 
+          ? trip.stops[currentStopIndex + 1] 
+          : null;
+        
+        if (!currentStop || !nextStop) {
+          directionsRenderer.setDirections({ routes: [] });
+          setIsLoadingRoute(false);
+          return;
+        }
+        
+        // Add markers for current and next stop
+        addMarker(currentStop, "Current Location");
+        addMarker(nextStop, "Next Stop");
+        
+        // Calculate route between current and next stop
+        const result = await directionsService.route({
+          origin: { lat: currentStop.coordinates.lat, lng: currentStop.coordinates.lng },
+          destination: { lat: nextStop.coordinates.lat, lng: nextStop.coordinates.lng },
+          travelMode: google.maps.TravelMode.DRIVING,
+        });
+        
+        directionsRenderer.setDirections(result);
+        
+        // Center the map to show the entire route
+        if (map.current && result.routes[0]?.bounds) {
+          map.current.fitBounds(result.routes[0].bounds);
+        }
+      } catch (error) {
+        console.error('Error calculating route:', error);
+        directionsRenderer.setDirections({ routes: [] });
+      } finally {
+        setIsLoadingRoute(false);
+      }
+    };
+    
+    displayCurrentSegment();
+  }, [currentStopIndex, directionsRenderer, isMapLoaded, trip.stops, map]);
+
+  // Add a marker to the map
+  const addMarker = (stop: TripStop, label: string) => {
+    if (!map.current) return;
+    
+    const marker = new google.maps.Marker({
+      position: { lat: stop.coordinates.lat, lng: stop.coordinates.lng },
+      map: map.current,
+      title: stop.name,
+      label,
+      icon: {
+        url: createStopMarker(stop.type),
+        scaledSize: new google.maps.Size(32, 32),
+        anchor: new google.maps.Point(16, 32),
+      },
+    });
+    
+    markers.current.push(marker);
+    
+    // Add info window
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div class="p-2">
+          <h3 class="font-semibold">${stop.name}</h3>
+          <p class="text-sm text-muted-foreground">${label}</p>
+        </div>
+      `,
+    });
+    
+    marker.addListener('click', () => {
+      infoWindow.open(map.current, marker);
+    });
+  };
+
+  // Clear all markers from the map
+  const clearMarkers = () => {
+    markers.current.forEach(marker => marker.setMap(null));
+    markers.current = [];
+  };
+
+  if (mapsError) {
+    return <MapError error={mapsError} />;
+  }
 
   return (
-    <GoogleMapsProvider>
-      <div className="relative h-full w-full">
-        <div ref={mapContainer} className="h-full w-full" />
-        
-        <div className="absolute top-4 right-4 z-10">
-          <CrimeDataToggle 
-            enabled={showCrimeData} 
-            onToggle={setShowCrimeData}
-          />
-        </div>
-
-        {mapLoaded && (
-          <MapProvider value={{ map: map.current }}>
-            <MapControls />
-          </MapProvider>
-        )}
-
-        {loading && <MapLoadingState message="Loading navigation map..." />}
-
-        <Dialog open={!!selectedCrimeData} onOpenChange={(open) => !open && setSelectedCrimeData(null)}>
-          <DialogContent className="sm:max-w-md bg-background shadow-xl">
-            <DialogHeader>
-              <DialogTitle>Crime Statistics</DialogTitle>
-              <DialogDescription>
-                {selectedCrimeData?.county_name}, {selectedCrimeData?.state_abbr}
-              </DialogDescription>
-            </DialogHeader>
-            
-            {selectedCrimeData && (
-              <div className="py-4">
-                <CrimeDataTooltip data={selectedCrimeData} />
-              </div>
-            )}
-            
-            <DialogFooter>
-              <Button onClick={() => setSelectedCrimeData(null)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </GoogleMapsProvider>
+    <div className="relative w-full h-full bg-gray-100 rounded-lg overflow-hidden">
+      <div ref={mapContainer} className="w-full h-full" />
+      
+      {isLoadingRoute && <MapLoadingState message="Calculating route..." />}
+    </div>
   );
 };
 
