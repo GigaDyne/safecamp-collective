@@ -8,9 +8,9 @@ import { createMapPinWithPremium } from "./MapPinWithPremium";
 import CampSiteCardWithPremium from "./CampSiteCardWithPremium";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePremiumCampsites } from "@/hooks/usePremiumCampsites";
-import { useCrimeData } from "@/hooks/useCrimeData";
-import { useCrimeLayer } from "@/hooks/useCrimeLayer";
-import Badge from "@/components/Badge";
+import { useCrimeData } from "@/components/trip-planner/hooks/useCrimeData";
+import { useCrimeLayer } from "@/components/trip-planner/hooks/useCrimeLayer";
+import { Badge } from "@/components/ui/badge";
 
 interface MapInitializerWithPremiumProps {
   mapboxToken: string;
