@@ -12,16 +12,8 @@ const MapPage = () => {
   useEffect(() => {
     const centerMap = () => {
       try {
-        // Find the map instance
-        const mapInstance = document.querySelector('.mapboxgl-map');
-        if (mapInstance && (window as any).mapboxgl) {
-          const map = (window as any).mapboxgl.getMapInstance(mapInstance);
-          if (map) {
-            // Center on Austin
-            map.setCenter([-97.7431, 30.2672]);
-            map.setZoom(10);
-          }
-        }
+        // For Google Maps, we'll handle this internally in the map components
+        console.log("Google Maps initialization...");
       } catch (error) {
         console.error("Error centering map:", error);
       }

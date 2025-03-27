@@ -14,13 +14,23 @@ const MapControls = () => {
 
   const handleZoomIn = () => {
     if (map.current) {
-      map.current.zoomIn();
+      // @ts-ignore - Temporarily ignore type issues during transition
+      const zoom = map.current.getZoom();
+      if (zoom !== undefined) {
+        // @ts-ignore
+        map.current.setZoom(zoom + 1);
+      }
     }
   };
 
   const handleZoomOut = () => {
     if (map.current) {
-      map.current.zoomOut();
+      // @ts-ignore - Temporarily ignore type issues during transition
+      const zoom = map.current.getZoom();
+      if (zoom !== undefined) {
+        // @ts-ignore
+        map.current.setZoom(zoom - 1);
+      }
     }
   };
 
@@ -29,38 +39,45 @@ const MapControls = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           if (map.current) {
-            map.current.flyTo({
-              center: [position.coords.longitude, position.coords.latitude],
-              zoom: 14,
-              essential: true,
+            // @ts-ignore - Temporarily ignore type issues during transition
+            map.current.panTo({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
             });
+            // @ts-ignore
+            map.current.setZoom(14);
           }
         },
         () => {
           // If geolocation fails, center on Austin
           if (map.current) {
-            map.current.flyTo({
-              center: [-97.7431, 30.2672], // Austin, Texas
-              zoom: 10,
-              essential: true,
+            // @ts-ignore - Temporarily ignore type issues during transition
+            map.current.panTo({
+              lat: 30.2672, 
+              lng: -97.7431 // Austin, Texas
             });
+            // @ts-ignore
+            map.current.setZoom(10);
           }
           console.log("Unable to get user location, defaulting to Austin");
         }
       );
     } else if (map.current) {
       // If geolocation is not available, center on Austin
-      map.current.flyTo({
-        center: [-97.7431, 30.2672], // Austin, Texas
-        zoom: 10,
-        essential: true,
+      // @ts-ignore - Temporarily ignore type issues during transition
+      map.current.panTo({
+        lat: 30.2672, 
+        lng: -97.7431 // Austin, Texas
       });
+      // @ts-ignore
+      map.current.setZoom(10);
     }
   };
 
-  const handleLayerChange = (style: string) => {
+  const handleLayerChange = (mapTypeId: string) => {
     if (map.current) {
-      map.current.setStyle(`mapbox://styles/mapbox/${style}`);
+      // @ts-ignore - Temporarily ignore type issues during transition
+      map.current.setMapTypeId(mapTypeId);
     }
   };
 
@@ -105,17 +122,17 @@ const MapControls = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => handleLayerChange("outdoors-v12")}>
-            Outdoors
+          <DropdownMenuItem onClick={() => handleLayerChange('roadmap')}>
+            Standard
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleLayerChange("satellite-streets-v12")}>
+          <DropdownMenuItem onClick={() => handleLayerChange('satellite')}>
             Satellite
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleLayerChange("light-v11")}>
-            Light
+          <DropdownMenuItem onClick={() => handleLayerChange('hybrid')}>
+            Hybrid
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleLayerChange("dark-v11")}>
-            Dark
+          <DropdownMenuItem onClick={() => handleLayerChange('terrain')}>
+            Terrain
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

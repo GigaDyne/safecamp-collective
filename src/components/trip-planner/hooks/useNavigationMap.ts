@@ -1,9 +1,9 @@
 
 import { useEffect, useState, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
 import { TripStop } from '@/lib/trip-planner/types';
 import { createStopMarker } from '../map-utils/createStopMarker';
 import { createNavigationMarker } from '../map-utils/createNavigationMarker';
+import { useLoadGoogleMaps } from '@/hooks/useLoadGoogleMaps';
 
 interface UseNavigationMapProps {
   tripStops: TripStop[];
@@ -14,69 +14,38 @@ interface UseNavigationMapProps {
 
 export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, showCrimeData }: UseNavigationMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markers = useRef<mapboxgl.Marker[]>([]);
-  const userMarker = useRef<mapboxgl.Marker | null>(null);
+  const map = useRef<google.maps.Map | null>(null);
+  const markers = useRef<google.maps.Marker[]>([]);
+  const userMarker = useRef<google.maps.Marker | null>(null);
+  const polyline = useRef<google.maps.Polyline | null>(null);
   const [loading, setLoading] = useState(true);
-  const mapInitialized = useRef(false);
+  const googleMapsKey = "AIzaSyC4AviHEkjo5wMQwSm8IbX29UVbcPfmr1U";
+  const { isLoaded: mapsLoaded, error: mapsError } = useLoadGoogleMaps(googleMapsKey);
 
-  // Initialize map
+  // Initialize map when Google Maps is loaded
   useEffect(() => {
-    if (!mapContainer.current || map.current || mapInitialized.current) return;
-    mapInitialized.current = true;
+    if (!mapContainer.current || map.current || !mapsLoaded) return;
 
     try {
-      const mapboxToken = localStorage.getItem('mapbox_token') || '';
-      mapboxgl.accessToken = mapboxToken;
+      // Center on Austin, Texas by default
+      const austinCoordinates = { lat: 30.2672, lng: -97.7431 };
 
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/navigation-day-v1',
-        center: [-97.7431, 30.2672], // Austin, Texas coordinates
+      map.current = new google.maps.Map(mapContainer.current, {
+        center: austinCoordinates,
         zoom: 10,
-        attributionControl: false
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        disableDefaultUI: false,
+        zoomControl: true,
+        mapTypeControl: true,
+        scaleControl: true,
+        streetViewControl: true,
+        rotateControl: true,
+        fullscreenControl: true
       });
 
-      map.current.addControl(
-        new mapboxgl.NavigationControl({
-          showCompass: true,
-          visualizePitch: true
-        })
-      );
-
-      map.current.on('load', () => {
+      // Add event listener for when map is fully loaded
+      google.maps.event.addListenerOnce(map.current, 'idle', () => {
         setLoading(false);
-        
-        // Add a source for the route line
-        if (map.current) {
-          map.current.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: []
-              }
-            }
-          });
-
-          // Add a layer for the route line
-          map.current.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#3887be',
-              'line-width': 5,
-              'line-opacity': 0.75
-            }
-          });
-        }
       });
     } catch (error) {
       console.error('Error initializing navigation map:', error);
@@ -84,94 +53,122 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
 
     return () => {
       if (map.current) {
-        map.current.remove();
+        // No need to explicitly remove the map with Google Maps
         map.current = null;
       }
     };
-  }, []);
+  }, [mapsLoaded]);
 
   // Update markers when stops change
   useEffect(() => {
-    if (!map.current || loading) return;
+    if (!map.current || loading || !mapsLoaded) return;
 
     // Clear existing markers
-    markers.current.forEach(marker => marker.remove());
+    markers.current.forEach(marker => marker.setMap(null));
     markers.current = [];
+
+    // Clear existing polyline
+    if (polyline.current) {
+      polyline.current.setMap(null);
+      polyline.current = null;
+    }
 
     // Add new markers for each stop
     tripStops.forEach((stop, index) => {
       const isActive = index === currentStopIndex;
-      // Fix: Pass the stop type as a string instead of the whole TripStop object
-      const markerElement = createStopMarker(stop.type || 'campsite', stop.safetyRating, isActive);
       
-      const marker = new mapboxgl.Marker({
-        element: markerElement
-      })
-        .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
-        .addTo(map.current!);
+      // Create custom HTML marker element using the existing createStopMarker utility
+      const markerElement = document.createElement('div');
+      markerElement.innerHTML = createStopMarker(stop.type || 'campsite', stop.safetyRating, isActive).outerHTML;
+      
+      // Create a new Google Maps marker
+      const marker = new google.maps.Marker({
+        position: { lat: stop.coordinates.lat, lng: stop.coordinates.lng },
+        map: map.current,
+        title: stop.name,
+        // Use the custom icon if needed
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerElement.innerHTML)}`,
+          scaledSize: new google.maps.Size(32, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(16, 32)
+        }
+      });
 
       markers.current.push(marker);
     });
 
+    // Create a polyline for the route if we have stops
+    if (tripStops.length > 0) {
+      const path = tripStops.map(stop => ({ 
+        lat: stop.coordinates.lat, 
+        lng: stop.coordinates.lng 
+      }));
+      
+      polyline.current = new google.maps.Polyline({
+        path: path,
+        geodesic: true,
+        strokeColor: '#3887be',
+        strokeOpacity: 0.75,
+        strokeWeight: 5
+      });
+      
+      polyline.current.setMap(map.current);
+    }
+
     // If we have stops, fit the map to show them
     if (tripStops.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
+      const bounds = new google.maps.LatLngBounds();
       
       tripStops.forEach(stop => {
-        bounds.extend([stop.coordinates.lng, stop.coordinates.lat]);
+        bounds.extend({ lat: stop.coordinates.lat, lng: stop.coordinates.lng });
       });
       
       if (userLocation) {
-        bounds.extend([userLocation.lng, userLocation.lat]);
+        bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
       }
       
-      map.current.fitBounds(bounds, {
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        maxZoom: 15
-      });
-    }
+      map.current.fitBounds(bounds);
 
-    // Update route line if we have stops
-    if (tripStops.length > 0 && map.current.getSource('route')) {
-      const routeCoordinates = tripStops.map(stop => [stop.coordinates.lng, stop.coordinates.lat]);
-      
-      (map.current.getSource('route') as mapboxgl.GeoJSONSource).setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: routeCoordinates
-        }
-      });
+      // Add a little padding
+      const padding = { top: 50, right: 50, bottom: 50, left: 50 };
+      map.current.fitBounds(bounds, padding);
     }
-  }, [tripStops, currentStopIndex, loading]);
+  }, [tripStops, currentStopIndex, loading, mapsLoaded]);
 
   // Update user location marker
   useEffect(() => {
-    if (!map.current || loading || !userLocation) return;
+    if (!map.current || loading || !userLocation || !mapsLoaded) return;
     
     if (userMarker.current) {
-      userMarker.current.remove();
+      userMarker.current.setMap(null);
+      userMarker.current = null;
     }
     
-    // Fix: Use string type for first parameter, and provide all required parameters
-    // Using 'user-location' as type, false for not being current stop, and -1 as index
-    const markerElement = createNavigationMarker('user-location', false, -1);
+    // Create custom HTML marker element for user location
+    const markerElement = document.createElement('div');
+    // Using existing utility for consistency
+    markerElement.innerHTML = createNavigationMarker('user-location', false, -1).outerHTML;
     
-    userMarker.current = new mapboxgl.Marker({
-      element: markerElement
-    })
-      .setLngLat([userLocation.lng, userLocation.lat])
-      .addTo(map.current);
+    userMarker.current = new google.maps.Marker({
+      position: { lat: userLocation.lat, lng: userLocation.lng },
+      map: map.current,
+      title: 'Your Location',
+      // Use the custom icon if needed
+      icon: {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerElement.innerHTML)}`,
+        scaledSize: new google.maps.Size(24, 24),
+        origin: new google.maps.Point(0, 0),
+        anchor: new google.maps.Point(12, 12)
+      }
+    });
       
     // If we're in navigation mode, center on user
     if (tripStops.length > 0 && currentStopIndex >= 0) {
-      map.current.easeTo({
-        center: [userLocation.lng, userLocation.lat],
-        zoom: 14
-      });
+      map.current.panTo({ lat: userLocation.lat, lng: userLocation.lng });
+      map.current.setZoom(14);
     }
-  }, [userLocation, loading, tripStops.length, currentStopIndex]);
+  }, [userLocation, loading, tripStops.length, currentStopIndex, mapsLoaded]);
 
   return { mapContainer, map, loading };
 };
