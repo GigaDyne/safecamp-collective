@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useRef, ReactNode, MutableRefObjec
 import mapboxgl from "mapbox-gl";
 
 interface MapContextType {
-  map: MutableRefObject<mapboxgl.Map | null>;
+  map: google.maps.Map | mapboxgl.Map | null;
   tokenEntered: boolean;
   setTokenEntered: (entered: boolean) => void;
   mapboxToken: string;
@@ -32,9 +32,14 @@ interface MapContextType {
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
 
-export function MapProvider({ children }: { children: ReactNode }) {
-  // Using MutableRefObject instead of RefObject to allow assignment
-  const map = useRef<mapboxgl.Map | null>(null);
+interface MapProviderProps {
+  children: ReactNode;
+  value: {
+    map: google.maps.Map | mapboxgl.Map | null;
+  };
+}
+
+export function MapProvider({ children, value }: MapProviderProps) {
   const [tokenEntered, setTokenEntered] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>(() => {
     const localStorageTokenKey = "mapbox_token";
@@ -54,7 +59,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
   return (
     <MapContext.Provider
       value={{
-        map,
+        map: value.map,
         tokenEntered,
         setTokenEntered,
         mapboxToken,
