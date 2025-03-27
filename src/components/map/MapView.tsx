@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import { Filter, Plus, Route, MapPin } from "lucide-react";
@@ -189,6 +188,7 @@ const MapView = ({ showCrimeData = false }) => {
       ],
       images: siteData.images || [],
       reviewCount: 0,
+      source: 'supabase'
     };
 
     addCampSite(newCampSite);
@@ -304,7 +304,6 @@ const MapView = ({ showCrimeData = false }) => {
                       variant="outline" 
                       size="sm"
                       onClick={() => {
-                        // Prepare data for the add form
                         const siteData = {
                           name: site.name,
                           latitude: site.latitude,
@@ -336,7 +335,6 @@ const MapView = ({ showCrimeData = false }) => {
                 </Button>
                 <Button 
                   onClick={() => {
-                    // Add all missing sites
                     const missingSites = viewportCampsites?.filter(site => site.source === 'mapbox') || [];
                     let added = 0;
                     

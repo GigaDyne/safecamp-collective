@@ -1,4 +1,3 @@
-
 import { createClient } from "@supabase/supabase-js";
 
 // Define types
@@ -18,6 +17,7 @@ export interface CampSite {
   features: string[];
   images: string[];
   reviewCount: number;
+  source?: 'supabase' | 'mapbox' | 'mock';
 }
 
 export interface Review {
@@ -82,7 +82,8 @@ export const formatCampsiteForSupabase = (campsite: Omit<CampSite, 'id'> | CampS
     quietness: campsite.quietness,
     features: campsite.features,
     images: campsite.images,
-    review_count: campsite.reviewCount
+    review_count: campsite.reviewCount,
+    source: campsite.source
   };
 };
 
@@ -102,7 +103,8 @@ export const mapSupabaseCampsite = (data: any): CampSite => {
     quietness: data.quietness,
     features: data.features || [],
     images: data.images || [],
-    reviewCount: data.review_count || 0
+    reviewCount: data.review_count || 0,
+    source: data.source
   };
 };
 

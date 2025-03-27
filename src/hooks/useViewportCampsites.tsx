@@ -5,6 +5,7 @@ import { CampSite } from '@/lib/supabase';
 import debounce from 'lodash.debounce';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import mapboxgl from 'mapbox-gl';
 
 interface ViewportBounds {
   north: number;
@@ -90,7 +91,7 @@ export function useViewportCampsites(
           features: site.features || [],
           images: site.images || [],
           reviewCount: site.review_count || 0,
-          source: 'supabase'
+          source: 'supabase' as const
         }));
         
         setCampsites(mappedCampsites);
