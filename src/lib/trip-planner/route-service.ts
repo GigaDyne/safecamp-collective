@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from "uuid";
 import { TripPlanRequest, TripPlanResponse, RouteData, TripStop } from "./types";
 import { mockCampSites } from "@/data/mockData";
@@ -64,7 +63,8 @@ export const getDirections = async (start: string, end: string, mapboxToken: str
           [-120.0, 39.1],
           [-119.5, 39.3],
           [-118.2437, 34.0522] // Los Angeles
-        ]
+        ],
+        type: "LineString"
       },
       startLocation: start,
       endLocation: end

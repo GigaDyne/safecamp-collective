@@ -54,4 +54,50 @@ export interface UserSubscription {
   current_period_end: string;
   created_at: string;
   updated_at: string;
+  plan?: SubscriptionPlan;
+}
+
+export interface HelpRequest {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  location?: string;
+  amount_requested: number;
+  amount_received: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PremiumCampsite {
+  id: string;
+  user_id: string;
+  campsite_id: string;
+  title: string;
+  description: string;
+  price: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Donation {
+  id: string;
+  donor_id: string;
+  recipient_id: string;
+  amount: number;
+  message?: string;
+  help_request_id?: string;
+  stripe_payment_id: string;
+  created_at: string;
+}
+
+export interface ProfileComment {
+  id: string;
+  profile_id: string;
+  commenter_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  commenter?: UserProfile;
 }

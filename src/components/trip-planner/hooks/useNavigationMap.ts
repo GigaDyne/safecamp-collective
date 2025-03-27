@@ -77,9 +77,8 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
     tripStops.forEach((stop, index) => {
       const isActive = index === currentStopIndex;
       
-      // Create custom HTML marker element using the existing createStopMarker utility
-      const markerElement = document.createElement('div');
-      markerElement.innerHTML = createStopMarker(stop.type || 'campsite', stop.safetyRating, isActive).outerHTML;
+      // Create marker image URL
+      const markerUrl = createStopMarker(stop.type || 'campsite', stop.safetyRating, isActive);
       
       // Create a new Google Maps marker
       const marker = new google.maps.Marker({
@@ -88,7 +87,7 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
         title: stop.name,
         // Use the custom icon if needed
         icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerElement.innerHTML)}`,
+          url: markerUrl,
           scaledSize: new google.maps.Size(32, 32),
           origin: new google.maps.Point(0, 0),
           anchor: new google.maps.Point(16, 32)
@@ -145,10 +144,8 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
       userMarker.current = null;
     }
     
-    // Create custom HTML marker element for user location
-    const markerElement = document.createElement('div');
-    // Using existing utility for consistency
-    markerElement.innerHTML = createNavigationMarker('user-location', false, -1).outerHTML;
+    // Create marker image URL for user location
+    const markerUrl = createNavigationMarker('user-location');
     
     userMarker.current = new google.maps.Marker({
       position: { lat: userLocation.lat, lng: userLocation.lng },
@@ -156,7 +153,7 @@ export const useNavigationMap = ({ tripStops, currentStopIndex, userLocation, sh
       title: 'Your Location',
       // Use the custom icon if needed
       icon: {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(markerElement.innerHTML)}`,
+        url: markerUrl,
         scaledSize: new google.maps.Size(24, 24),
         origin: new google.maps.Point(0, 0),
         anchor: new google.maps.Point(12, 12)

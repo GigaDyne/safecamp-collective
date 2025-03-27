@@ -1,49 +1,63 @@
 
-export const createNavigationMarker = (type: string | undefined, isCurrentStop: boolean, index: number) => {
-  const el = document.createElement('div');
-  el.className = 'marker';
-  el.style.width = isCurrentStop ? '30px' : '20px';
-  el.style.height = isCurrentStop ? '30px' : '20px';
-  el.style.borderRadius = '50%';
-  el.style.cursor = 'pointer';
-  el.style.border = isCurrentStop ? '3px solid white' : '2px solid white';
-  el.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.3)';
+/**
+ * Creates a marker icon URL for navigation elements like user location
+ */
+export const createNavigationMarker = (
+  type: 'user-location' | 'waypoint' | 'start' | 'end'
+): string => {
+  let color = '#3884FF'; // default blue
+  let shape = 'circle';
   
   switch (type) {
-    case 'campsite':
-      el.style.backgroundColor = '#16a34a';
+    case 'user-location':
+      color = '#3884FF'; // blue for user location
+      shape = 'pulse';
       break;
-    case 'gas':
-      el.style.backgroundColor = '#ef4444';
+    case 'waypoint':
+      color = '#f43f5e'; // red for waypoints
+      shape = 'square';
       break;
-    case 'water':
-      el.style.backgroundColor = '#3b82f6';
+    case 'start':
+      color = '#4ade80'; // green for start
+      shape = 'triangle';
       break;
-    case 'dump':
-      el.style.backgroundColor = '#f59e0b';
+    case 'end':
+      color = '#f43f5e'; // red for end
+      shape = 'triangle';
       break;
-    case 'walmart':
-      el.style.backgroundColor = '#2563eb';
-      break;
-    case 'propane':
-      el.style.backgroundColor = '#f97316';
-      break;
-    case 'repair':
-      el.style.backgroundColor = '#3f3f46';
-      break;
-    default:
-      el.style.backgroundColor = '#6b7280';
   }
   
-  if (isCurrentStop) {
-    el.style.display = 'flex';
-    el.style.alignItems = 'center';
-    el.style.justifyContent = 'center';
-    el.style.color = 'white';
-    el.style.fontWeight = 'bold';
-    el.style.fontSize = '12px';
-    el.innerText = (index + 1).toString();
+  let svg = '';
+  
+  if (shape === 'pulse') {
+    // Pulsing location dot for user position
+    svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill="${color}" stroke="white" stroke-width="2"/>
+        <circle cx="12" cy="12" r="5" fill="white"/>
+      </svg>
+    `;
+  } else if (shape === 'square') {
+    svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <rect x="2" y="2" width="20" height="20" fill="${color}" rx="4" stroke="white" stroke-width="2"/>
+      </svg>
+    `;
+  } else if (shape === 'triangle') {
+    svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <polygon points="12,2 22,22 2,22" fill="${color}" stroke="white" stroke-width="2"/>
+      </svg>
+    `;
+  } else {
+    // Default circle
+    svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill="${color}" stroke="white" stroke-width="2"/>
+      </svg>
+    `;
   }
   
-  return el;
+  // Convert SVG to a data URL
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };

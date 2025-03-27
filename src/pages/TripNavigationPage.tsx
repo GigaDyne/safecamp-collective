@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Navigation, MapPin, Info, Share2 } from "lucide-react";
@@ -23,7 +22,6 @@ const TripNavigationPage = () => {
   const { isAuthenticated, isOfflineMode } = useAuth();
   const { toast } = useToast();
   
-  // Load the trip data
   useEffect(() => {
     async function loadTrip() {
       if (!tripId) {
@@ -35,7 +33,6 @@ const TripNavigationPage = () => {
         const tripData = await getTripPlanById(tripId);
         if (tripData) {
           setTrip(tripData);
-          // Sort stops by order to ensure proper sequence
           if (tripData.stops) {
             const sortedStops = [...tripData.stops].sort((a, b) => 
               (a.order || 0) - (b.order || 0)
@@ -66,7 +63,6 @@ const TripNavigationPage = () => {
     loadTrip();
   }, [tripId, navigate, toast]);
   
-  // Update user location periodically
   useEffect(() => {
     const updateLocation = async () => {
       try {
@@ -82,28 +78,22 @@ const TripNavigationPage = () => {
       }
     };
     
-    // Get initial location
     updateLocation();
     
-    // Update location every 10 seconds
     const intervalId = setInterval(updateLocation, 10000);
     
     return () => clearInterval(intervalId);
   }, [getLocation]);
   
-  // Calculate distance and ETA to next stop
   const calculateDistanceAndEta = (stop: TripStop) => {
     if (!userLocation) return { distance: "Unknown", eta: "Unknown" };
     
-    // Simple calculation for demo purposes
-    // In a real app, you'd use a routing API to get accurate info
     const lat1 = userLocation.lat;
     const lon1 = userLocation.lng;
     const lat2 = stop.coordinates.lat;
     const lon2 = stop.coordinates.lng;
     
-    // Calculate distance using Haversine formula
-    const R = 6371e3; // Earth's radius in meters
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -117,7 +107,6 @@ const TripNavigationPage = () => {
     const distanceMeters = R * c;
     const distanceMiles = distanceMeters / 1609.34;
     
-    // Estimate ETA (assuming average speed of 55 mph)
     const timeHours = distanceMiles / 55;
     const hours = Math.floor(timeHours);
     const minutes = Math.floor((timeHours - hours) * 60);
@@ -172,7 +161,6 @@ const TripNavigationPage = () => {
   
   return (
     <div className="relative h-screen flex flex-col">
-      {/* Header */}
       <div className="bg-primary py-3 px-4 flex items-center justify-between text-primary-foreground">
         <div className="flex items-center">
           <Button 
@@ -201,16 +189,24 @@ const TripNavigationPage = () => {
         </Button>
       </div>
 
-      {/* Map */}
       <div className="relative flex-1">
         <TripNavigationMap 
-          trip={trip}
+          trip={{
+            id: trip.id,
+            ownerId: trip.ownerId || "guest",
+            name: trip.name,
+            startLocation: trip.startLocation,
+            endLocation: trip.endLocation,
+            stops: trip.stops,
+            routeData: trip.routeData,
+            createdAt: trip.createdAt,
+            updatedAt: trip.updatedAt || trip.createdAt
+          }}
           tripStops={trip.stops} 
           currentStopIndex={currentStopIndex}
           userLocation={userLocation}
         />
         
-        {/* Current stop card */}
         <div className="absolute bottom-4 left-4 right-4 z-10">
           <Card className="bg-background/95 backdrop-blur-sm shadow-lg">
             <CardContent className="p-4">
