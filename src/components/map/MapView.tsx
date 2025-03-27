@@ -1,8 +1,9 @@
+
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import { Filter, Plus, Route, MapPin } from "lucide-react";
 import { useCampSites, useAddCampSite } from "@/hooks/useCampSites";
-import { useViewportCampsites } from "@/hooks/useViewportCampsites";
+import { useViewportCampsites } from "@/hooks/viewport-campsites";
 import { CampSite } from "@/lib/supabase";
 import { ensureAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
