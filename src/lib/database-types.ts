@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -27,6 +26,7 @@ export interface Database {
           images: string[] | null;
           review_count: number | null;
           created_at: string | null;
+          type: string | null;
         };
         Insert: {
           id?: string;
@@ -44,6 +44,7 @@ export interface Database {
           images?: string[] | null;
           review_count?: number | null;
           created_at?: string | null;
+          type?: string | null;
         };
         Update: {
           id?: string;
@@ -61,6 +62,7 @@ export interface Database {
           images?: string[] | null;
           review_count?: number | null;
           created_at?: string | null;
+          type?: string | null;
         };
       };
       reviews: {

@@ -18,6 +18,7 @@ export interface CampSite {
   images: string[];
   reviewCount: number;
   source?: 'supabase' | 'mapbox' | 'mock';
+  type?: string; // Adding the type property
 }
 
 export interface Review {
@@ -83,7 +84,8 @@ export const formatCampsiteForSupabase = (campsite: Omit<CampSite, 'id'> | CampS
     features: campsite.features,
     images: campsite.images,
     review_count: campsite.reviewCount,
-    source: campsite.source
+    source: campsite.source,
+    type: campsite.type // Adding the type property to the formatted object
   };
 };
 
@@ -104,7 +106,8 @@ export const mapSupabaseCampsite = (data: any): CampSite => {
     features: data.features || [],
     images: data.images || [],
     reviewCount: data.review_count || 0,
-    source: data.source
+    source: data.source,
+    type: data.type // Mapping the type property from database to the CampSite object
   };
 };
 

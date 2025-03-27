@@ -6,7 +6,7 @@ export interface TripStop {
   coordinates: { lat: number; lng: number };
   details?: any;
   order?: number;
-  type?: 'campsite' | 'gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair';
+  type?: 'campsite' | 'gas' | 'water' | 'dump' | 'walmart' | 'propane' | 'repair' | 'coffee' | 'grocery' | 'rv';
   safetyRating?: number;
   distanceFromRoute?: number;
   distance?: number;
