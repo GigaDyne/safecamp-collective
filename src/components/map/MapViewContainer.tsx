@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useMemo } from "react";
-import { Filter, Plus, Route } from "lucide-react";
+import { Filter, Plus, Route, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CampSite } from "@/lib/supabase";
@@ -16,6 +15,8 @@ import MissingSitesButton from "./MissingSitesButton";
 import ViewportIndicator from "./ViewportIndicator";
 import MapActionButtons from "./MapActionButtons";
 import SearchNearHere from "./SearchNearHere";
+import { Button } from "@/components/ui/button";
+import mapboxgl from "mapbox-gl";
 
 interface MapViewContainerProps {
   showCrimeData?: boolean;
@@ -66,7 +67,6 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
   });
   
   const combinedCampsites = useMemo(() => {
-    // If search is active, prioritize search results
     if (isSearchActive && searchResults.length > 0) {
       return searchResults;
     }
@@ -142,7 +142,6 @@ const MapViewContainer = ({ showCrimeData = false }: MapViewContainerProps) => {
     setIsSearchActive(results.length > 0);
     
     if (results.length > 0 && map.current) {
-      // Calculate bounds to fit all results
       const bounds = new mapboxgl.LngLatBounds();
       results.forEach(result => {
         bounds.extend([result.longitude, result.latitude]);
