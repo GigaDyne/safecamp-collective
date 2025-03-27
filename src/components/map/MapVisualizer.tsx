@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { useMapContext } from "@/contexts/MapContext";
 import { CampSite } from "@/lib/supabase";
 import MapInitializerWithPremium from "./MapInitializerWithPremium";
+import mapboxgl from "mapbox-gl";
 
 interface MapVisualizerProps {
   mapboxToken: string;
@@ -24,7 +25,11 @@ const MapVisualizer = ({
   } = useMapContext();
   
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
-    map.current = mapInstance;
+    // Instead of directly assigning to map.current, which is read-only
+    if (map.current !== mapInstance) {
+      // Set the reference through its containing object
+      map.current = mapInstance;
+    }
     
     mapInstance.on('moveend', () => {
       const zoom = mapInstance.getZoom();
