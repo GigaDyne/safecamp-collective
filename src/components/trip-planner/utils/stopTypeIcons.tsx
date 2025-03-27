@@ -1,5 +1,5 @@
 
-import { MapPin, Droplet, Gas, Coffee, ShoppingCart, Mountain, Bike, Wrench } from "lucide-react";
+import { MapPin, Droplet, Coffee, ShoppingCart, Mountain, Bike, Wrench, Fuel } from "lucide-react";
 
 export const getStopTypeIcon = (type: string) => {
   switch (type) {
@@ -11,13 +11,13 @@ export const getStopTypeIcon = (type: string) => {
       return <Coffee className="h-4 w-4 text-amber-600" />;
     case 'gas_station':
     case 'gas':
-      return <Gas className="h-4 w-4 text-red-600" />;
+      return <Fuel className="h-4 w-4 text-red-600" />;
     case 'grocery':
       return <ShoppingCart className="h-4 w-4 text-purple-600" />;
     case 'walmart':
       return <ShoppingCart className="h-4 w-4 text-blue-600" />;
     case 'propane':
-      return <Gas className="h-4 w-4 text-orange-600" />;
+      return <Fuel className="h-4 w-4 text-orange-600" />;
     case 'dump':
       return <Droplet className="h-4 w-4 text-brown-600" />;
     case 'repair':
