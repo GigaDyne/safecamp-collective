@@ -64,6 +64,12 @@ const fallbackImages = [
   'https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
 ];
 
+// Helper function to check if an image URL is valid
+const isValidImageUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  return url.startsWith('http') || url.startsWith('https');
+};
+
 export function useFeaturedCampsites() {
   return useQuery<FeaturedCampsite[]>({
     queryKey: ['featuredCampsites'],
@@ -85,13 +91,14 @@ export function useFeaturedCampsites() {
           console.log('Supabase featured campsites data:', data);
           
           const processedData = data.map((campsite, index) => {
-            // Check if the image URL is missing or invalid
-            const hasValidImageUrl = campsite.image_url && campsite.image_url.startsWith('http');
+            // Ensure each campsite has a valid image URL
+            const imageUrl = isValidImageUrl(campsite.image_url) 
+              ? campsite.image_url 
+              : fallbackImages[index % fallbackImages.length];
             
             return {
               ...campsite,
-              // Use the provided image URL if valid, otherwise use our reliable ones
-              image_url: hasValidImageUrl ? campsite.image_url : fallbackImages[index % fallbackImages.length]
+              image_url: imageUrl
             };
           });
           
