@@ -1,5 +1,6 @@
 
 import { useRef, useState, useEffect } from "react";
+import { useGoogleMapsContext } from "@/contexts/GoogleMapsContext";
 
 export interface UseGoogleMapInitializerProps {
   onMapReady?: (map: google.maps.Map) => void;
@@ -10,6 +11,7 @@ export const useGoogleMapInitializer = ({
   onMapReady,
   options
 }: UseGoogleMapInitializerProps = {}) => {
+  const { googleMapsKey } = useGoogleMapsContext();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);

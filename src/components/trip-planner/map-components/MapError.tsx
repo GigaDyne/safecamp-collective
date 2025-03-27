@@ -1,17 +1,22 @@
 
-import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import React from "react";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-export interface MapErrorProps {
-  error: string;
+interface MapErrorProps {
+  errorMessage: string;
 }
 
-const MapError = ({ error }: MapErrorProps) => {
+const MapError: React.FC<MapErrorProps> = ({ errorMessage }) => {
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-background/50 p-4">
-      <AlertCircle className="h-10 w-10 text-destructive mb-2" />
-      <h3 className="text-lg font-medium mb-1">Map Error</h3>
-      <p className="text-sm text-muted-foreground text-center">{error}</p>
+    <div className="w-full h-full flex items-center justify-center p-4">
+      <Alert variant="destructive" className="max-w-md">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Map Error</AlertTitle>
+        <AlertDescription>
+          {errorMessage || "There was a problem loading the map. Please try again."}
+        </AlertDescription>
+      </Alert>
     </div>
   );
 };

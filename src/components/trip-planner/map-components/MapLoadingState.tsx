@@ -1,11 +1,14 @@
 
-import { Loader2 } from 'lucide-react';
+import React from "react";
+import { Loader2 } from "lucide-react";
 
 interface MapLoadingStateProps {
   message?: string;
 }
 
-const MapLoadingState = ({ message = "Loading map..." }: MapLoadingStateProps) => {
+const MapLoadingState: React.FC<MapLoadingStateProps> = ({ 
+  message = "Loading map..." 
+}) => {
   return (
     <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
       <div className="flex flex-col items-center">

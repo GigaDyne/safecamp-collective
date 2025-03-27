@@ -35,17 +35,17 @@ const TripNavigationMap = ({
   } = useGoogleMapInitializer();
 
   useEffect(() => {
-    if (map && onMapReady) {
-      onMapReady(map);
+    if (map.current && onMapReady) {
+      onMapReady(map.current);
     }
   }, [map, onMapReady]);
 
   // Set up directions renderer
   useEffect(() => {
-    if (!window.google || !map || !isMapLoaded) return;
+    if (!window.google || !map.current || !isMapLoaded) return;
     
     const renderer = new google.maps.DirectionsRenderer({
-      map: map,
+      map: map.current,
       suppressMarkers: true,
       polylineOptions: {
         strokeColor: '#4A90E2',
@@ -99,8 +99,8 @@ const TripNavigationMap = ({
         directionsRenderer.setDirections(result);
         
         // Center the map to show the entire route
-        if (map && result.routes[0]?.bounds) {
-          map.fitBounds(result.routes[0].bounds);
+        if (map.current && result.routes[0]?.bounds) {
+          map.current.fitBounds(result.routes[0].bounds);
         }
       } catch (error) {
         console.error('Error calculating route:', error);
@@ -115,14 +115,14 @@ const TripNavigationMap = ({
 
   // Add a marker to the map
   const addMarker = (stop: TripStop, label: string) => {
-    if (!map) return;
+    if (!map.current) return;
     
     const marker = new google.maps.Marker({
       position: { 
         lat: stop.coordinates.lat, 
         lng: stop.coordinates.lng 
       },
-      map: map,
+      map: map.current,
       title: stop.name,
       label,
       icon: {
@@ -145,7 +145,7 @@ const TripNavigationMap = ({
     });
     
     marker.addListener('click', () => {
-      infoWindow.open(map, marker);
+      infoWindow.open(map.current!, marker);
     });
   };
 
@@ -156,7 +156,7 @@ const TripNavigationMap = ({
   };
 
   if (mapsError) {
-    return <MapError error={mapsError} />;
+    return <MapError errorMessage={mapsError} />;
   }
 
   return (

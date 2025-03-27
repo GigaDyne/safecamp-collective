@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation as useCurrentLocation } from "@/hooks/useLocation";
 import TripNavigationMap from "@/components/trip-planner/TripNavigationMap";
 import { useAuth } from "@/providers/AuthProvider";
+import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
 
 const TripNavigationPage = () => {
   const navigate = useNavigate();
@@ -190,22 +191,24 @@ const TripNavigationPage = () => {
       </div>
 
       <div className="relative flex-1">
-        <TripNavigationMap 
-          trip={{
-            id: trip.id,
-            ownerId: trip.ownerId || "guest",
-            name: trip.name,
-            startLocation: trip.startLocation,
-            endLocation: trip.endLocation,
-            stops: trip.stops,
-            routeData: trip.routeData,
-            createdAt: trip.createdAt,
-            updatedAt: trip.updatedAt || trip.createdAt
-          }}
-          tripStops={trip.stops} 
-          currentStopIndex={currentStopIndex}
-          userLocation={userLocation}
-        />
+        <GoogleMapsProvider>
+          <TripNavigationMap 
+            trip={{
+              id: trip.id,
+              ownerId: trip.ownerId || "guest",
+              name: trip.name,
+              startLocation: trip.startLocation,
+              endLocation: trip.endLocation,
+              stops: trip.stops,
+              routeData: trip.routeData,
+              createdAt: trip.createdAt,
+              updatedAt: trip.updatedAt || trip.createdAt
+            }}
+            tripStops={trip.stops} 
+            currentStopIndex={currentStopIndex}
+            userLocation={userLocation}
+          />
+        </GoogleMapsProvider>
         
         <div className="absolute bottom-4 left-4 right-4 z-10">
           <Card className="bg-background/95 backdrop-blur-sm shadow-lg">
