@@ -110,6 +110,107 @@ const MapInitializerWithPremium = ({
         console.log("Map load event fired");
         setIsMapLoaded(true);
         
+        map.current.addSource("campsites", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: []
+          },
+          cluster: true,
+          clusterMaxZoom: 14,
+          clusterRadius: 50
+        });
+        
+        map.current.addLayer({
+          id: "clusters",
+          type: "circle",
+          source: "campsites",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": [
+              "step",
+              ["get", "point_count"],
+              "#51bbd6",
+              10,
+              "#f1f075",
+              30,
+              "#f28cb1"
+            ],
+            "circle-radius": [
+              "step",
+              ["get", "point_count"],
+              20,
+              10,
+              30,
+              30,
+              40
+            ]
+          }
+        });
+        
+        map.current.addLayer({
+          id: "cluster-count",
+          type: "symbol",
+          source: "campsites",
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": "{point_count_abbreviated}",
+            "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+            "text-size": 12
+          }
+        });
+        
+        map.current.addLayer({
+          id: "unclustered-point",
+          type: "circle",
+          source: "campsites",
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": "#11b4da",
+            "circle-radius": 0,
+            "circle-stroke-width": 0
+          }
+        });
+        
+        map.current.on('click', 'clusters', (e) => {
+          if (!map.current) return;
+          
+          const features = map.current.queryRenderedFeatures(e.point, {
+            layers: ['clusters']
+          });
+          
+          if (features.length > 0) {
+            const clusterId = features[0].properties?.cluster_id;
+            if (clusterId) {
+              const source = map.current.getSource('campsites') as mapboxgl.GeoJSONSource;
+              source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+                if (err || !map.current) return;
+                
+                const coordinates = (features[0].geometry as any).coordinates;
+                
+                map.current.easeTo({
+                  center: coordinates,
+                  zoom: Math.min((zoom || 0) + 1, 14)
+                });
+              });
+            }
+          }
+          
+          e.preventDefault();
+        });
+        
+        map.current.on('mouseenter', 'clusters', () => {
+          if (map.current) {
+            map.current.getCanvas().style.cursor = 'pointer';
+          }
+        });
+        
+        map.current.on('mouseleave', 'clusters', () => {
+          if (map.current) {
+            map.current.getCanvas().style.cursor = '';
+          }
+        });
+        
         map.current.addSource("public-lands", {
           type: "geojson",
           data: {
@@ -178,7 +279,7 @@ const MapInitializerWithPremium = ({
         map.current = null;
       }
     };
-  }, [mapboxToken, toast]);
+  }, [mapboxToken, toast, onMapReady]);
 
   const flyToMarker = (site: CampSite) => {
     if (!map.current) return;
@@ -193,21 +294,61 @@ const MapInitializerWithPremium = ({
   };
 
   useEffect(() => {
+    if (!map.current || !isMapLoaded || !campSites) return;
+    
+    const features = campSites.map(site => ({
+      type: 'Feature' as const,
+      properties: {
+        id: site.id,
+        title: site.name,
+        description: site.description || '',
+        safety: site.safetyRating,
+        isPremium: premiumCampsiteIds.has(site.id)
+      },
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [site.longitude, site.latitude]
+      }
+    }));
+    
+    const geojsonData = {
+      type: 'FeatureCollection' as const,
+      features
+    };
+    
+    const source = map.current.getSource('campsites') as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData(geojsonData);
+    }
+  }, [campSites, isMapLoaded, premiumCampsiteIds]);
+
+  useEffect(() => {
     if (!map.current || isLoading || !isMapLoaded || !campSites || isPremiumLoading) {
       return;
     }
     
-    const currentCampSitesString = campSitesString;
+    const shouldShowMarkers = map.current.getZoom() >= 8;
     
-    if (markersRef.current.length > 0 && currentCampSitesString === markersRef.current[0]?.getElement().dataset.sitesHash) {
+    const currentCampSitesString = campSitesString;
+    const needsUpdate = markersRef.current.length === 0 || 
+                       (markersRef.current.length > 0 && 
+                        currentCampSitesString !== markersRef.current[0]?.getElement().dataset.sitesHash);
+    
+    if (!shouldShowMarkers || needsUpdate) {
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+    }
+    
+    if (!shouldShowMarkers) {
       return;
     }
     
-    console.log("Updating markers - campSites have changed");
+    if (!needsUpdate) {
+      return;
+    }
     
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-
+    console.log("Updating markers - campsites have changed");
+    
     if (map.current.loaded()) {
       addMarkers();
     } else {
@@ -250,6 +391,25 @@ const MapInitializerWithPremium = ({
         }
       });
     }
+    
+    const updateMarkerVisibility = () => {
+      if (!map.current) return;
+      
+      const zoom = map.current.getZoom();
+      markersRef.current.forEach(marker => {
+        const el = marker.getElement();
+        el.style.display = zoom >= 8 ? 'block' : 'none';
+      });
+    };
+    
+    map.current.on('zoom', updateMarkerVisibility);
+    updateMarkerVisibility();
+    
+    return () => {
+      if (map.current) {
+        map.current.off('zoom', updateMarkerVisibility);
+      }
+    };
   }, [campSitesString, isLoading, isMapLoaded, premiumCampsiteIds, campSites, isPremiumLoading]);
 
   useEffect(() => {

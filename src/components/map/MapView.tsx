@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import { Filter, Plus, Route } from "lucide-react";
 import { useCampSites, useAddCampSite } from "@/hooks/useCampSites";
+import { useViewportCampsites } from "@/hooks/useViewportCampsites";
 import { CampSite } from "@/lib/supabase";
 import { ensureAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +42,48 @@ const MapView = ({ showCrimeData = false }) => {
     quietness: 0,
     maxDistance: 50
   });
+  
+  const [viewportBounds, setViewportBounds] = useState<{
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  } | null>(null);
+  
+  const [useViewportLoading, setUseViewportLoading] = useState(false);
+  
+  const { 
+    campsites: viewportCampsites, 
+    isLoading: isViewportLoading 
+  } = useViewportCampsites(viewportBounds, {
+    enabled: useViewportLoading && tokenEntered,
+    limit: 50,
+    debounceMs: 300
+  });
+  
+  const combinedCampsites = useMemo(() => {
+    if (!useViewportLoading) {
+      return filteredCampSites.length > 0 ? filteredCampSites : apiCampSites || [];
+    }
+    
+    const allCampsites = [...(viewportCampsites || [])];
+    
+    if (filteredCampSites.length > 0) {
+      filteredCampSites.forEach(site => {
+        if (!allCampsites.some(c => c.id === site.id)) {
+          allCampsites.push(site);
+        }
+      });
+    } else if (apiCampSites) {
+      apiCampSites.forEach(site => {
+        if (!allCampsites.some(c => c.id === site.id)) {
+          allCampsites.push(site);
+        }
+      });
+    }
+    
+    return allCampsites;
+  }, [useViewportLoading, filteredCampSites, apiCampSites, viewportCampsites]);
 
   const handleTokenSubmit = useCallback((token: string) => {
     setMapboxToken(token);
@@ -50,6 +93,35 @@ const MapView = ({ showCrimeData = false }) => {
 
   const handleMapReady = useCallback((mapInstance: mapboxgl.Map) => {
     map.current = mapInstance;
+    
+    mapInstance.on('moveend', () => {
+      const zoom = mapInstance.getZoom();
+      const bounds = mapInstance.getBounds();
+      
+      if (zoom >= 8 && zoom <= 15) {
+        setUseViewportLoading(true);
+        setViewportBounds({
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest()
+        });
+      } else {
+        setUseViewportLoading(false);
+      }
+    });
+    
+    const bounds = mapInstance.getBounds();
+    const zoom = mapInstance.getZoom();
+    if (zoom >= 8 && zoom <= 15) {
+      setUseViewportLoading(true);
+      setViewportBounds({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -141,11 +213,17 @@ const MapView = ({ showCrimeData = false }) => {
       
       <MapInitializerWithPremium 
         mapboxToken={mapboxToken}
-        campSites={filteredCampSites.length > 0 ? filteredCampSites : apiCampSites || []}
-        isLoading={isLoading}
+        campSites={combinedCampsites}
+        isLoading={isLoading || isViewportLoading}
         onMapReady={handleMapReady}
         showCrimeData={showCrimeData}
       />
+      
+      {useViewportLoading && (
+        <div className="absolute top-20 left-4 bg-background/90 text-sm py-1 px-3 rounded-full shadow-sm border border-border z-20">
+          {isViewportLoading ? 'Loading campsites in view...' : `${viewportCampsites?.length || 0} campsites in current view`}
+        </div>
+      )}
       
       <div className="absolute top-4 left-0 right-0 px-4 z-10 transition-all duration-300 ease-in-out">
         <SearchBar visible={searchVisible} setVisible={setSearchVisible} />
