@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGoogleMapInitializer } from "@/hooks/useGoogleMapInitializer";
 import { useMapMarkers } from "@/components/trip-planner/hooks/useMapMarkers";
 import { useMapRoute } from "@/components/trip-planner/hooks/useMapRoute";
@@ -32,7 +32,7 @@ const TripPlannerMap: React.FC<TripPlannerMapProps> = ({
   const [mapInitialized, setMapInitialized] = useState(false);
 
   // Initialize Google Map
-  const { mapContainer, map, isMapLoaded, error } = useGoogleMapInitializer({
+  const { mapContainer, map, isMapLoaded, mapsError } = useGoogleMapInitializer({
     onMapReady: (googleMap) => {
       setMapInitialized(true);
     },
@@ -62,7 +62,7 @@ const TripPlannerMap: React.FC<TripPlannerMapProps> = ({
   // Add crime data layer if enabled
   useCrimeLayer({
     map,
-    showCrimeData,
+    enabled: showCrimeData,
     mapInitialized
   });
 

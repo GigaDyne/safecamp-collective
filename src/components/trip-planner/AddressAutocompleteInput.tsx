@@ -62,8 +62,14 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
         }
 
         const data = await response.json();
+        console.log("Mapbox autocomplete results:", data);
         setFeatures(data.features || []);
         setSearchPerformed(true);
+        
+        // Show the dropdown if we have results
+        if (data.features && data.features.length > 0) {
+          setIsOpen(true);
+        }
       } catch (error) {
         console.error("Failed to fetch geocoding results:", error);
         setFeatures([]);
@@ -105,13 +111,20 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
               const newValue = e.target.value;
               setInputValue(newValue);
               if (newValue.length >= 3) {
-                setIsOpen(true);
+                setIsLoading(true);
+                // Let fetchResults handle opening the popover
               } else {
                 setIsOpen(false);
               }
             }}
             className={cn("w-full", className)}
             disabled={!mapboxToken}
+            onFocus={() => {
+              // Re-open dropdown when focusing if we have results and sufficient input length
+              if (features.length > 0 && inputValue.length >= 3) {
+                setIsOpen(true);
+              }
+            }}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

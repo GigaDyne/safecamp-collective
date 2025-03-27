@@ -60,11 +60,13 @@ const TripLocationInputs = ({
   };
 
   const handleStartLocationSelect = (location: { name: string; lat: number; lng: number }) => {
+    console.log("Start location selected:", location);
     setStartLocation(location.name);
     setStartCoordinates([location.lng, location.lat]);
   };
 
   const handleEndLocationSelect = (location: { name: string; lat: number; lng: number }) => {
+    console.log("End location selected:", location);
     setEndLocation(location.name);
     setEndCoordinates([location.lng, location.lat]);
   };

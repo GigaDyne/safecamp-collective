@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from "uuid";
 import { TripPlanRequest, TripPlanResponse, RouteData, TripStop } from "./types";
 import { mockCampSites } from "@/data/mockData";
@@ -469,6 +470,10 @@ export const planTrip = async (
     endLocation,
     mapboxToken
   );
+  
+  if (!routeData) {
+    throw new Error("Failed to get directions between locations");
+  }
   
   // Log the route data for debugging
   console.log("Route data fetched:", {

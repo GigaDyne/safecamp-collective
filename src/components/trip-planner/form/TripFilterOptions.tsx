@@ -1,4 +1,6 @@
 
+import React from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
@@ -17,11 +19,11 @@ interface TripFilterOptionsProps {
   setIncludePropaneStations: (include: boolean) => void;
   includeRepairShops: boolean;
   setIncludeRepairShops: (include: boolean) => void;
-  showCrimeData?: boolean;
-  onToggleCrimeData?: (enabled: boolean) => void;
+  showCrimeData: boolean;
+  onToggleCrimeData: (show: boolean) => void;
 }
 
-const TripFilterOptions = ({
+const TripFilterOptions: React.FC<TripFilterOptionsProps> = ({
   includeCampsites,
   setIncludeCampsites,
   includeGasStations,
@@ -38,105 +40,84 @@ const TripFilterOptions = ({
   setIncludeRepairShops,
   showCrimeData,
   onToggleCrimeData
-}: TripFilterOptionsProps) => {
+}) => {
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-medium">Include:</h3>
-      
+    <div className="pt-2">
+      <p className="font-medium mb-2">Include:</p>
       <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-campsites" className="flex items-center gap-2">
-              Campsites
-            </Label>
-            <Switch 
-              id="include-campsites" 
-              checked={includeCampsites}
-              onCheckedChange={setIncludeCampsites}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-gas" className="flex items-center gap-2">
-              Gas Stations
-            </Label>
-            <Switch 
-              id="include-gas" 
-              checked={includeGasStations}
-              onCheckedChange={setIncludeGasStations}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-water" className="flex items-center gap-2">
-              Water Stations
-            </Label>
-            <Switch 
-              id="include-water" 
-              checked={includeWaterStations}
-              onCheckedChange={setIncludeWaterStations}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-dump" className="flex items-center gap-2">
-              Dump Stations
-            </Label>
-            <Switch 
-              id="include-dump" 
-              checked={includeDumpStations}
-              onCheckedChange={setIncludeDumpStations}
-            />
-          </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="campgrounds"
+            checked={includeCampsites}
+            onCheckedChange={setIncludeCampsites}
+          />
+          <Label htmlFor="campgrounds" className="text-sm">Campsites</Label>
         </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-walmart" className="flex items-center gap-2">
-              Walmarts
-            </Label>
-            <Switch 
-              id="include-walmart" 
-              checked={includeWalmarts}
-              onCheckedChange={setIncludeWalmarts}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-propane" className="flex items-center gap-2">
-              Propane Stations
-            </Label>
-            <Switch 
-              id="include-propane" 
-              checked={includePropaneStations}
-              onCheckedChange={setIncludePropaneStations}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="include-repair" className="flex items-center gap-2">
-              Repair Shops
-            </Label>
-            <Switch 
-              id="include-repair" 
-              checked={includeRepairShops}
-              onCheckedChange={setIncludeRepairShops}
-            />
-          </div>
-          
-          {onToggleCrimeData && (
-            <div className="flex items-center justify-between">
-              <Label htmlFor="include-crime-data" className="flex items-center gap-2">
-                <span>Crime Data</span>
-                <span className="text-xs text-muted-foreground">(beta)</span>
-              </Label>
-              <Switch 
-                id="include-crime-data" 
-                checked={showCrimeData}
-                onCheckedChange={onToggleCrimeData}
-              />
-            </div>
-          )}
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="gas-stations"
+            checked={includeGasStations}
+            onCheckedChange={setIncludeGasStations}
+          />
+          <Label htmlFor="gas-stations" className="text-sm">Gas Stations</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="water-stations"
+            checked={includeWaterStations}
+            onCheckedChange={setIncludeWaterStations}
+          />
+          <Label htmlFor="water-stations" className="text-sm">Water Stations</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="walmarts"
+            checked={includeWalmarts}
+            onCheckedChange={setIncludeWalmarts}
+          />
+          <Label htmlFor="walmarts" className="text-sm">Walmarts</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="dump-stations"
+            checked={includeDumpStations}
+            onCheckedChange={setIncludeDumpStations}
+          />
+          <Label htmlFor="dump-stations" className="text-sm">Dump Stations</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="propane-stations"
+            checked={includePropaneStations}
+            onCheckedChange={setIncludePropaneStations}
+          />
+          <Label htmlFor="propane-stations" className="text-sm">Propane Stations</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="repair-shops"
+            checked={includeRepairShops}
+            onCheckedChange={setIncludeRepairShops}
+          />
+          <Label htmlFor="repair-shops" className="text-sm">Repair Shops</Label>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="crime-data"
+            checked={showCrimeData}
+            onCheckedChange={onToggleCrimeData}
+          />
+          <Label htmlFor="crime-data" className="text-sm flex items-center">
+            Crime Data
+            <span className="text-xs text-muted-foreground ml-1">(beta)</span>
+          </Label>
         </div>
       </div>
     </div>

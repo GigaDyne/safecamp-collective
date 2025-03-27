@@ -2,19 +2,15 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Search, MapPin, Loader2 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
-import { Checkbox } from "@/components/ui/checkbox";
-import { getDirections } from "@/lib/trip-planner/route-service";
+import { Search, Loader2 } from "lucide-react";
+import { planTrip } from "@/lib/trip-planner/route-service";
 import { useToast } from "@/hooks/use-toast";
 import { RouteData, TripStop } from "@/lib/trip-planner/types";
 import TripDistanceSlider from "./form/TripDistanceSlider";
 import TripFilterOptions from "./form/TripFilterOptions";
-import LocationAutocomplete from "./LocationAutocomplete";
+import TripLocationInputs from "./form/TripLocationInputs";
 
 interface TripPlannerFormProps {
   setRouteData: (data: RouteData | null) => void;
@@ -43,18 +39,25 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
 }) => {
   const { toast } = useToast();
   const [startLocation, setStartLocation] = useState(initialStartLocation || "");
-  const [destination, setDestination] = useState(initialDestination || "");
+  const [endLocation, setEndLocation] = useState(initialDestination || "");
+  const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(
+    initialStartCoords ? [initialStartCoords.lng, initialStartCoords.lat] : null
+  );
+  const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(
+    initialDestCoords ? [initialDestCoords.lng, initialDestCoords.lat] : null
+  );
   const [bufferDistance, setBufferDistance] = useState(50);
   const [filterOptions, setFilterOptions] = useState({
-    restAreas: true,
-    gasStations: true,
-    restaurants: true,
-    campgrounds: false,
-    pointsOfInterest: false
+    includeCampsites: true,
+    includeGasStations: true,
+    includeWaterStations: true,
+    includeDumpStations: true,
+    includeWalmarts: true,
+    includePropaneStations: true,
+    includeRepairShops: true
   });
   
   const {
-    register,
     handleSubmit,
     setValue,
     formState: { errors },
@@ -64,21 +67,24 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
       destination: initialDestination || "",
     },
   });
-  
-  useEffect(() => {
-    if (initialStartLocation) {
-      setValue("start", initialStartLocation);
-    }
-    if (initialDestination) {
-      setValue("destination", initialDestination);
-    }
-  }, [initialStartLocation, initialDestination, setValue]);
 
-  const onSubmit = async (data: any) => {
-    if (!data.start || !data.destination) {
+  // Get the Mapbox token from environment variables
+  const mapboxToken = "pk.eyJ1Ijoic2FmZWNhbXAiLCJhIjoiY2x1Z2s5MnV0MHZ5aDJsbnJmcTcyemM3YyJ9.1QlVj6YGZ1Y6YEx9LZg-mQ";
+  
+  const onSubmit = async () => {
+    if (!startLocation || !endLocation) {
       toast({
         title: "Missing locations",
         description: "Please enter both start and destination locations.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!startCoordinates || !endCoordinates) {
+      toast({
+        title: "Missing coordinates",
+        description: "Please select locations from the dropdown suggestions.",
         variant: "destructive",
       });
       return;
@@ -89,9 +95,25 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
     setTripStops([]);
 
     try {
-      const route = await getDirections(data.start, data.destination);
-
-      if (!route) {
+      console.log("Planning trip with:", {
+        startLocation, 
+        endLocation,
+        startCoordinates, 
+        endCoordinates,
+        bufferDistance,
+        filterOptions
+      });
+      
+      // Call the planTrip function with our parameters
+      const tripPlanResult = await planTrip({
+        mapboxToken,
+        startLocation,
+        endLocation,
+        bufferDistance,
+        ...filterOptions
+      });
+      
+      if (!tripPlanResult.routeData) {
         toast({
           title: "Route not found",
           description: "Could not find a route between the specified locations.",
@@ -100,35 +122,18 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
         return;
       }
 
-      setRouteData(route);
-      
-      // Generate some mock trip stops
-      const mockStops: TripStop[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `stop-${i}`,
-        name: `Stop ${i + 1}`,
-        location: `Location ${i + 1}`,
-        coordinates: {
-          lat: 37.7749 + (Math.random() - 0.5) * 2,
-          lng: -122.4194 + (Math.random() - 0.5) * 2
-        },
-        type: ['campsite', 'gas', 'coffee', 'grocery'][Math.floor(Math.random() * 4)] as any,
-        safetyRating: Math.floor(Math.random() * 5) + 1,
-        distanceFromRoute: Math.random() * 5000,
-        distance: Math.random() * 50000,
-        eta: `${Math.floor(Math.random() * 5)}h ${Math.floor(Math.random() * 60)}m`
-      }));
-      
-      setTripStops(mockStops);
+      setRouteData(tripPlanResult.routeData);
+      setTripStops(tripPlanResult.availableStops || []);
 
       toast({
         title: "Route loaded",
-        description: `Planning route from ${data.start} to ${data.destination}`,
+        description: `Planning route from ${startLocation} to ${endLocation}`,
       });
     } catch (error) {
-      console.error("Error fetching directions:", error);
+      console.error("Error planning trip:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch directions",
+        description: "Failed to plan trip",
         variant: "destructive",
       });
     } finally {
@@ -136,16 +141,6 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
     }
   };
   
-  const handleLocationSelect = (field: "start" | "destination") => (location: { placeName: string; coordinates: string }) => {
-    if (field === "start") {
-      setStartLocation(location.placeName);
-      setValue("start", location.placeName);
-    } else {
-      setDestination(location.placeName);
-      setValue("destination", location.placeName);
-    }
-  };
-
   return (
     <Card className="bg-muted/50">
       <CardHeader>
@@ -153,32 +148,21 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
       </CardHeader>
       <CardContent className="grid gap-4">
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="start">Start Location</Label>
-            <LocationAutocomplete
-              placeholder="Enter start location"
-              value={startLocation}
-              onChange={setStartLocation}
-              onLocationSelect={handleLocationSelect("start")}
-            />
-            {errors.start && (
-              <p className="text-red-500 text-sm">{errors.start.message}</p>
-            )}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="destination">Destination</Label>
-            <LocationAutocomplete
-              placeholder="Enter destination"
-              value={destination}
-              onChange={setDestination}
-              onLocationSelect={handleLocationSelect("destination")}
-            />
-            {errors.destination && (
-              <p className="text-red-500 text-sm">
-                {errors.destination.message}
-              </p>
-            )}
-          </div>
+          <TripLocationInputs
+            mapboxToken={mapboxToken}
+            startLocation={startLocation}
+            setStartLocation={setStartLocation}
+            startCoordinates={startCoordinates}
+            setStartCoordinates={setStartCoordinates}
+            endLocation={endLocation}
+            setEndLocation={setEndLocation}
+            endCoordinates={endCoordinates}
+            setEndCoordinates={setEndCoordinates}
+            isLoading={isLoading}
+            initialStartLocation={initialStartLocation}
+            initialDestination={initialDestination}
+          />
+          
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <>
@@ -195,29 +179,30 @@ const TripPlannerForm: React.FC<TripPlannerFormProps> = ({
         </form>
 
         <div className="py-2">
-          <Label className="pb-2">
-            <MapPin className="mr-2 h-4 w-4 inline-block align-middle" />
+          <Label className="pb-2 block">
             Additional Options
           </Label>
+          
           <TripDistanceSlider 
             bufferDistance={bufferDistance}
             setBufferDistance={setBufferDistance}
           />
+          
           <TripFilterOptions 
-            includeCampsites={filterOptions.campgrounds}
-            setIncludeCampsites={(value) => setFilterOptions(prev => ({ ...prev, campgrounds: value }))}
-            includeGasStations={filterOptions.gasStations}
-            setIncludeGasStations={(value) => setFilterOptions(prev => ({ ...prev, gasStations: value }))}
-            includeWaterStations={true}
-            setIncludeWaterStations={() => {}}
-            includeDumpStations={true}
-            setIncludeDumpStations={() => {}}
-            includeWalmarts={true}
-            setIncludeWalmarts={() => {}}
-            includePropaneStations={true}
-            setIncludePropaneStations={() => {}}
-            includeRepairShops={true}
-            setIncludeRepairShops={() => {}}
+            includeCampsites={filterOptions.includeCampsites}
+            setIncludeCampsites={(value) => setFilterOptions(prev => ({ ...prev, includeCampsites: value }))}
+            includeGasStations={filterOptions.includeGasStations}
+            setIncludeGasStations={(value) => setFilterOptions(prev => ({ ...prev, includeGasStations: value }))}
+            includeWaterStations={filterOptions.includeWaterStations}
+            setIncludeWaterStations={(value) => setFilterOptions(prev => ({ ...prev, includeWaterStations: value }))}
+            includeDumpStations={filterOptions.includeDumpStations}
+            setIncludeDumpStations={(value) => setFilterOptions(prev => ({ ...prev, includeDumpStations: value }))}
+            includeWalmarts={filterOptions.includeWalmarts}
+            setIncludeWalmarts={(value) => setFilterOptions(prev => ({ ...prev, includeWalmarts: value }))}
+            includePropaneStations={filterOptions.includePropaneStations}
+            setIncludePropaneStations={(value) => setFilterOptions(prev => ({ ...prev, includePropaneStations: value }))}
+            includeRepairShops={filterOptions.includeRepairShops}
+            setIncludeRepairShops={(value) => setFilterOptions(prev => ({ ...prev, includeRepairShops: value }))}
             showCrimeData={showCrimeData}
             onToggleCrimeData={onToggleCrimeData}
           />
