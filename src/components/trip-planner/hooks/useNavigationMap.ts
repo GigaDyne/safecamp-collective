@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -26,7 +25,7 @@ export const useNavigationMap = ({
   useEffect(() => {
     if (!mapContainer.current) return;
     
-    // Mapbox GL token (normally would be from environment or props)
+    // Initialize map
     const token = 'pk.eyJ1IjoianRvdzUxMiIsImEiOiJjbThweWpkZzAwZjc4MmpwbjN0a28zdG56In0.ntV0C2ozH2xs8T5enECjyg';
     mapboxgl.accessToken = token;
     
@@ -83,15 +82,18 @@ export const useNavigationMap = ({
     // Add markers for all stops
     tripStops.forEach((stop, index) => {
       const isCurrent = index === currentStopIndex;
-      const isPast = index < currentStopIndex;
       
-      const marker = createNavigationMarker(
-        map.current!,
-        stop,
+      // Create marker element
+      const el = createNavigationMarker(
+        stop.type,
         isCurrent,
-        isPast,
-        index + 1
+        index
       );
+      
+      // Create and add the Mapbox marker
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
+        .addTo(map.current!);
       
       markers.current.push(marker);
     });
