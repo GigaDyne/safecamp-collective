@@ -42,14 +42,21 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddSiteFormProps {
   onSubmit: (data: FormValues & { id: string, images: string[] }) => void;
   onCancel: () => void;
+  initialLocation?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 const MAX_IMAGES = 3;
 
-const AddSiteForm = ({ onSubmit, onCancel }: AddSiteFormProps) => {
-  const { location, error, isLoading } = useLocation();
+const AddSiteForm = ({ onSubmit, onCancel, initialLocation }: AddSiteFormProps) => {
+  const { location: userLocation, error, isLoading } = useLocation();
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
+  
+  // Use provided location or fall back to user's current location
+  const location = initialLocation || userLocation;
   
   const form = useForm<FormValues>({
     defaultValues: {
