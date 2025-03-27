@@ -43,7 +43,8 @@ const TripPlannerPage = () => {
   const { user, isAuthenticated, isOfflineMode } = useAuth();
   
   // Use the provided Mapbox token or get it from localStorage
-  const mapboxToken = process.env.MAPBOX_TOKEN || localStorage.getItem("mapbox_token") || "";
+  // Fix: Changed process.env to import.meta.env for Vite compatibility
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || localStorage.getItem("mapbox_token") || "";
   
   // Debug logging
   console.log("TripPlannerPage - mapboxToken:", mapboxToken);
