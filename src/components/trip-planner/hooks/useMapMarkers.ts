@@ -1,64 +1,85 @@
 
 import { useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
 import { TripStop } from '@/lib/trip-planner/types';
-import { createStopMarker } from '../map-utils/createStopMarker';
 
 interface UseMapMarkersProps {
-  map: React.RefObject<mapboxgl.Map | null>;
+  map: React.RefObject<google.maps.Map | null>;
   tripStops: TripStop[];
   selectedStops: TripStop[];
-  onStopClick: (stop: TripStop) => void;
-  onStopContextMenu: (stop: TripStop) => void;
   mapInitialized: boolean;
+  onStopClick: (stop: TripStop) => void;
 }
 
 export const useMapMarkers = ({
   map,
   tripStops,
   selectedStops,
-  onStopClick,
-  onStopContextMenu,
-  mapInitialized
+  mapInitialized,
+  onStopClick
 }: UseMapMarkersProps) => {
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const markers = useRef<google.maps.Marker[]>([]);
 
+  // Add markers for trip stops
   useEffect(() => {
-    if (!map.current || !map.current.loaded() || !mapInitialized) return;
+    if (!map.current || !mapInitialized) {
+      return;
+    }
     
-    // Remove existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
+    // Clear existing markers
+    markers.current.forEach(marker => marker.setMap(null));
+    markers.current = [];
     
-    // Create new markers for each stop
+    // Add markers for trip stops
     tripStops.forEach(stop => {
-      if (!stop.coordinates) return;
+      // Create marker for each stop
+      const marker = new google.maps.Marker({
+        position: { 
+          lat: stop.coordinates.lat, 
+          lng: stop.coordinates.lng 
+        },
+        map: map.current,
+        title: stop.name,
+        // Can customize the icon here if needed
+      });
       
-      const isSelected = selectedStops.some(s => s.id === stop.id);
-      
-      const marker = new mapboxgl.Marker({
-        element: createStopMarker(stop.type, stop.safetyRating, isSelected),
-      })
-        .setLngLat([stop.coordinates.lng, stop.coordinates.lat])
-        .addTo(map.current!);
-      
-      const markerElement = marker.getElement();
-      
-      // Add click event listener to the marker
-      markerElement.addEventListener('click', (e) => {
-        e.stopPropagation();
+      // Add click listener to handle stop selection
+      marker.addListener('click', () => {
         onStopClick(stop);
+        
+        // Create info window
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div class="p-2">
+              <h3 class="font-semibold">${stop.name}</h3>
+              <p class="text-sm">${stop.type || 'campsite'}</p>
+              ${stop.distance ? `<p class="text-sm">${(stop.distance / 1609.34).toFixed(1)} miles</p>` : ''}
+            </div>
+          `
+        });
+        
+        infoWindow.open(map.current, marker);
       });
       
-      // Add context menu event listener to the marker
-      markerElement.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        onStopContextMenu(stop);
-      });
-      
-      markersRef.current.push(marker);
+      // Add to markers array
+      markers.current.push(marker);
     });
-  }, [tripStops, selectedStops, onStopClick, onStopContextMenu, map, mapInitialized]);
+    
+    // If we have stops, fit the map to show them
+    if (tripStops.length > 0 && map.current) {
+      const bounds = new google.maps.LatLngBounds();
+      
+      tripStops.forEach(stop => {
+        bounds.extend({ 
+          lat: stop.coordinates.lat, 
+          lng: stop.coordinates.lng 
+        });
+      });
+      
+      map.current.fitBounds(bounds);
+    }
+  }, [tripStops, mapInitialized, onStopClick, map, selectedStops]);
 
-  return { markers: markersRef.current };
+  return {
+    markers: markers.current
+  };
 };
